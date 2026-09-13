@@ -1,0 +1,160 @@
+import cadquery as cq
+import argparse
+import os
+
+def load_round_button():
+    model = cq.importers.importStep(os.path.join(os.path.dirname(__file__), '../../opengrid/Multiconnect Modeling Files/round.step'))
+    model = model.rotate((0,0,0), (1,0,0), 180)
+    return model
+
+def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m="M3"):
+    unit_width = 28.0
+    width = units * unit_width
+    
+    ridge_depth = 4.0
+    tip_clearance = 2.0
+    
+    if mount_type == "groove":
+        screw_y = 10.0
+        top_y = 20.0
+    else:
+        screw_y = 14.0 
+        top_y = 28.0   
+    
+    p1 = (0, 0)
+    p2a = (-rail_thickness + tip_clearance, rail_thickness - tip_clearance)
+    p2b = (-rail_thickness + tip_clearance, rail_thickness)
+    p3 = (top_y, rail_thickness)
+    p4 = (top_y, 0)
+    p5 = (screw_y + 4, 0)
+    p6 = (screw_y + 2, -ridge_depth)
+    p7 = (screw_y - 2, -ridge_depth)
+    p8 = (screw_y - 4, 0)
+    
+    pts = [p1, p2a, p2b, p3, p4]
+    if mount_type == "groove":
+        pts.extend([p5, p6, p7, p8])
+    
+    cleat = (
+        cq.Workplane("YZ")
+        .polyline(pts).close()
+        .extrude(width)
+        .translate((-width/2, 0, 0))
+    )
+    
+    if mount_type == "groove":
+        if screw_m == "M3":
+            screw_d, nut_waf, nut_thick = 3.4, 5.5, 2.4
+        elif screw_m == "M4":
+            screw_d, nut_waf, nut_thick = 4.5, 7.0, 3.2
+        elif screw_m == "M5":
+            screw_d, nut_waf, nut_thick = 5.5, 8.0, 4.0
+            
+        slot_t = nut_thick + 0.1
+        slot_z_center = 4.0 + slot_t / 2.0
+        
+        for i in range(units):
+            x = -width/2 + unit_width/2 + i*unit_width
+            hole = cq.Workplane("XY").workplane(offset=-10).center(x, screw_y).circle(screw_d/2).extrude(50)
+            cleat = cleat.cut(hole)
+            
+            # Nut slot slides from top down to screw_y
+            slot_h = top_y - (screw_y - nut_waf/2.0)
+            slot_y_center = top_y - slot_h / 2.0
+            
+            slot = (
+                cq.Workplane("XZ", origin=(x, slot_y_center, slot_z_center))
+                .rect(nut_waf, slot_t)
+                .extrude(slot_h / 2.0, both=True)
+            )
+            cleat = cleat.cut(slot)
+    else:
+        button = load_round_button()
+        for i in range(units):
+            x = -width/2 + unit_width/2 + i*unit_width
+            btn_inst = button.translate((x, screw_y, rail_thickness + 4.0))
+            cleat = cleat.union(btn_inst)
+            
+    return cleat
+
+
+def create_bottom_cleat(units=2, rail_thickness=19.0, screw_m="M3"):
+    unit_width = 28.0
+    width = units * unit_width
+    
+    if screw_m == "M3":
+        screw_d, nut_waf, nut_thick = 3.4, 5.5, 2.4
+    elif screw_m == "M4":
+        screw_d, nut_waf, nut_thick = 4.5, 7.0, 3.2
+    elif screw_m == "M5":
+        screw_d, nut_waf, nut_thick = 5.5, 8.0, 4.0
+        
+    ridge_depth = 4.0
+    height = 20.0
+    screw_y = 0.0
+    
+    p1 = (-height/2, 0)
+    p2 = (-height/2, rail_thickness)
+    p3 = (-5.0, rail_thickness) 
+    p3b = (height/2, 4.0) 
+    p4 = (height/2, 0)
+    p5 = (screw_y + 4, 0)
+    p6 = (screw_y + 2, -ridge_depth)
+    p7 = (screw_y - 2, -ridge_depth)
+    p8 = (screw_y - 4, 0)
+    
+    pts = [p1, p2, p3, p3b, p4, p5, p6, p7, p8]
+    
+    cleat = (
+        cq.Workplane("YZ")
+        .polyline(pts).close()
+        .extrude(width)
+        .translate((-width/2, 0, 0))
+    )
+    
+    slot_t = nut_thick + 0.1
+    slot_z_center = 4.0 + slot_t / 2.0
+    
+    for i in range(units):
+        x = -width/2 + unit_width/2 + i*unit_width
+        hole = cq.Workplane("XY").workplane(offset=-10).center(x, screw_y).circle(screw_d/2).extrude(50)
+        cleat = cleat.cut(hole)
+        
+        # Nut slot slides from bottom UP to screw_y
+        slot_h = (screw_y + nut_waf/2.0) - (-height/2)
+        slot_y_center = -height/2 + slot_h / 2.0
+        
+        slot = (
+            cq.Workplane("XZ", origin=(x, slot_y_center, slot_z_center))
+            .rect(nut_waf, slot_t)
+            .extrude(slot_h / 2.0, both=True)
+        )
+        cleat = cleat.cut(slot)
+        
+    return cleat
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate French Cleat attachments")
+    parser.add_argument("--type", choices=["top", "bottom", "both"], default="both", help="Type of cleat to generate")
+    parser.add_argument("--units", type=int, default=2, help="Number of units wide")
+    parser.add_argument("--rail-thickness", type=float, default=19.0, help="Thickness of the rail in mm")
+    parser.add_argument("--mount", choices=["groove", "multiconnect"], default="groove", help="Mount type")
+    parser.add_argument("--screw", type=str, default="M3", help="Screw size")
+    
+    args = parser.parse_args()
+    
+    if args.type in ["top", "both"]:
+        top = create_top_cleat(args.units, args.rail_thickness, args.mount, args.screw)
+        filename = f"top_cleat_{args.units}u_{args.mount}_T{args.rail_thickness}_{args.screw}.stl"
+        cq.exporters.export(top, filename)
+        print(f"Exported {filename}")
+        
+    if args.type in ["bottom", "both"] and args.mount == "groove":
+        bot = create_bottom_cleat(args.units, args.rail_thickness, args.screw)
+        filename = f"bottom_cleat_{args.units}u_groove_T{args.rail_thickness}_{args.screw}.stl"
+        cq.exporters.export(bot, filename)
+        print(f"Exported {filename}")
+
+if __name__ == "__main__":
+    main()
