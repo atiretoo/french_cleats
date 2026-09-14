@@ -26,3 +26,6 @@ echo Generating Strength Testers...
 python src/generate_strength_tester.py --mount groove
 
 echo Done!
+
+echo Generating Nut Pusher...
+python src/generate_nut_pusher.py
