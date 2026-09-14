@@ -3,26 +3,26 @@ import argparse
 
 from holder_base import create_baseplate
 
-def make_gridfinity_cell():
+def make_gridfinity_cutout():
     """
-    Creates a single Gridfinity baseplate protrusion (positive geometry).
+    Creates a single Gridfinity baseplate cutout (negative geometry).
     """
-    cell = (
+    cutout = (
         cq.Workplane("XY")
-        .rect(41.5, 41.5)
+        .rect(42.0, 42.0)
         .extrude(2.15, taper=45)
         .faces(">Z")
         .extrude(1.8)
         .faces(">Z")
         .extrude(0.7, taper=45)
     )
-    return cell
+    return cutout
 
 def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0):
     unit_width = 28.0
     width = width_units * unit_width
     shelf_depth = depth_units * unit_width
-    shelf_thickness = 5.0
+    shelf_thickness = 7.0
     brace_thickness = 5.0
     
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(
@@ -78,7 +78,7 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
     
     # 3. Add Gridfinity Baseplate geometry on top of the shelf
     if gridfinity:
-        gf_cell = make_gridfinity_cell()
+        gf_cutout = make_gridfinity_cutout()
         
         num_x = int(width / 42.0)
         num_z = int(shelf_depth / 42.0)
@@ -89,22 +89,14 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
                 cx = (ix - num_x / 2.0 + 0.5) * 42.0
                 cz = -11.0 - shelf_depth / 2.0 + (iz - num_z / 2.0 + 0.5) * 42.0
                 
-                # The GF cell is built on the XY plane, so we need to translate it
-                # to (cx, shelf_top, cz) and rotate it so it points UP (+Y).
-                # Wait, the cell was drawn in XY and extruded in +Z.
-                # If we want it pointing up in +Y, we rotate it around X axis by -90 degrees.
-                
-                # First, build it pointing in +Y
-                # A simpler way: draw it on the XZ workplane.
-                # Let's recreate it directly on the shelf top to avoid rotation confusion!
-                
-                # Actually, CadQuery handles rotation easily:
+                # The GF cutout is built in +Z. We want to cut DOWN into the shelf (-Y).
+                # Rotate around X-axis by 90 degrees maps +Z to -Y.
                 inst = (
-                    gf_cell
-                    .rotate((0,0,0), (1,0,0), -90)
+                    gf_cutout
+                    .rotate((0,0,0), (1,0,0), 90)
                     .translate((cx, shelf_top, cz))
                 )
-                tool_holder = tool_holder.union(inst)
+                tool_holder = tool_holder.cut(inst)
                 
     # Cut screws
     screws = (
