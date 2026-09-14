@@ -4,8 +4,8 @@ import math
 
 from holder_base import create_baseplate
 
-def create_corner_clamp_holder(width_units=2, depth_units=5, num_slots=4, slot_width=10.0, 
-                               slot_spacing=30.0, start_clearance=15.0, groove_depth=10.0, 
+def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_width=10.0, 
+                               slot_spacing=30.0, start_clearance=15.0, groove_depth=15.0, 
                                chord=134.9375, arc_height=19.05, rail_height=73.0):
     
     unit_width = 28.0
@@ -29,18 +29,15 @@ def create_corner_clamp_holder(width_units=2, depth_units=5, num_slots=4, slot_w
     arc_bottom_y = v_inner_bottom - groove_depth
     
     # Ensure there is 5mm of solid plastic spine below the deepest part of the groove
+    # Now that the bottom is full-width, this provides massive strength!
     v_outer_bottom = arc_bottom_y - 5.0
-    
-    # Side thickness of 5mm perpendicular to the 45-deg slope
-    y_thick = 5.0 * math.sqrt(2)
     
     v_pts = [
         (-width/2, shelf_top),
         (0, v_inner_bottom),
         (width/2, shelf_top),
-        (width/2, shelf_top - y_thick),
-        (0, v_outer_bottom),
-        (-width/2, shelf_top - y_thick)
+        (width/2, v_outer_bottom),
+        (-width/2, v_outer_bottom)
     ]
     
     # Baseplate face is at Z = -11
@@ -103,13 +100,13 @@ def create_corner_clamp_holder(width_units=2, depth_units=5, num_slots=4, slot_w
 
 def main():
     parser = argparse.ArgumentParser(description="Generate French Cleat Corner Clamp Holder")
-    parser.add_argument("--width-units", type=int, default=2, help="Number of units wide")
+    parser.add_argument("--width-units", type=int, default=1, help="Number of units wide")
     parser.add_argument("--depth-units", type=int, default=5, help="Number of units deep")
     parser.add_argument("--num-slots", type=int, default=4, help="Number of clamps to hold")
     parser.add_argument("--slot-width", type=float, default=10.0, help="Width of each slot")
     parser.add_argument("--slot-spacing", type=float, default=30.0, help="Center-to-center spacing of slots")
     parser.add_argument("--start-clearance", type=float, default=15.0, help="Distance from backplate to first slot center")
-    parser.add_argument("--groove-depth", type=float, default=10.0, help="Depth of groove below the inner V bottom")
+    parser.add_argument("--groove-depth", type=float, default=15.0, help="Depth of groove below the inner V bottom")
     parser.add_argument("--chord", type=float, default=134.9375, help="Chord length of the clamp curve in mm")
     parser.add_argument("--arc-height", type=float, default=19.05, help="Height of the arc from chord in mm")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
