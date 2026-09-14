@@ -32,3 +32,6 @@ python src/generate_nut_pusher.py
 
 echo Generating Corner Clamp Holders...
 python src/generate_corner_clamp_holder.py
+
+echo Generating Corner Clamp Tester...
+python src/generate_corner_clamp_tester.py
