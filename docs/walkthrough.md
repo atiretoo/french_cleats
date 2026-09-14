@@ -62,3 +62,13 @@ A new module `generate_slot_holder.py` creates a 1x2U shelf with a single contin
 - **Fillet Clearance:** The slot perfectly stops 10mm away from the backplate to ensure inserted tools never catch on the 5mm strengthening fillet.
 
 ![Slot Holder (1x2U)](file:///C:/Users/atyre/.gemini/antigravity/brain/6f123139-a880-4905-af43-bcb69787dd1f/slot_render.png)
+
+
+## Developer Notes: CadQuery XZ Plane Quirks
+When writing new modules or cutting holes, you may notice that cuts occasionally fail to intersect the model. This is often because of how CadQuery defines the XZ workplane.
+- The XZ plane has its local X axis mapped to global X, and its local Y axis mapped to global Z.
+- However, its normal vector points in the **negative Y** direction (since X cross Z = -Y).
+- Therefore, applying a **positive extrusion** (e.g., .extrude(40)) on the XZ plane will actually extrude the shape **downwards** (towards negative global Y).
+- To extrude **upwards** (towards positive global Y), you must use a **negative extrusion** (e.g., .extrude(-40)).
+
+Keep this sign reversal in mind when placing origin points and extruding cutouts, or your tools will extrude into empty space and fail to cut the body!
