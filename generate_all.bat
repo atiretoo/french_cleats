@@ -29,3 +29,6 @@ echo Done!
 
 echo Generating Nut Pusher...
 python src/generate_nut_pusher.py
+
+echo Generating Corner Clamp Holders...
+python src/generate_corner_clamp_holder.py
