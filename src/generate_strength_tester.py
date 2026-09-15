@@ -1,7 +1,7 @@
 import cadquery as cq
 import argparse
 
-from holder_base import create_baseplate
+from holder_base import create_baseplate, export_stl
 
 def create_strength_tester(shelf_position="top", thickness_mode="full", rail_height=73.0, mount_type="groove"):
     units = 1
@@ -141,7 +141,7 @@ def main():
         for thick in ["full", "half"]:
             holder = create_strength_tester(pos, thick, mount_type=args.mount)
             filename = f"strength_testing/tester_{pos}_{thick}_{args.mount}.stl"
-            cq.exporters.export(holder, filename)
+            export_stl(holder, filename)
             print(f"Exported {filename}")
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import cadquery as cq
+from holder_base import export_stl
 import math
 
 def create_depth_tester():
@@ -79,7 +80,7 @@ def create_depth_tester():
 def main():
     tester = create_depth_tester()
     filename = "corner_clamp_tester_1u.stl"
-    cq.exporters.export(tester, filename)
+    export_stl(tester, filename)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

@@ -94,3 +94,19 @@ def create_baseplate(units=2, rail_height=73.0, backplate_thickness=11.0, mount_
         screw_pts = [] 
         bottom_groove_y = bottom_y + 10.0
         return baseplate, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids
+
+def export_stl(shape, filename, rotate_for_printing=True):
+    import os
+    import cadquery as cq
+    
+    export_dir = os.path.join(os.path.dirname(__file__), '..', 'exports', 'stl')
+    out_path = os.path.abspath(os.path.join(export_dir, filename))
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    
+    export_shape = shape
+    if rotate_for_printing:
+        # Rotate around Y axis by 90 degrees to lay it on its side for optimal layer strength
+        export_shape = export_shape.rotate((0, 0, 0), (0, 1, 0), 90)
+        
+    cq.exporters.export(export_shape, out_path)
+    print(f"Exported {out_path}")

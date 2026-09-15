@@ -1,4 +1,5 @@
 import cadquery as cq
+from holder_base import export_stl
 
 def create_tester():
     # A simple flat slab to test slot depths and spacings
@@ -54,7 +55,7 @@ def create_tester():
 
 def main():
     tester = create_tester()
-    cq.exporters.export(tester, "clamp_tester.stl")
+    export_stl(tester, "clamp_tester.stl")
     print("Exported clamp_tester.stl")
 
 if __name__ == "__main__":

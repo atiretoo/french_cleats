@@ -1,7 +1,7 @@
 import cadquery as cq
 import argparse
 
-from holder_base import create_baseplate
+from holder_base import create_baseplate, export_stl
 
 def make_gridfinity_cutout():
     """
@@ -134,7 +134,7 @@ def main():
     
     gf_str = "_GF" if not args.no_gridfinity else ""
     filename = f"shelf_{fw}x{fd}u{gf_str}_groove_H{args.rail_height}.stl"
-    cq.exporters.export(holder, filename)
+    export_stl(holder, filename)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

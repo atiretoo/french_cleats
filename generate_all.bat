@@ -5,6 +5,12 @@ python src/generate_cleats.py --units 2 --mount groove
 python src/generate_cleats.py --units 3 --mount groove
 python src/generate_cleats.py --units 4 --mount groove
 
+echo Generating OpenGrid Adapters...
+python src/generate_opengrid_adapter.py --units 1
+python src/generate_opengrid_adapter.py --units 2
+python src/generate_opengrid_adapter.py --units 3
+python src/generate_opengrid_adapter.py --units 4
+
 echo Generating Screwdriver Holders...
 python src/generate_screwdriver_holder.py --width-units 1 --depth-units 6 --hole-size 10 --hole-spacing 25
 python src/generate_screwdriver_holder.py --width-units 1 --depth-units 6 --hole-size 14 --hole-spacing 30

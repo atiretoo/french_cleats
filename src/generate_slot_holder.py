@@ -2,7 +2,7 @@ import cadquery as cq
 import argparse
 import sys
 
-from holder_base import create_baseplate
+from holder_base import create_baseplate, export_stl
 
 def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clearance=10.0, rail_height=73.0):
     unit_width = 28.0
@@ -132,7 +132,7 @@ def main():
     )
     
     filename = f"slot_holder_{fw}x{fd}u_groove_H{args.rail_height}_W{args.slot_width}.stl"
-    cq.exporters.export(holder, filename)
+    export_stl(holder, filename)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

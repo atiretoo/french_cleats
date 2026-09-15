@@ -1,4 +1,5 @@
 import cadquery as cq
+from holder_base import export_stl
 import argparse
 import math
 
@@ -79,7 +80,7 @@ def main():
     tool, t, w = create_nut_pusher(args.screw, args.layer_thickness)
     
     filename = f"nut_pusher_{args.screw}_L{args.layer_thickness}.stl"
-    cq.exporters.export(tool, filename)
+    export_stl(tool, filename, rotate_for_printing=False)
     print(f"Exported {filename} (thickness: {t:.2f}mm, shaft width: {w:.2f}mm)")
 
 if __name__ == "__main__":

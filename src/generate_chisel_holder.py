@@ -1,7 +1,7 @@
 import cadquery as cq
 import argparse
 
-from holder_base import create_baseplate
+from holder_base import create_baseplate, export_stl
 
 def create_chisel_holder(units=4, hole_size=15.0, slot_width=26.0, slot_depth=4.0, rail_height=73.0, shelf_pos="mid"):
     unit_width = 28.0
@@ -113,7 +113,7 @@ def main():
     )
     
     filename = f"chisel_holder_{args.units}u_{args.shelf_pos}_groove_H{args.rail_height}.stl"
-    cq.exporters.export(holder, filename)
+    export_stl(holder, filename)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

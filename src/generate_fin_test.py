@@ -1,4 +1,5 @@
 import cadquery as cq
+from holder_base import export_stl
 import math
 
 def create_fin_test():
@@ -89,7 +90,7 @@ def create_fin_test():
 def main():
     test_obj = create_fin_test()
     filename = "fin_test_cube.stl"
-    cq.exporters.export(test_obj, filename)
+    export_stl(test_obj, filename, rotate_for_printing=False)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

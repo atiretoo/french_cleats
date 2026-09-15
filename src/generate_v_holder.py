@@ -3,7 +3,7 @@ import argparse
 import math
 import sys
 
-from holder_base import create_baseplate
+from holder_base import create_baseplate, export_stl
 
 def create_v_holder(width_units=2, depth_units=4, rail_height=73.0):
     unit_width = 28.0
@@ -70,7 +70,7 @@ def main():
     )
     
     filename = f"v_holder_{fw}x{fd}u_groove_H{args.rail_height}.stl"
-    cq.exporters.export(holder, filename)
+    export_stl(holder, filename)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
