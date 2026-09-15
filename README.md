@@ -21,6 +21,14 @@ This project stands on the shoulders of giants. Huge thanks to the following cre
 *   **Frenchfinity** by Bastelsaal ([frenchfinity.xyz](https://frenchfinity.xyz/))
 *   **Screw & Ridge Inspiration** by shoooo ([@shoooo_1013338 on Printables](https://www.printables.com/@shoooo_1013338))
 
+## Development & AI Policy: The "Centaur" Approach
+
+This project is developed using a collaborative human-AI workflow. The CadQuery scripts, Python generators, and overall system architecture were written and refined with the assistance of **Google Gemini**. 
+
+I approach AI not as a tool for blind automation, but as a [collaborative "Centaur"](https://mitsloan.mit.edu/ideas-made-to-matter/3-ways-to-use-ai-are-you-a-cyborg-a-centaur-or-a-self-automator). In this model, the AI acts as a high-powered pair-programming partner. It helps me rapidly explore and develop my own understanding of complex topics—whether that is navigating the quirks of 3D modeling coordinate systems, calculating trapezoidal tolerances, or optimizing Python code. Meanwhile, I maintain the strategic vision, conduct the physical testing, and apply domain expertise in woodworking and maker systems.
+
+For rules regarding AI-assisted contributions from the community, please see our [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
 This project is licensed under the [Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)](LICENSE).
