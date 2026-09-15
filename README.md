@@ -47,9 +47,11 @@ chmod +x generate_all.sh
 
 While designing this system, we wanted to build upon the brilliant work already done by the maker community, taking the best aspects of several existing systems and synthesizing them into a unified, highly tolerant standard.
 
-- **The Cleat Separation:** We were initially drawn to **Frenchfinity** (created by Bastelsaal) for the excellent concept of separating the cleat base from the tool holder itself. However, we found it difficult to slide the Frenchfinity holders and cleats together in practice. We wanted to retain that two-part modularity but engineer a connection that was easier to assemble and lock.
+- **The Cleat Separation:** We were initially drawn to **Frenchfinity** (created by Bastelsaal) for the excellent concept of separating the cleat base from the tool holder itself. However, we found it difficult to slide the Frenchfinity holders and cleats together in practice (Drew's printer may not be as dialed in as he thinks). We wanted to retain that two-part modularity but engineer a connection that was easier to assemble and lock.
 - **The Locking Mechanism:** We were heavily inspired by Printables user **shoooo** (@shoooo_1013338), who utilized screws and ridges on a couple of models. Taking that concept, we standardized it and shifted to a **trapezoidal groove**, which provided a much tighter, self-aligning fit between the holder and the cleat.
 - **The Grid Ecosystem:** To ensure this system doesn't exist in a vacuum, we designed the mounting dimensions to retain full compatibility with both **Gridfinity** (created by Zack Freedman) and **OpenGrid** (created by David D). Specifically, we adopted the OpenGrid spacing standard of **28 mm** across all the tool holders to ensure they interoperate flawlessly with existing Gridfinity and OpenGrid setups.
+
+For a deeper dive into the engineering iterations, FEA testing, and the history of the project's development, check out the [Design Rationale & History](docs/design_rationale_and_history.md) document.
 
 ## Attributions & Shoutouts
 

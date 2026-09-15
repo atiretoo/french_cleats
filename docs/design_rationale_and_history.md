@@ -10,7 +10,7 @@ All components in this system are built upon a universal grid where **1U = 28.0 
 
 ## 2. Structural Thicknesses & FEA (Finite Element Analysis)
 Early iterations of the project used conservatively thick walls (10mm shelves, 5mm side braces). 
-Following FEA simulations in the `strength_tester.py` pipeline, the models were proven to be drastically over-engineered. We instituted global thickness reductions:
+Following FEA simulations in the `strength_tester.py` pipeline, the models appeared to be drastically over-engineered. We instituted global thickness reductions:
 - **Shelf Thickness:** Reduced to **5.0 mm**.
 - **Brace Thickness:** Reduced to **2.5 mm**.
 - **Truss Cutouts:** For deep, highly-leveraged shelves (depth > 2U, or > 56mm), the side braces automatically receive a triangular truss cutout. The cutout offsets exactly 15mm from the structural edges and utilizes 8.0mm inner corner fillets. This minimizes filament use without sacrificing the structurally validated rigidity.
