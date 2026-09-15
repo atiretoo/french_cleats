@@ -39,8 +39,11 @@ def create_fin_half(normal_gap, is_right=True):
         .translate((-0.4, 0, 0))
     )
     
-    prof_p = [(0.5, 0.1), (0.2, 0.1), (0.5, -2.0)]
-    prof_n = [(-0.5, 0.1), (-0.2, 0.1), (-0.5, -2.0)]
+    # The original taper stopped at 0.4mm width. 
+    # To slice to a point, we taper from 0.8mm width (at Z=-2.0) all the way to 0.0mm width (at Z=0.0).
+    # To ensure clean boolean cuts, we overshoot Z up to 0.1. At Z=0.1, X is -0.02.
+    prof_p = [(0.5, 0.1), (-0.02, 0.1), (0.4, -2.0), (0.5, -2.0)]
+    prof_n = [(-0.5, 0.1), (0.02, 0.1), (-0.4, -2.0), (-0.5, -2.0)]
     
     if is_right:
         cut_p = (
@@ -80,17 +83,10 @@ def create_fin_test():
     lowest_z = -15 * math.sqrt(2)
     cube = cube.translate((0, 0, -lowest_z))
     
-    fins = []
-    
-    # Testing wider gaps to find the easiest breakaway that still supports
-    gaps = [0.07, 0.08, 0.09, 0.10]
-    x_positions = [-9, -3, 3, 9]
-    
-    for gap, x_pos in zip(gaps, x_positions):
-        f = create_fin_half(gap, is_right=True)
-        fins.append(f.translate((x_pos, 0, 0)))
+    # Generate a single fin with 0.1mm gap, tapering to a point.
+    fin = create_fin_half(0.10, is_right=True)
         
-    test_obj = cq.Compound.makeCompound([cube.val()] + [f.val() for f in fins])
+    test_obj = cq.Compound.makeCompound([cube.val(), fin.val()])
     
     return test_obj
 
