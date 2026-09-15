@@ -39,3 +39,5 @@ python src/generate_corner_clamp_tester.py
 echo Generating Shelves...
 python src/generate_shelf.py --width-units 3 --depth-units 3
 python src/generate_shelf.py --width-units 6 --depth-units 3
+
+python src/generate_shelf.py --width-units 6 --depth-units 6
