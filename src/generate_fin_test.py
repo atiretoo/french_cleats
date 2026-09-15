@@ -80,10 +80,17 @@ def create_fin_test():
     lowest_z = -15 * math.sqrt(2)
     cube = cube.translate((0, 0, -lowest_z))
     
-    # The winning gap is 0.07mm. We generate just one fin on one side (Y > 0)
-    fin = create_fin_half(0.07, is_right=True)
+    fins = []
     
-    test_obj = cq.Compound.makeCompound([cube.val(), fin.val()])
+    # Testing wider gaps to find the easiest breakaway that still supports
+    gaps = [0.07, 0.08, 0.09, 0.10]
+    x_positions = [-9, -3, 3, 9]
+    
+    for gap, x_pos in zip(gaps, x_positions):
+        f = create_fin_half(gap, is_right=True)
+        fins.append(f.translate((x_pos, 0, 0)))
+        
+    test_obj = cq.Compound.makeCompound([cube.val()] + [f.val() for f in fins])
     
     return test_obj
 
