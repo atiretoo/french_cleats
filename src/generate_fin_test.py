@@ -87,21 +87,31 @@ def create_fin_test():
     
     fins = []
     
-    # Fin 1: Overlap (-0.1mm gap), at X = 10
-    for f in make_full_fin(-0.1):
-        fins.append(f.translate((10, 0, 0)))
+    # We will generate 5 fins to test a sweep of different gaps.
+    # A negative gap means overlap (merged solid).
+    # A positive gap means empty space (breakaway support).
+    
+    # Fin 1: -0.05mm (Overlap) at X = -12
+    for f in make_full_fin(-0.05):
+        fins.append(f.translate((-12, 0, 0)))
         
-    # Fin 2: Exact (0.0mm gap), at X = 0
-    for f in make_full_fin(0.0):
+    # Fin 2: 0.05mm (Gap) at X = -6
+    for f in make_full_fin(0.05):
+        fins.append(f.translate((-6, 0, 0)))
+        
+    # Fin 3: 0.10mm (Gap) at X = 0
+    for f in make_full_fin(0.10):
         fins.append(f.translate((0, 0, 0)))
         
-    # Fin 3: Breakaway Gap (0.1mm gap), at X = -10
-    for f in make_full_fin(0.1):
-        fins.append(f.translate((-10, 0, 0)))
+    # Fin 4: 0.15mm (Gap) at X = 6
+    for f in make_full_fin(0.15):
+        fins.append(f.translate((6, 0, 0)))
+        
+    # Fin 5: 0.20mm (Gap) at X = 12
+    for f in make_full_fin(0.20):
+        fins.append(f.translate((12, 0, 0)))
         
     test_obj = cq.Compound.makeCompound([cube.val()] + fins)
-    return test_obj
-    
     return test_obj
 
 def main():
