@@ -74,28 +74,16 @@ def create_fin_half(normal_gap, is_right=True):
         
     return wedge.cut(cut_p).cut(cut_n)
 
-def make_full_fin(normal_gap):
-    return [
-        create_fin_half(normal_gap, is_right=True).val(),
-        create_fin_half(normal_gap, is_right=False).val()
-    ]
-
 def create_fin_test():
     cube = cq.Workplane("XY").box(30, 30, 30).rotate((0,0,0), (1,0,0), 45)
     lowest_z = -15 * math.sqrt(2)
     cube = cube.translate((0, 0, -lowest_z))
     
-    fins = []
+    # The winning gap is 0.07mm. We generate just one fin on one side (Y > 0)
+    fin = create_fin_half(0.07, is_right=True)
     
-    # Fine 6-fin sweep from 0.05mm to 0.10mm gap in steps of 0.01mm
-    gaps = [0.05, 0.06, 0.07, 0.08, 0.09, 0.10]
-    x_positions = [-12.5, -7.5, -2.5, 2.5, 7.5, 12.5]
+    test_obj = cq.Compound.makeCompound([cube.val(), fin.val()])
     
-    for gap, x_pos in zip(gaps, x_positions):
-        for f in make_full_fin(gap):
-            fins.append(f.translate((x_pos, 0, 0)))
-            
-    test_obj = cq.Compound.makeCompound([cube.val()] + fins)
     return test_obj
 
 def main():
