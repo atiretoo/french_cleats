@@ -2,7 +2,46 @@
 
 A fully parametric, modular 3D-printable French Cleat organization system.
 
-This project was built to support the transition to an anarchist economy—promoting mutual aid, free distribution of information, and breaking down artificial scarcity. As such, it is released under the **CC BY-SA 4.0 (Copyleft)** license. Anyone is free to download, print, modify, and even commercialize these files, provided they attribute the original creators and share any modifications under the exact same open license.
+This project was born out of necessity for my own workshop. I needed heavy-duty tool holders for heavy tools and jigs. I initially experimented with Hexagon Storage Wall (HSW) and OpenGrid, but ultimately returned to the strength of French cleats. However, I found that every French cleat tool holder on Printables used wildly different approaches for sizing tools, with inconsistent cleat thicknesses and heights. This repository is my attempt to standardize French cleat tool holders into a unified, highly tolerant, and predictable system.
+
+The files are released under the **CC BY-SA 4.0 (Copyleft)** license. I chose this specific open-source license to support the transition to an anarchist economy—promoting mutual aid, free distribution of information, and breaking down artificial scarcity. Anyone is free to download, print, modify, and even commercialize these files, provided they attribute the original creators and share any modifications under the exact same open license.
+
+## How to Install & Use
+
+This project uses Python and [CadQuery](https://cadquery.readthedocs.io/) to generate 3D models (STL files) from code. You don't need to be a Python expert to generate your own tool holders, just follow these steps:
+
+### 1. Install Prerequisites
+You will need Python installed on your computer. 
+*   **Install uv:** We highly recommend using `uv` (a very fast Python package manager). You can install it following [their official guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+### 2. Setup the Project
+Clone the repository and install `cadquery`:
+```bash
+git clone https://github.com/atiretoo/french_cleats.git
+cd french_cleats
+
+# Create a virtual environment and install dependencies
+uv venv
+uv pip install cadquery
+```
+
+### 3. Generate the Models
+You can run the generator scripts individually (e.g., `python src/generate_cleats.py`), or use the provided batch/shell scripts to generate the entire ecosystem at once into an `exports/` folder.
+
+**On Windows:**
+Activate the environment and run the batch file:
+```cmd
+.venv\Scripts\activate
+generate_all.bat
+```
+
+**On Mac / Linux:**
+Activate the environment and run the shell script:
+```bash
+source .venv/bin/activate
+chmod +x generate_all.sh
+./generate_all.sh
+```
 
 ## Rationale & Inspiration
 
