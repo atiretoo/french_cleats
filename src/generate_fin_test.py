@@ -39,11 +39,8 @@ def create_fin_half(normal_gap, is_right=True):
         .translate((-0.4, 0, 0))
     )
     
-    # The original taper stopped at 0.4mm width. 
-    # To slice to a point, we taper from 0.8mm width (at Z=-2.0) all the way to 0.0mm width (at Z=0.0).
-    # To ensure clean boolean cuts, we overshoot Z up to 0.1. At Z=0.1, X is -0.02.
-    prof_p = [(0.5, 0.1), (-0.02, 0.1), (0.4, -2.0), (0.5, -2.0)]
-    prof_n = [(-0.5, 0.1), (0.02, 0.1), (-0.4, -2.0), (-0.5, -2.0)]
+    prof_p = [(0.5, 0.1), (0.2, 0.1), (0.5, -2.0)]
+    prof_n = [(-0.5, 0.1), (-0.2, 0.1), (-0.5, -2.0)]
     
     if is_right:
         cut_p = (
@@ -76,7 +73,26 @@ def create_fin_half(normal_gap, is_right=True):
             .loft()
         )
         
-    return wedge.cut(cut_p).cut(cut_n)
+    fin_half = wedge.cut(cut_p).cut(cut_n)
+    
+    # Taper the Y-ends of the fin to a sharp point in the XY plane over 2.0mm
+    taper_len = 2.0
+    hex_pts = [
+        (0.0, 0.0),
+        (0.4, taper_len),
+        (0.4, L - taper_len),
+        (0.0, L),
+        (-0.4, L - taper_len),
+        (-0.4, taper_len)
+    ]
+    
+    # If is_right is False, the fin is on the -Y side, so we must mirror the hexagon!
+    if not is_right:
+        hex_pts = [(x, -y) for x, y in hex_pts]
+        
+    bounding_hex = cq.Workplane("XY").polyline(hex_pts).close().extrude(50.0)
+    
+    return fin_half.intersect(bounding_hex)
 
 def create_fin_test():
     cube = cq.Workplane("XY").box(30, 30, 30).rotate((0,0,0), (1,0,0), 45)
