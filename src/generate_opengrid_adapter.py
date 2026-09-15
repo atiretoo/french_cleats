@@ -1,6 +1,7 @@
 import cadquery as cq
 import argparse
 import os
+from holder_base import export_stl
 
 def load_mc_block(filename, opengrid_path):
     path = os.path.join(opengrid_path, filename)
