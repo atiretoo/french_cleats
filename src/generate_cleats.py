@@ -148,13 +148,13 @@ def main():
     if args.type in ["top", "both"]:
         top = create_top_cleat(args.units, args.rail_thickness, args.mount, args.screw)
         filename = f"top_cleat_{args.units}u_{args.mount}_T{args.rail_thickness}_{args.screw}.stl"
-        export_stl(top, filename, rotate_for_printing=False)
+        export_stl(top, filename)
         print(f"Exported {filename}")
         
     if args.type in ["bottom", "both"] and args.mount == "groove":
         bot = create_bottom_cleat(args.units, args.rail_thickness, args.screw)
         filename = f"bottom_cleat_{args.units}u_groove_T{args.rail_thickness}_{args.screw}.stl"
-        export_stl(bot, filename, rotate_for_printing=False)
+        export_stl(bot, filename)
         print(f"Exported {filename}")
 
 if __name__ == "__main__":
