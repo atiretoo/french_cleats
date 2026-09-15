@@ -1,4 +1,5 @@
 # Open Source French Cleat System
+**Version 1.1.0**
 
 A fully parametric, modular 3D-printable French Cleat organization system.
 
