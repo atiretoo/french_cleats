@@ -39,8 +39,12 @@ def create_fin_half(normal_gap, is_right=True):
         .translate((-0.4, 0, 0))
     )
     
-    prof_p = [(0.5, 0.1), (0.2, 0.1), (0.5, -2.0)]
-    prof_n = [(-0.5, 0.1), (-0.2, 0.1), (-0.5, -2.0)]
+    # We want a long, gradual taper to force the slicer to print a single-line needle point.
+    # The fin is 0.8mm wide. We taper it down to 0.2mm wide at the top surface over a 4.0mm vertical distance.
+    # A 0.2mm CAD width at the top will slice perfectly as the very tip of a single extrusion in Arachne.
+    # Overshoot Z to 0.5 to ensure clean boolean cuts. Slope is (0.1 - 0.4)/4.0 = -0.075. At Z=0.5, X = 0.1 - 0.075*0.5 = 0.0625.
+    prof_p = [(0.5, 0.5), (0.0625, 0.5), (0.4, -4.0), (0.5, -4.0)]
+    prof_n = [(-0.5, 0.5), (-0.0625, 0.5), (-0.4, -4.0), (-0.5, -4.0)]
     
     if is_right:
         cut_p = (
@@ -73,33 +77,14 @@ def create_fin_half(normal_gap, is_right=True):
             .loft()
         )
         
-    fin_half = wedge.cut(cut_p).cut(cut_n)
-    
-    # Taper the Y-ends of the fin to a sharp point in the XY plane over 2.0mm
-    taper_len = 2.0
-    hex_pts = [
-        (0.0, 0.0),
-        (0.4, taper_len),
-        (0.4, L - taper_len),
-        (0.0, L),
-        (-0.4, L - taper_len),
-        (-0.4, taper_len)
-    ]
-    
-    # If is_right is False, the fin is on the -Y side, so we must mirror the hexagon!
-    if not is_right:
-        hex_pts = [(x, -y) for x, y in hex_pts]
-        
-    bounding_hex = cq.Workplane("XY").polyline(hex_pts).close().extrude(50.0)
-    
-    return fin_half.intersect(bounding_hex)
+    return wedge.cut(cut_p).cut(cut_n)
 
 def create_fin_test():
     cube = cq.Workplane("XY").box(30, 30, 30).rotate((0,0,0), (1,0,0), 45)
     lowest_z = -15 * math.sqrt(2)
     cube = cube.translate((0, 0, -lowest_z))
     
-    # Generate a single fin with 0.1mm gap, tapering to a point.
+    # Final test: Single fin at 0.1mm gap with the long needle taper
     fin = create_fin_half(0.10, is_right=True)
         
     test_obj = cq.Compound.makeCompound([cube.val(), fin.val()])
