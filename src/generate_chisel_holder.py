@@ -1,12 +1,20 @@
-import cadquery as cq
+﻿import cadquery as cq
 import argparse
 
 from holder_base import create_baseplate, export_stl
 
-def create_chisel_holder(units=4, hole_size=15.0, slot_width=26.0, slot_depth=4.0, rail_height=73.0, shelf_pos="mid"):
+def create_chisel_holder(units=4, hole_size=15.0, hole_sizes=None, slot_width=26.0, slot_widths=None, slot_depth=4.0, slot_depths=None, rail_height=73.0, shelf_pos="mid"):
     unit_width = 28.0
     width = units * unit_width
     shelf_depth = 28.0 # 1U deep
+    
+    if not hole_sizes: hole_sizes = [hole_size] * units
+    if not slot_widths: slot_widths = [slot_width] * units
+    if not slot_depths: slot_depths = [slot_depth] * units
+    
+    while len(hole_sizes) < units: hole_sizes.append(hole_sizes[-1])
+    while len(slot_widths) < units: slot_widths.append(slot_widths[-1])
+    while len(slot_depths) < units: slot_depths.append(slot_depths[-1])
     
     # Create Baseplate
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(units, rail_height, mount_type="groove", num_rows=2)
@@ -52,27 +60,25 @@ def create_chisel_holder(units=4, hole_size=15.0, slot_width=26.0, slot_depth=4.
         pass # fallback if filleting fails
     
     # Cut holes and slots independently to avoid self-intersection boolean bugs
-    hole_pts = []
     z_center = -11.0 - shelf_depth / 2.0
     for i in range(units):
         x = -width/2 + unit_width/2 + i * unit_width
-        hole_pts.append((x, z_center))
         
-    holes = (
-        cq.Workplane("XZ", origin=(0, shelf_bot - 10.0, 0))
-        .pushPoints(hole_pts)
-        .circle(hole_size / 2.0)
-        .extrude(-40.0)
-    )
-    tool_holder = tool_holder.cut(holes)
-    
-    slots = (
-        cq.Workplane("XZ", origin=(0, shelf_bot - 10.0, 0))
-        .pushPoints(hole_pts)
-        .rect(slot_width, slot_depth)
-        .extrude(-40.0)
-    )
-    tool_holder = tool_holder.cut(slots)
+        hole = (
+            cq.Workplane("XZ", origin=(0, shelf_bot - 10.0, 0))
+            .center(x, z_center)
+            .circle(hole_sizes[i] / 2.0)
+            .extrude(-40.0)
+        )
+        tool_holder = tool_holder.cut(hole)
+        
+        slot = (
+            cq.Workplane("XZ", origin=(0, shelf_bot - 10.0, 0))
+            .center(x, z_center)
+            .rect(slot_widths[i], slot_depths[i])
+            .extrude(-40.0)
+        )
+        tool_holder = tool_holder.cut(slot)
     
     # Cut screws
     screws = (
@@ -93,12 +99,20 @@ def create_chisel_holder(units=4, hole_size=15.0, slot_width=26.0, slot_depth=4.
     
     return tool_holder
 
+def parse_list(s):
+    if not s:
+        return None
+    return [float(x.strip()) for x in s.split(',')]
+
 def main():
     parser = argparse.ArgumentParser(description="Generate French Cleat chisel holder")
     parser.add_argument("--units", type=int, default=4, help="Number of units wide")
     parser.add_argument("--hole-size", type=float, default=15.0, help="Diameter of the central hole in mm")
+    parser.add_argument("--hole-sizes", type=parse_list, default=None, help="Comma separated hole diameters in mm")
     parser.add_argument("--slot-width", type=float, default=26.0, help="Width of the slot in mm")
+    parser.add_argument("--slot-widths", type=parse_list, default=None, help="Comma separated slot widths in mm")
     parser.add_argument("--slot-depth", type=float, default=4.0, help="Depth of the slot in mm")
+    parser.add_argument("--slot-depths", type=parse_list, default=None, help="Comma separated slot depths in mm")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
     parser.add_argument("--shelf-pos", choices=["mid", "top"], default="mid", help="Position of the shelf on the backplate")
     args = parser.parse_args()
@@ -106,13 +120,20 @@ def main():
     holder = create_chisel_holder(
         units=args.units, 
         hole_size=args.hole_size, 
+        hole_sizes=args.hole_sizes,
         slot_width=args.slot_width,
+        slot_widths=args.slot_widths,
         slot_depth=args.slot_depth,
+        slot_depths=args.slot_depths,
         rail_height=args.rail_height,
         shelf_pos=args.shelf_pos
     )
     
-    filename = f"chisel_holder_{args.units}u_{args.shelf_pos}_groove_H{args.rail_height}.stl"
+    sd_str = "_VAR" if args.slot_depths else ""
+    sw_str = "_VAR" if args.slot_widths else ""
+    hs_str = "_VAR" if args.hole_sizes else ""
+    
+    filename = f"chisel_holder_{args.units}u_{args.shelf_pos}_groove_H{args.rail_height}{sd_str}{sw_str}{hs_str}.stl"
     export_stl(holder, filename)
     print(f"Exported {filename}")
 
