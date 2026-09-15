@@ -41,3 +41,6 @@ python src/generate_shelf.py --width-units 3 --depth-units 3
 python src/generate_shelf.py --width-units 6 --depth-units 3
 
 python src/generate_shelf.py --width-units 6 --depth-units 6
+
+echo Generating Fin Test...
+python src/generate_fin_test.py
