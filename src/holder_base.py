@@ -100,13 +100,19 @@ def export_stl(shape, filename, rotate_for_printing=True):
     import cadquery as cq
     
     export_dir = os.path.join(os.path.dirname(__file__), '..', 'exports', 'stl')
-    out_path = os.path.abspath(os.path.join(export_dir, filename))
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    step_dir = os.path.join(os.path.dirname(__file__), '..', 'exports', 'step')
+    
+    out_path_stl = os.path.abspath(os.path.join(export_dir, filename))
+    out_path_step = os.path.abspath(os.path.join(step_dir, filename.replace('.stl', '.step')))
+    
+    os.makedirs(os.path.dirname(out_path_stl), exist_ok=True)
+    os.makedirs(os.path.dirname(out_path_step), exist_ok=True)
     
     export_shape = shape
     if rotate_for_printing:
         # Rotate around Y axis by 90 degrees to lay it on its side for optimal layer strength
         export_shape = export_shape.rotate((0, 0, 0), (0, 1, 0), 90)
         
-    cq.exporters.export(export_shape, out_path)
-    print(f"Exported {out_path}")
+    cq.exporters.export(export_shape, out_path_stl)
+    cq.exporters.export(export_shape, out_path_step)
+    print(f"Exported {out_path_stl} and {out_path_step}")
