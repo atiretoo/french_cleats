@@ -82,7 +82,7 @@ def create_depth_tester():
 def main():
     tester = create_depth_tester()
     filename = "corner_clamp_tester_1u.stl"
-    export_stl(tester, filename, category='utilities')
+    export_stl(tester, filename, category='strength_testing', export_step=False)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

@@ -142,8 +142,8 @@ def main():
     for pos in ["top", "mid"]:
         for thick in ["full", "half"]:
             holder = create_strength_tester(pos, thick, mount_type=args.mount)
-            filename = f"strength_testing/tester_{pos}_{thick}_{args.mount}.stl"
-            export_stl(holder, filename, category='utilities')
+            filename = f"tester_{pos}_{thick}_{args.mount}.stl"
+            export_stl(holder, filename, category='strength_testing', export_step=False)
             print(f"Exported {filename}")
 
 if __name__ == "__main__":

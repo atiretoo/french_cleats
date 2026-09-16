@@ -57,7 +57,7 @@ def create_tester():
 
 def main():
     tester = create_tester()
-    export_stl(tester, "clamp_tester.stl", category='utilities')
+    export_stl(tester, "clamp_tester.stl", category='strength_testing', export_step=False)
     print("Exported clamp_tester.stl")
 
 if __name__ == "__main__":

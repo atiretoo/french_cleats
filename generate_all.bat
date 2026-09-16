@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 echo Generating Cleats...
 python src/cleats/generate_cleats.py --units 1 --mount groove
 python src/cleats/generate_cleats.py --units 2 --mount groove
@@ -29,7 +29,7 @@ echo Generating V Holders...
 python src/tool_holders/generate_v_holder.py --width-units 2 --depth-units 4
 
 echo Generating Strength Testers...
-python src/utilities/generate_strength_tester.py --mount groove
+python src/strength_testing/generate_strength_tester.py --mount groove
 
 echo Generating Nut Pusher...
 python src/utilities/generate_nut_pusher.py
@@ -38,7 +38,7 @@ echo Generating Corner Clamp Holders...
 python src/tool_holders/generate_corner_clamp_holder.py
 
 echo Generating Corner Clamp Tester...
-python src/utilities/generate_corner_clamp_tester.py
+python src/strength_testing/generate_corner_clamp_tester.py
 
 echo Generating Shelves...
 python src/gridfinity/generate_shelf.py --width-units 3 --depth-units 3
@@ -46,7 +46,7 @@ python src/gridfinity/generate_shelf.py --width-units 6 --depth-units 3
 python src/gridfinity/generate_shelf.py --width-units 6 --depth-units 6
 
 echo Generating Fin Test...
-python src/utilities/generate_fin_test.py
+python src/strength_testing/generate_fin_test.py
 
 echo Zipping STEP files for Release...
 if exist exports\step_files.zip del exports\step_files.zip

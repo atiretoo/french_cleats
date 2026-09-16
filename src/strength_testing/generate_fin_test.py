@@ -96,7 +96,7 @@ def create_fin_test():
 def main():
     test_obj = create_fin_test()
     filename = "fin_test_cube.stl"
-    export_stl(test_obj, filename, rotate_for_printing=False, category='utilities')
+    export_stl(test_obj, filename, rotate_for_printing=False, category='strength_testing', export_step=False)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
