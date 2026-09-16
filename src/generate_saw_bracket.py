@@ -91,20 +91,16 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0):
             for o in objectList:
                 if not isinstance(o, cq.Edge): continue
                 b = o.BoundingBox()
-                # 1. Triangle cutout corners (parallel to X)
                 if abs(b.xmax - b.xmin) > 5.0 and abs(b.ymax - b.ymin) < 0.1 and abs(b.zmax - b.zmin) < 0.1:
                     if (abs(b.ymin - c1_y) < 1 and abs(b.zmin - c1_z) < 1) or \
                        (abs(b.ymin - c2_y) < 1 and abs(b.zmin - c2_z) < 1) or \
                        (abs(b.ymin - c3_y) < 1 and abs(b.zmin - c3_z) < 1):
                         res.append(o)
                 
-                # 2. Joint edges (X = +/- brace_width/2)
                 if abs(b.xmax - b.xmin) < 0.1 and (abs(b.xmin - brace_width/2) < 0.1 or abs(b.xmin - (-brace_width/2)) < 0.1):
-                    # Backplate-web joint (vertical at Z = -11.0)
                     if abs(b.zmax - (-11.0)) < 0.1 and abs(b.zmin - (-11.0)) < 0.1:
                         if o.Length() > 20:
                             res.append(o)
-                    # Flange-web joint (diagonal, touches Z = -11.0)
                     elif abs(b.ymax - b.ymin) > 10 and abs(b.zmax - b.zmin) > 10:
                         if abs(b.zmax - (-11.0)) < 0.1:
                             res.append(o)
@@ -128,9 +124,9 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0):
         cutter = hole_wp.circle(1.7).extrude(-15.0)
         body = body.cut(cutter)
         
-        # Nut slot (M3 nut: 6.0mm wide, 3.0mm thick).
+        # Nut slot
         slot_center = pt + normal_dir * (-5.0) 
-        slot_center.x = 7.0 # Center it between X=0 and X=14
+        slot_center.x = 7.0 
         
         slot = cq.Solid.makeBox(15.0, 6.0, 3.0)
         slot = slot.translate((-7.5, -3.0, -1.5)) 
@@ -158,6 +154,29 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0):
     
     return body
 
+def create_drilling_template(hypotenuse=300.0, width=28.0, thickness=0.3):
+    """
+    Creates a thin template strip to mark hole positions on the wooden plate.
+    Holes are slightly larger than M3 clearance (4.0mm) for easy marking.
+    """
+    hole_pts = []
+    # In the template, we'll lay it flat on the XY plane.
+    # The length goes along Y (from 0 to hypotenuse).
+    for i in [0.2, 0.5, 0.8]:
+        y_pos = hypotenuse * i
+        hole_pts.append((0, y_pos))
+        
+    template = (
+        cq.Workplane("XY")
+        .box(width, hypotenuse, thickness)
+        .translate((0, hypotenuse/2, thickness/2))
+        .faces(">Z").workplane()
+        .pushPoints(hole_pts)
+        .circle(4.0 / 2.0)
+        .cutThruAll()
+    )
+    return template
+
 def main():
     parser = argparse.ArgumentParser(description="Generate French Cleat Circular Saw Bracket")
     parser.add_argument("--units", type=int, default=1, help="Width of bracket in 28mm units")
@@ -171,9 +190,19 @@ def main():
         hypotenuse=args.hypotenuse
     )
     
-    filename = f"circular_saw_bracket_{args.units}u_L{int(args.hypotenuse)}_thinned.stl"
-    export_stl(bracket, filename)
-    print(f"Exported {filename}")
+    template = create_drilling_template(
+        hypotenuse=args.hypotenuse,
+        width=args.units * 28.0
+    )
+    
+    bracket_filename = f"circular_saw_bracket_{args.units}u_L{int(args.hypotenuse)}_thinned.stl"
+    export_stl(bracket, bracket_filename)
+    print(f"Exported {bracket_filename}")
+    
+    # Export template (don't rotate it, it's already flat on XY)
+    template_filename = f"circular_saw_template_{args.units}u_L{int(args.hypotenuse)}.stl"
+    export_stl(template, template_filename, rotate_for_printing=False)
+    print(f"Exported {template_filename}")
 
 if __name__ == "__main__":
     main()
