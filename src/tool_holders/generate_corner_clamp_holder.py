@@ -2,6 +2,8 @@ import cadquery as cq
 import argparse
 import math
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from holder_base import create_baseplate, export_stl
 
 def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_width=10.0, 
@@ -126,7 +128,7 @@ def main():
     )
     
     filename = f"corner_clamp_holder_{fw}x{fd}u_groove_H{args.rail_height}.stl"
-    export_stl(holder, filename)
+    export_stl(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

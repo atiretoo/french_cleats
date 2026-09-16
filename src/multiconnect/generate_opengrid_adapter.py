@@ -1,6 +1,8 @@
 import cadquery as cq
 import argparse
 import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from holder_base import export_stl
 
 def load_mc_block(filename, opengrid_path):
@@ -185,7 +187,7 @@ def main():
     filename = f"opengrid_adapter_{args.units}u_H{args.rail_height}_{args.screw}.stl"
     
     # Save to exports/stl directory relative to the project root
-    export_stl(adapter, filename)
+    export_stl(adapter, filename, category='multiconnect')
 
 if __name__ == "__main__":
     main()

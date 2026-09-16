@@ -1,4 +1,6 @@
 import cadquery as cq
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from holder_base import export_stl
 import math
 
@@ -94,7 +96,7 @@ def create_fin_test():
 def main():
     test_obj = create_fin_test()
     filename = "fin_test_cube.stl"
-    export_stl(test_obj, filename, rotate_for_printing=False)
+    export_stl(test_obj, filename, rotate_for_printing=False, category='utilities')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
