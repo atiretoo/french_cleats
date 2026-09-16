@@ -152,7 +152,7 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         
         slot = cq.Solid.makeBox(15.0, 6.0, 3.0)
         slot = slot.translate((-7.5, -3.0, -1.5)) 
-        slot = slot.rotate(cq.Vector(0,0,0), cq.Vector(1,0,0), -45)
+        slot = slot.rotate(cq.Vector(0,0,0), cq.Vector(1,0,0), -135)
         slot = slot.translate((slot_center.x, slot_center.y, slot_center.z))
         
         body = body.cut(slot)
