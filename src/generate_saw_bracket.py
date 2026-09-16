@@ -1,4 +1,4 @@
-﻿import cadquery as cq
+import cadquery as cq
 import argparse
 import math
 from holder_base import create_baseplate, export_stl
@@ -214,10 +214,10 @@ def main():
         # We need to bypass export_stl's auto-rotator to perfectly orient each handed side
         # so they both lay flat with slots facing up.
         # If side is left, the web is at -14. We want X=-14 to be Z=0.
-        # So we rotate +90 around Y. (X becomes Z, -14 becomes -14, slicer drops it to 0).
+        # So we rotate -90 around Y. (Z_new = X, -14 becomes -14, slicer drops it to 0).
         # If side is right, the web is at +14. We want X=+14 to be Z=0.
-        # So we rotate -90 around Y. (X becomes -Z, 14 becomes -14, slicer drops it to 0).
-        rot_angle = 90 if side == "left" else -90
+        # So we rotate 90 around Y. (Z_new = -X, 14 becomes -14, slicer drops it to 0).
+        rot_angle = -90 if side == "left" else 90
         
         oriented_bracket = bracket.rotate((0,0,0), (0,1,0), rot_angle)
         
