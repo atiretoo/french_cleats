@@ -146,14 +146,21 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         cutter = hole_wp.circle(1.7).extrude(-15.0)
         body = body.cut(cutter)
         
-        # Nut slot (M3 nut: 6.0mm wide, 3.0mm thick).
-        slot_center = pt + normal_dir * (-5.0) 
-        # Shift slot center so it breaks out of the correct side
-        # X=0 is the bolt hole. If slot_x_dir == 1, slot center is at X=7.5 to reach X=15.
-        slot_center.x = 7.5 * slot_x_dir
+        # Nut slot (M3 nut: 5.5mm WAF, 2.4mm thick).
+        # We want the slot to end exactly when the nut is centered on the bolt hole (X=0).
+        # A hex nut's point is ~3.2mm from its center. So the slot should end at X = -3.2 (or +3.2).
+        # The slot starts at the open face (X=14 or -14).
+        slot_length = 17.2
+        slot_w = 5.6
+        slot_t = 2.5
         
-        slot = cq.Solid.makeBox(15.0, 6.0, 3.0)
-        slot = slot.translate((-7.5, -3.0, -1.5)) 
+        slot_center = pt + normal_dir * (-5.0) 
+        # For left web (slot_x_dir=1), slot goes from 14 to -3.2 -> center is 5.4
+        # For right web (slot_x_dir=-1), slot goes from -14 to 3.2 -> center is -5.4
+        slot_center.x = 5.4 * slot_x_dir
+        
+        slot = cq.Solid.makeBox(slot_length, slot_w, slot_t)
+        slot = slot.translate((-slot_length/2.0, -slot_w/2.0, -slot_t/2.0)) 
         slot = slot.rotate(cq.Vector(0,0,0), cq.Vector(1,0,0), -135)
         slot = slot.translate((slot_center.x, slot_center.y, slot_center.z))
         
