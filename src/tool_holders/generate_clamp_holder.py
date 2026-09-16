@@ -1,6 +1,8 @@
 import cadquery as cq
 import argparse
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from holder_base import create_baseplate, export_stl
 
 def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groove"):
@@ -112,7 +114,7 @@ def main():
     
     holder = create_clamp_holder(args.units, rail_height=args.rail_height, num_slots=args.num_slots, mount_type=args.mount)
     filename = f"clamp_holder_{args.units}u_{args.mount}_H{args.rail_height}_{args.num_slots}slots.stl"
-    export_stl(holder, filename)
+    export_stl(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

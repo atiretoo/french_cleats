@@ -1,6 +1,8 @@
 ﻿import cadquery as cq
 import argparse
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from holder_base import create_baseplate, export_stl
 
 def create_chisel_holder(units=4, hole_size=15.0, hole_sizes=None, slot_width=26.0, slot_widths=None, slot_depth=4.0, slot_depths=None, rail_height=73.0, shelf_pos="mid"):
@@ -134,7 +136,7 @@ def main():
     hs_str = "_VAR" if args.hole_sizes else ""
     
     filename = f"chisel_holder_{args.units}u_{args.shelf_pos}_groove_H{args.rail_height}{sd_str}{sw_str}{hs_str}.stl"
-    export_stl(holder, filename)
+    export_stl(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
