@@ -81,10 +81,10 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
     # Cut the triangular hole (15mm clearance)
     c1_y = bracket_bottom + 15
     c1_z = -26
-    c2_y = top_y - 11 - 15 - 15*math.sqrt(2)
+    c2_y = top_y - 15 - 25*math.sqrt(2)
     c2_z = -26
     c3_y = bracket_bottom + 15
-    c3_z = (bracket_bottom + 15) - top_y - 11 + 15*math.sqrt(2)
+    c3_z = (bracket_bottom + 15) - top_y - 11 + 25*math.sqrt(2)
     
     cutout_pts = [
         (c1_y, c1_z),
