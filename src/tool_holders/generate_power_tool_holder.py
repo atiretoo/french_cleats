@@ -15,7 +15,7 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
     body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(units=units, mount_type=mount_type, num_rows=4) # Power tools are heavy, maybe 4 rows for multiconnect
     
     # Shelf thickness
-    shelf_t = 15.0 # nice and thick for a power tool
+    shelf_t = 5.0 # Reduced for clearance of screw holes
     
     # Create the main shelf block
     shelf = (
@@ -133,6 +133,25 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
         
         cutout = cutout.edges("|X").fillet(5.0)
         body = body.cut(cutout)
+        
+    # Add fillets to the inside edges of the braces and shelf where they meet the backplate
+    class InnerFilletSelector(cq.Selector):
+        def filter(self, objectList):
+            res = []
+            for o in objectList:
+                if o.ShapeType() == 'Edge':
+                    b = o.BoundingBox()
+                    # Vertical inner corners of braces (parallel to Y, at Z=-11, |X| = 28 - 5.5 = 22.5)
+                    if abs(b.ymax - b.ymin) > 1.0 and abs(b.xmax - b.xmin) < 0.1 and abs(b.zmax - b.zmin) < 0.1:
+                        if abs(b.zmin - back_z) < 0.1 and abs(abs(b.xmin) - (width/2.0 - web_thickness)) < 0.1:
+                            res.append(o)
+                    # Horizontal corner of shelf (parallel to X, at Z=-11, Y = 15.0)
+                    if abs(b.xmax - b.xmin) > 1.0 and abs(b.ymax - b.ymin) < 0.1 and abs(b.zmax - b.zmin) < 0.1:
+                        if abs(b.zmin - back_z) < 0.1 and abs(b.ymin - (top_y - shelf_t)) < 0.1:
+                            res.append(o)
+            return res
+            
+    body = body.edges(InnerFilletSelector()).fillet(4.0)
         
     # Cut screws
     if screw_pts:
