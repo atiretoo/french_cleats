@@ -159,9 +159,9 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
     result = cq.Workplane(slot)
     
     if push_hole:
-        # Create a 1mm cylinder starting at Y = -nut_point_dist and extending downwards (negative Y)
+        # Create a 1.5mm cylinder starting at Y = -nut_point_dist and extending downwards (negative Y)
         # We will make it 100mm long to ensure it pierces the outer wall.
-        cyl = cq.Solid.makeCylinder(0.5, 100.0, cq.Vector(0, 0, 0), cq.Vector(0, -1, 0))
+        cyl = cq.Solid.makeCylinder(0.75, 100.0, cq.Vector(0, 0, 0), cq.Vector(0, -1, 0))
         cyl = cyl.translate((0, -nut_point_dist, 0))
         
         if push_hole_angle != 0.0:
