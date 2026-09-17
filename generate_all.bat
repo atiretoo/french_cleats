@@ -34,6 +34,7 @@ python src/tool_holders/generate_power_tool_holder.py --units 2 --mount groove
 echo Generating Thin Tool Holders...
 python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove
 python src/tool_holders/generate_cam_holder.py --units 1 --mount groove
+python src/tool_holders/generate_shooo_cam_prototype.py --units 2 --mount groove
 
 echo Generating Strength Testers...
 python src/strength_testing/generate_strength_tester.py --mount groove
