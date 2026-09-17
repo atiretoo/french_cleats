@@ -1,7 +1,7 @@
 import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import export_stl
+from holder_base import create_baseplate, export_stl, create_nut_slot
 import argparse
 import os
 
@@ -62,23 +62,10 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
             cleat = cleat.cut(hole)
             
             # Nut slot slides from top down to screw_y
-            slot_h = top_y - (screw_y - nut_waf/2.0)
-            slot_y_center = top_y - slot_h / 2.0
-            
-            slot = (
-                cq.Workplane("XZ", origin=(x, slot_y_center, slot_z_center))
-                .rect(nut_waf, slot_t)
-                .extrude(slot_h / 2.0, both=True)
-            )
-            cleat = cleat.cut(slot)
-            
-            # 1mm push hole from opposite side to easily remove the nut
-            push_hole = (
-                cq.Workplane("XZ", origin=(x, 0, slot_z_center))
-                .circle(0.5)
-                .extrude(100, both=True)
-            )
-            cleat = cleat.cut(push_hole)
+            depth = top_y - screw_y
+            slot_solid = create_nut_slot(screw_m, depth=depth, push_hole=True)
+            slot_solid = slot_solid.translate(cq.Vector(x, screw_y, slot_z_center))
+            cleat = cleat.cut(cq.Workplane(slot_solid))
     else:
         button = load_round_button()
         for i in range(units):
@@ -132,23 +119,12 @@ def create_bottom_cleat(units=2, rail_thickness=19.0, screw_m="M3"):
         cleat = cleat.cut(hole)
         
         # Nut slot slides from bottom UP to screw_y
-        slot_h = (screw_y + nut_waf/2.0) - (-height/2)
-        slot_y_center = -height/2 + slot_h / 2.0
-        
-        slot = (
-            cq.Workplane("XZ", origin=(x, slot_y_center, slot_z_center))
-            .rect(nut_waf, slot_t)
-            .extrude(slot_h / 2.0, both=True)
-        )
-        cleat = cleat.cut(slot)
-        
-        # 1mm push hole from opposite side to easily remove the nut
-        push_hole = (
-            cq.Workplane("XZ", origin=(x, 0, slot_z_center))
-            .circle(0.5)
-            .extrude(100, both=True)
-        )
-        cleat = cleat.cut(push_hole)
+        depth = screw_y - (-height/2)
+        slot_solid = create_nut_slot(screw_m, depth=depth, push_hole=True)
+        # Rotate 180 degrees around Z axis so it slides from bottom up
+        slot_solid = cq.Workplane(slot_solid).rotate(cq.Vector(0,0,0), cq.Vector(0,0,1), 180).val()
+        slot_solid = slot_solid.translate(cq.Vector(x, screw_y, slot_z_center))
+        cleat = cleat.cut(cq.Workplane(slot_solid))
         
     return cleat
 

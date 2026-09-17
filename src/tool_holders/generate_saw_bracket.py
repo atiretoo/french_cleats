@@ -3,7 +3,7 @@ import argparse
 import math
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import create_baseplate, export_stl
+from holder_base import create_baseplate, export_stl, create_nut_slot
 
 def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="left"):
     unit_width = 28.0
@@ -146,34 +146,16 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         cutter = hole_wp.circle(1.7).extrude(-15.0)
         body = body.cut(cutter)
         
-        # Nut slot (M3 nut: 5.5mm WAF, 2.4mm thick).
-        # We want the slot to end exactly when the nut is centered on the bolt hole (X=0).
-        # A hex nut's point is ~3.2mm from its center. So the slot should end at X = -3.2 (or +3.2).
-        # The slot starts at the open face (X=14 or -14).
-        slot_length = 17.2
-        slot_w = 5.6
-        slot_t = 2.5
-        
-        slot_center = pt + normal_dir * (-5.0) 
-        # For left web (slot_x_dir=1), slot goes from 14 to -3.2 -> center is 5.4
-        # For right web (slot_x_dir=-1), slot goes from -14 to 3.2 -> center is -5.4
-        slot_center.x = 5.4 * slot_x_dir
-        
-        slot = cq.Solid.makeBox(slot_length, slot_w, slot_t)
-        slot = slot.translate((-slot_length/2.0, -slot_w/2.0, -slot_t/2.0)) 
-        slot = slot.rotate(cq.Vector(0,0,0), cq.Vector(1,0,0), -135)
-        slot = slot.translate((slot_center.x, slot_center.y, slot_center.z))
-        
-        body = body.cut(slot)
-        
-        # 1mm push hole from opposite side to easily remove the nut
+        # Nut slot 
         nut_center = pt + normal_dir * (-5.0)
-        push_hole = (
-            cq.Workplane("YZ", origin=(0, nut_center.y, nut_center.z))
-            .circle(0.5)
-            .extrude(100, both=True)
-        )
-        body = body.cut(push_hole)
+        slot_solid = create_nut_slot("M3", depth=14.0, push_hole=True)
+        
+        # Orient the slot so the bolt is along normal_dir and it slides along the X axis
+        x_dir = cq.Vector(0, slot_x_dir, slot_x_dir).normalized()
+        plane = cq.Plane(origin=nut_center, xDir=x_dir, normal=normal_dir)
+        
+        slot_solid = slot_solid.moved(cq.Location(plane))
+        body = body.cut(slot_solid)
 
     # Cut cleat mounting screws
     screws = (

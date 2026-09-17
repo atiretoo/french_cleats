@@ -124,3 +124,51 @@ def export_stl(shape, filename, rotate_for_printing=True, category="", export_st
         print(f"Exported {out_path_stl} and {out_path_step}")
     else:
         print(f"Exported {out_path_stl}")
+import cadquery as cq
+import math
+
+def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.0):
+    """
+    Creates a nut capture slot (and optional push hole) centered at (0,0,0).
+    - The bolt passes through the Z-axis.
+    - The nut slides in from the +Y direction.
+    - The slot width spans the X-axis.
+    """
+    if screw_m == "M3":
+        nut_waf, nut_thick = 5.5, 2.4
+    elif screw_m == "M4":
+        nut_waf, nut_thick = 7.0, 3.2
+    elif screw_m == "M5":
+        nut_waf, nut_thick = 8.0, 4.0
+    else:
+        raise ValueError(f"Unsupported screw size: {screw_m}")
+        
+    slot_w = nut_waf + 0.1
+    slot_t = nut_thick + 0.1
+    
+    # Distance from center to point of hexagon
+    nut_point_dist = (nut_waf / 2.0) / math.cos(math.radians(30))
+    
+    slot_length = depth + nut_point_dist
+    center_y = (depth - nut_point_dist) / 2.0
+    
+    slot = cq.Solid.makeBox(slot_w, slot_length, slot_t)
+    slot = slot.translate((-slot_w/2.0, -slot_length/2.0, -slot_t/2.0))
+    slot = slot.translate((0, center_y, 0))
+    
+    result = cq.Workplane(slot)
+    
+    if push_hole:
+        # Create a 1mm cylinder starting at Y = -nut_point_dist and extending downwards (negative Y)
+        # We will make it 100mm long to ensure it pierces the outer wall.
+        cyl = cq.Solid.makeCylinder(0.5, 100.0, cq.Vector(0, 0, 0), cq.Vector(0, -1, 0))
+        cyl = cyl.translate((0, -nut_point_dist, 0))
+        
+        if push_hole_angle != 0.0:
+            # Rotate around X axis. 
+            # If angle > 0, it rotates towards +Z.
+            cyl = cyl.rotate(cq.Vector(0, -nut_point_dist, 0), cq.Vector(1, 0, 0), push_hole_angle)
+            
+        result = result.union(cq.Workplane(cyl))
+        
+    return result.val()

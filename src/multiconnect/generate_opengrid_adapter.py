@@ -3,7 +3,7 @@ import argparse
 import os
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import export_stl
+from holder_base import export_stl, create_nut_slot
 
 def load_mc_block(filename, opengrid_path):
     path = os.path.join(opengrid_path, filename)
@@ -154,38 +154,21 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
         adapter = adapter.cut(hole_top)
         
         # Top nut slot
-        slot_h_top = top_y - (top_screw_y - nut_waf/2.0)
-        slot_y_center_top = top_y - slot_h_top / 2.0
-        slot_top = (
-            cq.Workplane("XZ", origin=(x, slot_y_center_top, slot_z_center))
-            .rect(nut_waf, slot_t)
-            .extrude(slot_h_top / 2.0, both=True)
-        )
-        adapter = adapter.cut(slot_top)
-        
-        # Top diagonal push hole
-        top_dir = (0, -cos30, sin30)
-        push_top = cq.Workplane(cq.Plane(origin=(x, top_screw_y, slot_z_center), xDir=(1,0,0), normal=top_dir)).circle(0.5).extrude(50, both=True)
-        adapter = adapter.cut(push_top)
+        depth_top = top_y - top_screw_y
+        slot_top_solid = create_nut_slot(screw_m, depth=depth_top, push_hole=True, push_hole_angle=-30.0)
+        slot_top_solid = slot_top_solid.translate(cq.Vector(x, top_screw_y, slot_z_center))
+        adapter = adapter.cut(cq.Workplane(slot_top_solid))
         
         # Bottom screw hole
         hole_bot = cq.Workplane("XY").workplane(offset=-10).center(x, bottom_screw_y).circle(screw_d/2).extrude(50)
         adapter = adapter.cut(hole_bot)
         
         # Bottom nut slot
-        slot_h_bot = (bottom_screw_y + nut_waf/2.0) - bottom_y
-        slot_y_center_bot = bottom_y + slot_h_bot / 2.0
-        slot_bot = (
-            cq.Workplane("XZ", origin=(x, slot_y_center_bot, slot_z_center))
-            .rect(nut_waf, slot_t)
-            .extrude(slot_h_bot / 2.0, both=True)
-        )
-        adapter = adapter.cut(slot_bot)
-
-        # Bottom diagonal push hole
-        bot_dir = (0, cos30, sin30)
-        push_bot = cq.Workplane(cq.Plane(origin=(x, bottom_screw_y, slot_z_center), xDir=(1,0,0), normal=bot_dir)).circle(0.5).extrude(50, both=True)
-        adapter = adapter.cut(push_bot)
+        depth_bot = bottom_screw_y - bottom_y
+        slot_bot_solid = create_nut_slot(screw_m, depth=depth_bot, push_hole=True, push_hole_angle=-30.0)
+        slot_bot_solid = cq.Workplane(slot_bot_solid).rotate(cq.Vector(0,0,0), cq.Vector(0,0,1), 180).val()
+        slot_bot_solid = slot_bot_solid.translate(cq.Vector(x, bottom_screw_y, slot_z_center))
+        adapter = adapter.cut(cq.Workplane(slot_bot_solid))
 
     return adapter
 
