@@ -141,6 +141,11 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     slot_t = nut_thick + 0.1
     slot_z_center = 2.0 + slot_t / 2.0
     
+    import math
+    angle = math.radians(30)
+    cos30 = math.cos(angle)
+    sin30 = math.sin(angle)
+    
     for i in range(units):
         x = -width/2 + unit_width/2 + i*unit_width
         
@@ -158,6 +163,11 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
         )
         adapter = adapter.cut(slot_top)
         
+        # Top diagonal push hole
+        top_dir = (0, -cos30, sin30)
+        push_top = cq.Workplane(cq.Plane(origin=(x, top_screw_y, slot_z_center), xDir=(1,0,0), normal=top_dir)).circle(0.5).extrude(50, both=True)
+        adapter = adapter.cut(push_top)
+        
         # Bottom screw hole
         hole_bot = cq.Workplane("XY").workplane(offset=-10).center(x, bottom_screw_y).circle(screw_d/2).extrude(50)
         adapter = adapter.cut(hole_bot)
@@ -171,6 +181,11 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
             .extrude(slot_h_bot / 2.0, both=True)
         )
         adapter = adapter.cut(slot_bot)
+
+        # Bottom diagonal push hole
+        bot_dir = (0, cos30, sin30)
+        push_bot = cq.Workplane(cq.Plane(origin=(x, bottom_screw_y, slot_z_center), xDir=(1,0,0), normal=bot_dir)).circle(0.5).extrude(50, both=True)
+        adapter = adapter.cut(push_bot)
 
     return adapter
 
