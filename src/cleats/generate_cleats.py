@@ -71,6 +71,14 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
                 .extrude(slot_h / 2.0, both=True)
             )
             cleat = cleat.cut(slot)
+            
+            # 1mm push hole from opposite side to easily remove the nut
+            push_hole = (
+                cq.Workplane("XZ", origin=(x, 0, slot_z_center))
+                .circle(0.5)
+                .extrude(100, both=True)
+            )
+            cleat = cleat.cut(push_hole)
     else:
         button = load_round_button()
         for i in range(units):
@@ -133,6 +141,14 @@ def create_bottom_cleat(units=2, rail_thickness=19.0, screw_m="M3"):
             .extrude(slot_h / 2.0, both=True)
         )
         cleat = cleat.cut(slot)
+        
+        # 1mm push hole from opposite side to easily remove the nut
+        push_hole = (
+            cq.Workplane("XZ", origin=(x, 0, slot_z_center))
+            .circle(0.5)
+            .extrude(100, both=True)
+        )
+        cleat = cleat.cut(push_hole)
         
     return cleat
 

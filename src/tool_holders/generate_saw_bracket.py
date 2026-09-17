@@ -165,6 +165,15 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         slot = slot.translate((slot_center.x, slot_center.y, slot_center.z))
         
         body = body.cut(slot)
+        
+        # 1mm push hole from opposite side to easily remove the nut
+        nut_center = pt + normal_dir * (-5.0)
+        push_hole = (
+            cq.Workplane("YZ", origin=(0, nut_center.y, nut_center.z))
+            .circle(0.5)
+            .extrude(100, both=True)
+        )
+        body = body.cut(push_hole)
 
     # Cut cleat mounting screws
     screws = (
