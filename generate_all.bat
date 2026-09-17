@@ -28,6 +28,9 @@ python src/tool_holders/generate_slot_holder.py --width-units 1 --depth-units 2 
 echo Generating V Holders...
 python src/tool_holders/generate_v_holder.py --width-units 2 --depth-units 4
 
+echo Generating Power Tool Holders...
+python src/tool_holders/generate_power_tool_holder.py --units 2 --mount groove
+
 echo Generating Strength Testers...
 python src/strength_testing/generate_strength_tester.py --mount groove
 
