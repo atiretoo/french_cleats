@@ -24,6 +24,8 @@ def create_nut_pusher(screw_m="M3", handle_length=11.0):
         
     handle_dia = max(10.0, head_w + 4.0)
     
+    import math
+    
     # Handle (Extrudes into +Z)
     handle = (
         cq.Workplane("XY")
@@ -39,6 +41,27 @@ def create_nut_pusher(screw_m="M3", handle_length=11.0):
         .extrude(-head_l)
         .edges("<Z").chamfer(0.5) # Chamfer to easily slide into slot
     )
+    
+    # Cut a 120-degree V-notch into the tip to cup the point of the hex nut
+    # Leave a 0.5mm flat shoulder on each side so the tips aren't infinitely sharp
+    notch_w = head_w - 1.0
+    notch_depth = (notch_w / 2.0) / math.tan(math.radians(60))
+    
+    notch_pts = [
+        (-notch_w/2.0, -head_l - 1.0),
+        (-notch_w/2.0, -head_l),
+        (0, -head_l + notch_depth),
+        (notch_w/2.0, -head_l),
+        (notch_w/2.0, -head_l - 1.0)
+    ]
+    
+    notch = (
+        cq.Workplane("XZ")
+        .polyline(notch_pts).close()
+        .extrude(head_t + 2.0, both=True)
+    )
+    
+    head = head.cut(notch)
     
     return handle.union(head)
 
