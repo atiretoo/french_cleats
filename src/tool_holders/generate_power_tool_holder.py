@@ -77,16 +77,16 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
     # The slot is a rectangle with a semi-circle at the back.
     # It cuts all the way through the shelf vertically.
     
-    # We can use cq.Workplane("XZ")
+    # We can use cq.Workplane("ZX")
     # Z is from front_z to slot_back_z
     slot_cutter = (
-        cq.Workplane("XZ", origin=(0, top_y + 10, 0))
+        cq.Workplane("ZX", origin=(0, top_y + 10, 0))
         .moveTo(-slot_width/2, front_z)
         .lineTo(slot_width/2, front_z)
         .lineTo(slot_width/2, slot_back_z - slot_width/2)
         .threePointArc((0, slot_back_z), (-slot_width/2, slot_back_z - slot_width/2))
         .close()
-        .extrude(50) # Cut downwards (positive Local Z = negative Global Y)
+        .extrude(-50) # Cut downwards
     )
     
     body = body.cut(slot_cutter)

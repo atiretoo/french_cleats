@@ -56,7 +56,7 @@ def create_nut_pusher(screw_m="M3", handle_length=11.0):
     ]
     
     notch = (
-        cq.Workplane("XZ")
+        cq.Workplane("ZX")
         .polyline(notch_pts).close()
         .extrude(head_t + 2.0, both=True)
     )

@@ -50,31 +50,31 @@ def create_fin_half(normal_gap, is_right=True):
     
     if is_right:
         cut_p = (
-            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
+            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
             .polyline(prof_p).close()
-            .transformed(offset=(0, 30, -30))
+            .transformed(offset=(0, 30, 30))
             .polyline(prof_p).close()
             .loft()
         )
         cut_n = (
-            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
+            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
             .polyline(prof_n).close()
-            .transformed(offset=(0, 30, -30))
+            .transformed(offset=(0, 30, 30))
             .polyline(prof_n).close()
             .loft()
         )
     else:
         cut_p = (
-            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
+            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
             .polyline(prof_p).close()
-            .transformed(offset=(0, 30, 30))
+            .transformed(offset=(0, 30, -30))
             .polyline(prof_p).close()
             .loft()
         )
         cut_n = (
-            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
+            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
             .polyline(prof_n).close()
-            .transformed(offset=(0, 30, 30))
+            .transformed(offset=(0, 30, -30))
             .polyline(prof_n).close()
             .loft()
         )

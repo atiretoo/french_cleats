@@ -39,12 +39,12 @@ except Exception as e:
 
 # Cut holes and slots
 cut_tool = (
-    cq.Workplane("XZ").workplane(offset=20)
+    cq.Workplane("ZX").workplane(offset=-20)
     .pushPoints([(-12.5, -23.5), (12.5, -23.5)])
     .circle(15/2)
     .pushPoints([(-12.5, -29.75), (12.5, -29.75)])
     .rect(10, 12.5)
-    .extrude(-15)
+    .extrude(15)
 )
 
 tool_holder = tool_holder.cut(cut_tool)
