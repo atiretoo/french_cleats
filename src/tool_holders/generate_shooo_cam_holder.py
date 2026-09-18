@@ -30,13 +30,15 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     reg_hole_1_y_offset = 11.43
     m3_hole_y_offset = 18.587
     reg_hole_2_y_offset = 29.953
-    post_y_offset = 18.587 # The baseplate pin perfectly aligns with the M4 hole
     
     # Cam Post
     post_h = 10.160
     post_r = 4.5 / 2.0
     boss_r = 5.5 / 2.0
     boss_h = 1.5
+    
+    # User measured 19.83mm from the "top" (groove-side) edge to the edge of the pin.
+    post_y_offset = 19.83 + post_r
     
     # Post position within the gap (from left block inner face)
     post_x_from_left = 6.24
