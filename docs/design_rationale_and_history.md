@@ -1,4 +1,4 @@
-# French Cleat Tool System: Design Rationale & History
+﻿# French Cleat Tool System: Design Rationale & History
 
 This document outlines the evolutionary design choices, dimensional assumptions, and geometric rationale that shaped the V1.x generation of the parametric tool holder project.
 
@@ -10,7 +10,7 @@ All components in this system are built upon a universal grid where **1U = 28.0 
 
 ## 2. Structural Thicknesses & FEA (Finite Element Analysis)
 Early iterations of the project used conservatively thick walls (10mm shelves, 5mm side braces). 
-Following FEA simulations in the `strength_tester.py` pipeline, the models appeared to be drastically over-engineered. We instituted global thickness reductions:
+Following FEA simulations in the `strength_tester.py` pipeline, the models appeared to be drastically over-engineered. I instituted global thickness reductions:
 - **Shelf Thickness:** Reduced to **5.0 mm**.
 - **Brace Thickness:** Reduced to **2.5 mm**.
 - **Truss Cutouts:** For deep, highly-leveraged shelves (depth > 2U, or > 56mm), the side braces automatically receive a triangular truss cutout. The cutout offsets exactly 15mm from the structural edges and utilizes 8.0mm inner corner fillets. This minimizes filament use without sacrificing the structurally validated rigidity.
@@ -25,7 +25,7 @@ This structural requirement drove several mathematical spacing rules:
 A major design goal was to avoid generating G-Code supports. This led to specific choices regarding side braces:
 - **Asymmetric Side Braces:** On a 1U-wide projecting holder (like the screwdrivers), a brace is only generated on the left side. This provides the structural load path needed while freeing up the right side so wide tool handles do not rub against the plastic truss.
 - **Print-On-Side Mechanics:** Removing the right brace entirely (or removing braces altogether, as seen on the Tape Measure V-Holder) means the right edge of the shelf is perfectly co-planar with the right edge of the backplate. The user can orient the model perfectly flat on its side on the print bed.
-- **I-Beam Rigidity:** The Tape Measure holder features a 5.0mm thick, 90-degree V-trough. Because an angled V-profile intrinsically acts as a deep I-beam flange, it resists vertical deflection independently. We removed its side braces entirely for a cleaner print and sleeker aesthetic.
+- **I-Beam Rigidity:** The Tape Measure holder features a 5.0mm thick, 90-degree V-trough. Because an angled V-profile intrinsically acts as a deep I-beam flange, it resists vertical deflection independently. I removed its side braces entirely for a cleaner print and sleeker aesthetic.
 
 ## 5. Captive Nut Cleat Assembly (V1.1.0)
 The mounting cleats were completely overhauled in V1.1.0 to eliminate the annoyance of hex nuts falling out during inverted rail assembly.
@@ -41,3 +41,4 @@ During the generation of complex tool sockets (like the chisel holder which marr
 ## 7. Customization Mechanics (Recesses and Offsets)
 - **Variable Hole Scaling:** For tailored fits (like the nut driver rack), the hole generation logic utilizes a 1mm radius (2mm diameter) shaft clearance.
 - **Nesting Recesses:** To prevent top-heavy tools from tipping, the system supports independent recess generation. For example, a 22.3mm nut driver handle utilizes a 23.0mm diameter pocket, precisely cut 1.0mm deep into the top surface of the 5.0mm shelf.
+

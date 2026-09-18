@@ -26,9 +26,9 @@ Examples of unacceptable behavior include:
 
 ## AI-Assisted Contributions Policy
 
-We welcome and encourage the use of AI tools (such as Google Gemini, GitHub Copilot, ChatGPT, etc.) to assist in developing code for this project. 
+I welcome and encourage the use of AI tools (such as Google Gemini, GitHub Copilot, ChatGPT, etc.) to assist in developing code for this project. 
 
-We aspire to be [centaurs](https://mitsloan.mit.edu/ideas-made-to-matter/3-ways-to-use-ai-are-you-a-cyborg-a-centaur-or-a-self-automator), "... maintain[ing] structured and controlled interactions with AI, harnessing it as a tool for targeted efficiency". We acknowledge that when learning a new domain we might be cyborgs "... collaborat[ing] closely with the AI tool -- probing its suggestions, allowing it to lead the way, and taking its advice on some occasions while pushing back against it on others." Both are OK.
+I aspire to be a [centaur](https://mitsloan.mit.edu/ideas-made-to-matter/3-ways-to-use-ai-are-you-a-cyborg-a-centaur-or-a-self-automator), "... maintain[ing] structured and controlled interactions with AI, harnessing it as a tool for targeted efficiency". I acknowledge that when learning a new domain, you or I might be a cyborg "... collaborat[ing] closely with the AI tool -- probing its suggestions, allowing it to lead the way, and taking its advice on some occasions while pushing back against it on others." Both are OK.
 
 However, all contributors must act as the "human in the loop". By submitting a contribution (pull request, issue, or model), you agree that:
 1.  **You take ultimate responsibility:** You are accountable for the code or geometry you submit, and you stand behind it as if you had authored it entirely yourself.
