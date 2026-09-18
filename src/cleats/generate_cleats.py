@@ -14,7 +14,7 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
     unit_width = 28.0
     width = units * unit_width
     
-    ridge_depth = 4.0
+    ridge_depth = 3.0
     tip_clearance = 2.0
     
     if mount_type == "groove":
@@ -29,10 +29,10 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
     p2b = (-rail_thickness + tip_clearance, rail_thickness)
     p3 = (top_y, rail_thickness)
     p4 = (top_y, 0)
-    p5 = (screw_y + 4, 0)
-    p6 = (screw_y + 2, -ridge_depth)
-    p7 = (screw_y - 2, -ridge_depth)
-    p8 = (screw_y - 4, 0)
+    p5 = (screw_y + 3.5, 0)
+    p6 = (screw_y + 0.5, -ridge_depth)
+    p7 = (screw_y - 0.5, -ridge_depth)
+    p8 = (screw_y - 3.5, 0)
     
     pts = [p1, p2a, p2b, p3, p4]
     if mount_type == "groove":
@@ -87,7 +87,7 @@ def create_bottom_cleat(units=2, rail_thickness=19.0, screw_m="M3"):
     elif screw_m == "M5":
         screw_d, nut_waf, nut_thick = 5.5, 8.0, 4.0
         
-    ridge_depth = 4.0
+    ridge_depth = 3.0
     height = 20.0
     screw_y = 0.0
     
@@ -96,10 +96,10 @@ def create_bottom_cleat(units=2, rail_thickness=19.0, screw_m="M3"):
     p3 = (-5.0, rail_thickness) 
     p3b = (height/2, 4.0) 
     p4 = (height/2, 0)
-    p5 = (screw_y + 4, 0)
-    p6 = (screw_y + 2, -ridge_depth)
-    p7 = (screw_y - 2, -ridge_depth)
-    p8 = (screw_y - 4, 0)
+    p5 = (screw_y + 3.5, 0)
+    p6 = (screw_y + 0.5, -ridge_depth)
+    p7 = (screw_y - 0.5, -ridge_depth)
+    p8 = (screw_y - 3.5, 0)
     
     pts = [p1, p2, p3, p3b, p4, p5, p6, p7, p8]
     

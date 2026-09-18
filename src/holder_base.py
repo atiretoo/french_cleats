@@ -18,7 +18,7 @@ def create_baseplate(units=2, rail_height=73.0, backplate_thickness=11.0, mount_
     
     if mount_type == "groove":
         t = 0.1
-        ridge_depth = 4.0
+        ridge_depth = 3.0
         ridge_clearance = 0.5 
         play = 1.0
         
@@ -27,14 +27,14 @@ def create_baseplate(units=2, rail_height=73.0, backplate_thickness=11.0, mount_
         
         pts = [
             (20, 0),
-            (14+t, 0),
-            (12+t, -ridge_depth - ridge_clearance),
-            (8-t,  -ridge_depth - ridge_clearance),
-            (6-t,  0),
-            (bottom_groove_y + 4 + t, 0),
-            (bottom_groove_y + 2 + t, -ridge_depth - ridge_clearance),
-            (bottom_groove_y - 2 - t, -ridge_depth - ridge_clearance),
-            (bottom_groove_y - 4 - t, 0),
+            (13.5+t, 0),
+            (10.5+t, -ridge_depth - ridge_clearance),
+            (9.5-t,  -ridge_depth - ridge_clearance),
+            (6.5-t,  0),
+            (bottom_groove_y + 3.5 + t, 0),
+            (bottom_groove_y + 0.5 + t, -ridge_depth - ridge_clearance),
+            (bottom_groove_y - 0.5 - t, -ridge_depth - ridge_clearance),
+            (bottom_groove_y - 3.5 - t, 0),
             (bottom_y, 0),
             (bottom_y, -backplate_thickness),
             (20, -backplate_thickness),

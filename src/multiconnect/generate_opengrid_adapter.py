@@ -105,13 +105,13 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
         adapter = adapter.union(bot_filler)
         
     # Ridges on the Z=0 face pointing into -Z
-    ridge_depth = 4.0
+    ridge_depth = 3.0
     
     top_ridge_pts = [
-        (top_screw_y + 4, 0),
-        (top_screw_y + 2, -ridge_depth),
-        (top_screw_y - 2, -ridge_depth),
-        (top_screw_y - 4, 0)
+        (top_screw_y + 3.5, 0),
+        (top_screw_y + 0.5, -ridge_depth),
+        (top_screw_y - 0.5, -ridge_depth),
+        (top_screw_y - 3.5, 0)
     ]
     
     top_ridge = (
@@ -123,10 +123,10 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     adapter = adapter.union(top_ridge)
     
     bot_ridge_pts = [
-        (bottom_screw_y + 4, 0),
-        (bottom_screw_y + 2, -ridge_depth),
-        (bottom_screw_y - 2, -ridge_depth),
-        (bottom_screw_y - 4, 0)
+        (bottom_screw_y + 3.5, 0),
+        (bottom_screw_y + 0.5, -ridge_depth),
+        (bottom_screw_y - 0.5, -ridge_depth),
+        (bottom_screw_y - 3.5, 0)
     ]
     
     bot_ridge = (
