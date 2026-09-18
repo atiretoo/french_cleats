@@ -158,4 +158,4 @@ if __name__ == "__main__":
     units = math.ceil(((args.tools + 1) * 12.7 + args.tools * 26.241) / 28.0)
     
     filename = f"shooo_cam_holder_{args.tools}tools_{units}u_{args.mount}.stl"
-    export_stl(holder, filename, category="tool_holders")
+    export_stl(holder, filename, print_orientation="back_down", category="tool_holders")

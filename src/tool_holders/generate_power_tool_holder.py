@@ -200,4 +200,4 @@ if __name__ == "__main__":
     )
     
     filename = f"power_tool_holder_{args.units}u_L{args.length}_{args.mount}.stl"
-    export_stl(holder, filename, rotate_for_printing=False, category="tool_holders")
+    export_stl(holder, filename, print_orientation="top_down", category="tool_holders")

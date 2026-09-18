@@ -110,7 +110,7 @@ def get_main_repo_root(current_dir):
         # Fallback if git fails for some reason
         return os.path.join(current_dir, '..')
 
-def export_stl(shape, filename, rotate_for_printing=True, category="", export_step=True):
+def export_stl(shape, filename, rotate_for_printing=None, category="", export_step=True, print_orientation="left_down"):
     import os
     import cadquery as cq
     
@@ -130,10 +130,35 @@ def export_stl(shape, filename, rotate_for_printing=True, category="", export_st
     os.makedirs(os.path.dirname(out_path_stl), exist_ok=True)
     os.makedirs(os.path.dirname(out_path_step), exist_ok=True)
     
+    # Backward compatibility for old boolean flag
+    if rotate_for_printing is not None:
+        if rotate_for_printing:
+            print_orientation = "left_down"
+        else:
+            print_orientation = "back_down"
+            
     export_shape = shape
-    if rotate_for_printing:
-        # Rotate around Y axis by 90 degrees to lay it on its side for optimal layer strength
+    
+    # Apply rotation based on desired print orientation
+    # In CAD: Z=0 is back, -Z is front. +Y is top, -Y is bottom. +X is right, -X is left.
+    if print_orientation == "left_down":
+        # Rotate -X to point down (-Z)
         export_shape = export_shape.rotate((0, 0, 0), (0, 1, 0), 90)
+    elif print_orientation == "right_down":
+        # Rotate +X to point down (-Z)
+        export_shape = export_shape.rotate((0, 0, 0), (0, 1, 0), -90)
+    elif print_orientation == "top_down":
+        # Rotate +Y to point down (-Z)
+        export_shape = export_shape.rotate((0, 0, 0), (1, 0, 0), 90)
+    elif print_orientation == "bottom_down":
+        # Rotate -Y to point down (-Z)
+        export_shape = export_shape.rotate((0, 0, 0), (1, 0, 0), -90)
+    elif print_orientation == "back_down":
+        # Rotate +Z to point down (-Z)
+        export_shape = export_shape.rotate((0, 0, 0), (1, 0, 0), 180)
+    elif print_orientation == "face_down":
+        # -Z is already down. No rotation needed.
+        pass
         
     cq.exporters.export(export_shape, out_path_stl)
     if export_step:
