@@ -95,12 +95,30 @@ def create_baseplate(units=2, rail_height=73.0, backplate_thickness=11.0, mount_
         bottom_groove_y = bottom_y + 10.0
         return baseplate, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids
 
+def get_main_repo_root(current_dir):
+    import subprocess
+    try:
+        common_git_dir = subprocess.check_output(
+            ['git', 'rev-parse', '--git-common-dir'], 
+            cwd=current_dir, 
+            text=True, 
+            stderr=subprocess.DEVNULL
+        ).strip()
+        abs_git_dir = os.path.abspath(os.path.join(current_dir, common_git_dir))
+        return os.path.dirname(abs_git_dir)
+    except Exception:
+        # Fallback if git fails for some reason
+        return os.path.join(current_dir, '..')
+
 def export_stl(shape, filename, rotate_for_printing=True, category="", export_step=True):
     import os
     import cadquery as cq
     
-    export_dir = os.path.join(os.path.dirname(__file__), '..', 'exports', 'stl')
-    step_dir = os.path.join(os.path.dirname(__file__), '..', 'exports', 'step')
+    current_dir = os.path.dirname(__file__)
+    main_repo_root = get_main_repo_root(current_dir)
+    
+    export_dir = os.path.join(main_repo_root, 'exports', 'stl')
+    step_dir = os.path.join(main_repo_root, 'exports', 'step')
     
     if category:
         export_dir = os.path.join(export_dir, category)
