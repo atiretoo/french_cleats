@@ -11,5 +11,8 @@
 ## 3. CadQuery Cyclic Coordinate Systems
 *   **Pattern:** Always use positive forward cyclic loops (`"XY"`, `"YZ"`, `"ZX"`) when defining CadQuery workplanes to ensure local extrusions map cleanly to positive global axes. Do NOT use `"XZ"` as it reverses the normal to `-Y`.
 
-## 4. Baseplate Orientation & Terminology
-*   **Pattern:** `+Y` is the "Top" of the wall (featuring the 45-degree French cleat overhang). `-Y` is the "Bottom" of the wall (featuring the interlocking groove). Always explicitly anchor geometry to `block_y_bot` or `block_y_top`.
+## 4. Coordinate System & Terminology
+*   **Pattern:** Always use consistent terminology and CAD axes to avoid orientation bugs:
+    *   **Y-Axis (Vertical):** `+Y` is **TOP** (towards the ceiling, the cleat overhang). `-Y` is **BOTTOM** (towards the floor, the cleat groove).
+    *   **X-Axis (Horizontal):** `+X` is **RIGHT**. `-X` is **LEFT** (when facing the wall).
+    *   **Z-Axis (Depth):** `Z=0` is the **BACK** (the face touching the wall). **`-Z` is the FRONT** (the direction coming out of the wall towards the user). All mechanisms build into negative Z space.
