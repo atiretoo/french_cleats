@@ -36,10 +36,15 @@ python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --m
 python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --mag-count 3 --mag-dia 10.2 --mag-depth 2.0
 python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --mag-count 2 --mag-dia 19.2 --mag-depth 2.0
 python src/tool_holders/generate_cam_holder.py --units 1 --mount groove
+echo Generating Multi-Tool Cam Holders...
 python src/tool_holders/generate_shooo_cam_holder.py --tools 1 --mount groove
 python src/tool_holders/generate_shooo_cam_holder.py --tools 2 --mount groove
 python src/tool_holders/generate_shooo_cam_holder.py --tools 3 --mount groove
 python src/tool_holders/generate_shooo_cam_holder.py --tools 4 --mount groove
+
+echo Generating Auxiliary Tools...
+python src/tools/generate_nut_pusher.py --screw M3 --handle-length 11.0
+python src/tools/generate_nut_pusher.py --screw M4 --handle-length 11.0
 python src/tool_holders/generate_shooo_cam_holder.py --tools 5 --mount groove
 
 echo Generating Strength Testers...
