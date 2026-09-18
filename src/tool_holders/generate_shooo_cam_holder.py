@@ -147,34 +147,36 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
 def add_support_fin(holder, mech_width):
     # Rotate to back_down
     holder = holder.rotate((0,0,0), (1,0,0), 180)
-    # Tilt 45 degrees
-    holder = holder.rotate((0,0,0), (1,0,0), 45)
+    
+    # Tilt 45 degrees around Y-axis (stands on left edge -X)
+    holder = holder.rotate((0,0,0), (0,1,0), -45)
     
     bb = holder.val().BoundingBox()
     z_bed = bb.zmin
     
-    Y_min = bb.ymin + 2.0
-    Y_max = bb.ymax - 2.0
+    X_min = bb.xmin + 2.0
+    X_max = bb.xmax - 2.0
     
-    # The fin profile matches Z = Y plane (where the backplate is after rotation)
+    # The fin profile matches Z = X plane (where the backplate is after rotation)
     # We leave a 0.2mm gap for breakaway support
     pts = [
-        (Y_min, z_bed),
-        (Y_max, z_bed),
-        (Y_max, Y_max - 0.2),
-        (Y_min, Y_min - 0.2)
+        (X_min, z_bed),
+        (X_max, z_bed),
+        (X_max, X_max - 0.2),
+        (X_min, X_min - 0.2)
     ]
     
-    # We will put 3 fins to keep it stable
+    # We will put 3 fins along the Y axis to keep it stable
     fins = []
-    x_positions = [0, -mech_width/2.0 + 5.0, mech_width/2.0 - 5.0]
+    # Baseplate Y spans roughly -74 to +20. Center is around -27.
+    y_positions = [-60.0, -27.0, 6.0]
     
-    for x in x_positions:
+    for y in y_positions:
         fin = (
-            cq.Workplane("YZ")
+            cq.Workplane("XZ")
             .polyline(pts).close()
             .extrude(0.8)
-            .translate((x - 0.4, 0, 0))
+            .translate((0, y - 0.4, 0))
         )
         fins.append(fin)
         
