@@ -25,17 +25,12 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     reg_hole_depth = 6.0
     m3_hole_dia = 3.4
     
-    # Original axle cap was 40.113mm long, and holes were measured from its bottom edge.
-    # The axle cap sits flush with the TOP edge of the block.
-    # We anchor everything to the top edge using these derived distances:
-    # 40.113 - 29.953 = 10.160 mm from top
-    # 40.113 - 18.587 = 21.526 mm from top
-    # 40.113 - 11.430 = 28.683 mm from top
-    # 40.113 / 2.0 = 20.0565 mm from top
-    reg_hole_2_dist_top = 10.160
-    m3_hole_dist_top = 21.526
-    reg_hole_1_dist_top = 28.683
-    post_dist_top = 20.0565
+    # Distances from bottom edge of the block (the side closest to the groove)
+    # The user's original measurements were correctly anchored to the bottom edge!
+    reg_hole_1_y_offset = 11.43
+    m3_hole_y_offset = 18.587
+    reg_hole_2_y_offset = 29.953
+    post_y_offset = 18.587 # The baseplate pin perfectly aligns with the M4 hole
     
     # Cam Post
     post_h = 10.160
@@ -48,13 +43,12 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     
     # Center the mechanism on the baseplate (Between Y=0 and Y=-74 is 74mm. Center is -37)
     block_y_bot = -37.0 - (block_y / 2.0)
-    block_y_top = block_y_bot + block_y
     
-    # Calculate absolute Y positions anchored from the top edge
-    reg_hole_2_y = block_y_top - reg_hole_2_dist_top
-    m3_hole_y = block_y_top - m3_hole_dist_top
-    reg_hole_1_y = block_y_top - reg_hole_1_dist_top
-    post_y = block_y_top - post_dist_top
+    # Calculate absolute Y positions anchored from the bottom edge
+    reg_hole_1_y = block_y_bot + reg_hole_1_y_offset
+    m3_hole_y = block_y_bot + m3_hole_y_offset
+    reg_hole_2_y = block_y_bot + reg_hole_2_y_offset
+    post_y = block_y_bot + post_y_offset
     
     start_x = - (mech_width / 2.0)
     
