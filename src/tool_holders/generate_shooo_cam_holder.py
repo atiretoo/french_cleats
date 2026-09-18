@@ -74,8 +74,7 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
         body = body.union(block)
         
         # Registration holes
-        for y_offset in [reg_hole_1_y, reg_hole_2_y]:
-            y_pos = block_y_bot + y_offset
+        for y_pos in [reg_hole_1_y, reg_hole_2_y]:
             reg_hole = (
                 cq.Workplane("XY").workplane(offset=top_z)
                 .center(x_pos, y_pos)
@@ -85,10 +84,9 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
             body = body.cut(reg_hole)
             
         # M3 Bolt hole
-        m3_y_pos = block_y_bot + m3_hole_y
         m3_hole = (
             cq.Workplane("XY").workplane(offset=top_z)
-            .center(x_pos, m3_y_pos)
+            .center(x_pos, m3_hole_y)
             .circle(m3_hole_dia / 2.0)
             .extrude(20.0)
         )
@@ -106,7 +104,7 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
         slide_dir = -1.0 if i == num_tools else 1.0
         
         slot_solid = create_nut_slot("M3", depth=(block_x / 2.0) + 0.5, push_hole=True)
-        plane = cq.Plane(origin=(x_pos, m3_y_pos, slot_z), xDir=(0, -slide_dir, 0), normal=(0, 0, 1))
+        plane = cq.Plane(origin=(x_pos, m3_hole_y, slot_z), xDir=(0, -slide_dir, 0), normal=(0, 0, 1))
         slot_solid = slot_solid.moved(cq.Location(plane))
         body = body.cut(slot_solid)
         
