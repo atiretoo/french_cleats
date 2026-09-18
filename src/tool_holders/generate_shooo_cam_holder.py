@@ -1,4 +1,4 @@
-﻿import cadquery as cq
+import cadquery as cq
 import argparse
 import sys, os
 import math
@@ -8,14 +8,14 @@ from holder_base import create_baseplate, export_stl, create_nut_slot
 
 def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     # === Shooo's Mechanism Dimensions ===
-    block_h = 47.65        # Height protruding from backplate
-    block_y = 40.113       # Length along wall
-    block_x = 12.7         # Width
+    block_h = 47.63        # Height protruding from backplate
+    block_y = 47.6         # Length along wall
+    block_x = 12.6         # Width
     block_r = 3.81         # Vertical edge fillet radius
     gap = 26.241           # Distance between the two blocks
     
     mech_width = (num_tools + 1) * block_x + num_tools * gap
-    units = math.ceil(mech_width / 28.0)
+    units = max(1, math.ceil(mech_width / 28.0))
     
     # Baseplate
     body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(units=units, mount_type=mount_type, num_rows=2)
@@ -39,10 +39,9 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     # Post position within the gap (from left block inner face)
     post_x_from_left = 6.24
     
-    # Center the mechanism on the baseplate
-    block_y_bot = -40.113
-    block_y_top = 0.0
-    post_y = block_y_bot + (block_y / 2.0)
+    # Center the mechanism on the baseplate (Between Y=0 and Y=-74 is 74mm. Center is -37)
+    block_y_bot = -37.0 - (block_y / 2.0)
+    post_y = block_y_bot + (block_y / 2.0) # Assume pin is centered in Y. User will verify.
     
     start_x = - (mech_width / 2.0)
     
