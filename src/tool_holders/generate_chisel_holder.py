@@ -73,18 +73,18 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
         x = start_x + i * spacing
         
         hole = (
-            cq.Workplane("XZ", origin=(0, shelf_bot - 10.0, 0))
+            cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
             .center(x, z_center)
             .circle(hole_sizes[i] / 2.0)
-            .extrude(-40.0)
+            .extrude(40.0)
         )
         tool_holder = tool_holder.cut(hole)
         
         slot = (
-            cq.Workplane("XZ", origin=(0, shelf_bot - 10.0, 0))
+            cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
             .center(x, z_center)
             .rect(slot_widths[i], slot_depths[i])
-            .extrude(-40.0)
+            .extrude(40.0)
         )
         tool_holder = tool_holder.cut(slot)
     

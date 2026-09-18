@@ -172,10 +172,10 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
     # Cut variable holes one by one
     for pt, sz in zip(hole_pts, actual_hole_sizes):
         hole = (
-            cq.Workplane("XZ", origin=(0, shelf_bot - 10.0, 0))
+            cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
             .center(pt[0], pt[1])
             .circle(sz/2.0)
-            .extrude(-40.0) 
+            .extrude(40.0) 
         )
         tool_holder = tool_holder.cut(hole)
         
@@ -183,10 +183,10 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
     if recess_size > 0 and recess_depth > 0:
         for pt in hole_pts:
             recess = (
-                cq.Workplane("XZ", origin=(0, shelf_top, 0))
+                cq.Workplane("ZX", origin=(0, shelf_top, 0))
                 .center(pt[0], pt[1])
                 .circle(recess_size/2.0)
-                .extrude(recess_depth)
+                .extrude(-recess_depth)
             )
             tool_holder = tool_holder.cut(recess)
     

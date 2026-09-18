@@ -91,10 +91,10 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
         slot_pts.append((x, z_center))
         
     slots = (
-        cq.Workplane("XZ", origin=(0, shelf_bot - 10.0, 0))
+        cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
         .pushPoints(slot_pts)
         .rect(slot_width, slot_length)
-        .extrude(-40.0)
+        .extrude(40.0)
     )
     tool_holder = tool_holder.cut(slots)
     

@@ -73,20 +73,20 @@ def create_screwdriver_holder(units=2, num_screwdrivers=2, rail_height=73.0, mou
     hole_pts = [(x, -28) for x in hole_centers_x]
     
     holes = (
-        cq.Workplane("XZ", origin=(0, shelf_top + 1, 0))
+        cq.Workplane("ZX", origin=(0, shelf_top + 1, 0))
         .pushPoints(hole_pts)
         .circle(hole_diameter/2)
-        .extrude(20) 
+        .extrude(-20) 
     )
     tool_holder = tool_holder.cut(holes)
     
     slot_pts = [(x, -28 - 20/2) for x in hole_centers_x]
     
     slots = (
-        cq.Workplane("XZ", origin=(0, shelf_top + 1, 0))
+        cq.Workplane("ZX", origin=(0, shelf_top + 1, 0))
         .pushPoints(slot_pts)
         .rect(slot_width, 20)
-        .extrude(20) 
+        .extrude(-20) 
     )
     tool_holder = tool_holder.cut(slots)
     
