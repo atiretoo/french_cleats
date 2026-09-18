@@ -79,24 +79,18 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
             )
             body = body.cut(reg_hole)
             
-        # M3 Bolt hole
+        # M3 Bolt hole (clearance for the bolt threads to pass through)
         m3_hole = (
             cq.Workplane("XY").workplane(offset=top_z)
             .center(x_pos, m3_hole_y)
             .circle(m3_hole_dia / 2.0)
-            .extrude(20.0)
+            .extrude(35.0) # Extended deep into the block for long bolts
         )
         body = body.cut(m3_hole)
         
-        # M3 Captive Nut Slot
-        slot_z = top_z + 15.0
-        # Determine slide direction: if i == num_tools, it's the rightmost block, slide from +X.
-        # Otherwise, slide from -X (so it slides from inside the gap, or from far left).
-        # Wait, if we slide from inside the gap, the tool handle might interfere?
-        # A screwdriver or paperclip goes in from the outside. 
-        # For the first block (i=0), outside is -X.
-        # For the last block (i=num_tools), outside is +X.
-        # For middle blocks, it doesn't matter much, let's slide from -X.
+        # M3 Captive Nut Slot (moved to 5mm from the front face)
+        slot_z = top_z + 5.0
+        
         slide_dir = -1.0 if i == num_tools else 1.0
         
         slot_solid = create_nut_slot("M3", depth=(block_x / 2.0) + 0.5, push_hole=True)
@@ -150,14 +144,62 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
             
     return body
 
+def add_support_fin(holder, mech_width):
+    # Rotate to back_down
+    holder = holder.rotate((0,0,0), (1,0,0), 180)
+    # Tilt 45 degrees
+    holder = holder.rotate((0,0,0), (1,0,0), 45)
+    
+    bb = holder.val().BoundingBox()
+    z_bed = bb.zmin
+    
+    Y_min = bb.ymin + 2.0
+    Y_max = bb.ymax - 2.0
+    
+    # The fin profile matches Z = Y plane (where the backplate is after rotation)
+    # We leave a 0.2mm gap for breakaway support
+    pts = [
+        (Y_min, z_bed),
+        (Y_max, z_bed),
+        (Y_max, Y_max - 0.2),
+        (Y_min, Y_min - 0.2)
+    ]
+    
+    # We will put 3 fins to keep it stable
+    fins = []
+    x_positions = [0, -mech_width/2.0 + 5.0, mech_width/2.0 - 5.0]
+    
+    for x in x_positions:
+        fin = (
+            cq.Workplane("YZ")
+            .polyline(pts).close()
+            .extrude(0.8)
+            .translate((x - 0.4, 0, 0))
+        )
+        fins.append(fin)
+        
+    for fin in fins:
+        holder = holder.union(fin)
+        
+    return holder
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate Shooo cam mechanism holder.")
     parser.add_argument("--tools", type=int, default=1, help="Number of tools to hold")
     parser.add_argument("--mount", type=str, default="groove", choices=["groove", "multiconnect", "hybrid"], help="Mount type")
+    parser.add_argument("--tilt-fin", action="store_true", help="Rotate 45 degrees and model a support fin (avoids horizontal bridge sagging in nut slots)")
     args = parser.parse_args()
 
     holder = create_shooo_cam_holder(num_tools=args.tools, mount_type=args.mount)
-    units = math.ceil(((args.tools + 1) * 12.7 + args.tools * 26.241) / 28.0)
     
-    filename = f"shooo_cam_holder_{args.tools}tools_{units}u_{args.mount}.stl"
-    export_stl(holder, filename, print_orientation="back_down", category="tool_holders")
+    # mech_width calculation is the same as inside create_shooo_cam_holder
+    mech_width = (args.tools + 1) * 12.6 + args.tools * 26.241
+    units = math.ceil(mech_width / 28.0)
+    
+    if args.tilt_fin:
+        holder = add_support_fin(holder, mech_width)
+        filename = f"shooo_cam_holder_{args.tools}tools_{units}u_{args.mount}_45deg.stl"
+        export_stl(holder, filename, print_orientation="face_down", category="tool_holders")
+    else:
+        filename = f"shooo_cam_holder_{args.tools}tools_{units}u_{args.mount}.stl"
+        export_stl(holder, filename, print_orientation="back_down", category="tool_holders")
