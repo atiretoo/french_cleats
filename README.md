@@ -65,9 +65,9 @@ This project stands on the shoulders of giants. Huge thanks to the following cre
 
 ## Development & AI Policy: The "Centaur" Approach
 
-This project is developed using a collaborative human-AI workflow. The CadQuery scripts, Python generators, and overall system architecture were written and refined with the assistance of **Google Gemini**. 
+This project is developed using a collaborative human-AI workflow. The code, architecture, and documentation were written and refined with the assistance of advanced AI models. 
 
-We approach AI not as a tool for blind automation, but as a [collaborative "Centaur"](https://mitsloan.mit.edu/ideas-made-to-matter/3-ways-to-use-ai-are-you-a-cyborg-a-centaur-or-a-self-automator). In this model, the AI acts as a high-powered pair-programming partner. It helps us rapidly explore and develop our own understanding of complex topics—whether that is navigating the quirks of 3D modeling coordinate systems, calculating trapezoidal tolerances, or optimizing Python code. Meanwhile, we maintain the strategic vision, conduct the physical testing, and apply and build domain knowledge in maker systems as we go.
+We approach AI not as a tool for blind self-automation, but as a collaborative interaction. We aspire to be [centaurs](https://mitsloan.mit.edu/ideas-made-to-matter/3-ways-to-use-ai-are-you-a-cyborg-a-centaur-or-a-self-automator), "... maintain[ing] structured and controlled interactions with AI, harnessing it as a tool for targeted efficiency". We acknowledge that when learning a new domain we might be cyborgs "... collaborat[ing] closely with the AI tool -- probing its suggestions, allowing it to lead the way, and taking its advice on some occasions while pushing back against it on others." Both are OK. In this model, the AI acts as a high-powered pair-programming partner. It helps us rapidly explore and develop our own understanding of complex topics. Meanwhile, the human maintainer holds the strategic vision, conducts the physical testing/validation, and applies and builds domain knowledge as we go.
 
 For rules regarding AI-assisted contributions from the community, please see our [Code of Conduct](CODE_OF_CONDUCT.md).
 

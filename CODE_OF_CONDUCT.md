@@ -26,10 +26,12 @@ Examples of unacceptable behavior include:
 
 ## AI-Assisted Contributions Policy
 
-In the spirit of the [Centaur Model](https://mitsloan.mit.edu/ideas-made-to-matter/3-ways-to-use-ai-are-you-a-cyborg-a-centaur-or-a-self-automator) of human-AI collaboration, we welcome and encourage the use of AI tools (such as Google Gemini, GitHub Copilot, ChatGPT, etc.) to assist in developing CadQuery scripts, Python generators, and 3D models for this project. 
+We welcome and encourage the use of AI tools (such as Google Gemini, GitHub Copilot, ChatGPT, etc.) to assist in developing code for this project. 
+
+We aspire to be [centaurs](https://mitsloan.mit.edu/ideas-made-to-matter/3-ways-to-use-ai-are-you-a-cyborg-a-centaur-or-a-self-automator), "... maintain[ing] structured and controlled interactions with AI, harnessing it as a tool for targeted efficiency". We acknowledge that when learning a new domain we might be cyborgs "... collaborat[ing] closely with the AI tool -- probing its suggestions, allowing it to lead the way, and taking its advice on some occasions while pushing back against it on others." Both are OK.
 
 However, all contributors must act as the "human in the loop". By submitting a contribution (pull request, issue, or model), you agree that:
-1.  **You take ultimate responsibility:** You are fully accountable for the integrity, safety, and functionality of the code or geometry you submit.
+1.  **You take ultimate responsibility:** You are accountable for the code or geometry you submit, and you stand behind it as if you had authored it entirely yourself.
 2.  **You have verified the output:** You have read, understood, and tested the AI-generated output, including confirming physical tolerances where applicable.
 3.  **No blind automation:** Do not submit raw, unverified AI output in bulk.
 
