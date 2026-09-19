@@ -4,7 +4,7 @@ import sys, os
 import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import create_baseplate, export_stl, create_nut_slot
+from core_library import create_baseplate, export_stl, create_nut_slot
 
 def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     # === Shooo's Mechanism Dimensions ===

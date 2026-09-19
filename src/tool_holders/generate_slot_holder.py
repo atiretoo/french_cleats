@@ -4,7 +4,7 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import create_baseplate, export_stl
+from core_library import create_baseplate, export_stl
 
 def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clearance=10.0, rail_height=73.0):
     unit_width = 28.0

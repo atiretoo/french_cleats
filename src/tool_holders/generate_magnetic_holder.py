@@ -3,7 +3,7 @@ import argparse
 import sys, os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import create_baseplate, export_stl
+from core_library import create_baseplate, export_stl
 
 def create_magnetic_holder(units=1, mount_type="groove", mag_count=2, mag_dia=10.2, mag_depth=2.0):
     unit_width = 28.0
