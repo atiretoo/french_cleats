@@ -13,7 +13,7 @@ def create_fin_test():
     cube = cube.translate((0, 0, -lowest_z))
     
     # Final test: Single fin at 0.1mm gap with the long needle taper
-    fin = support_fin(0.10, is_right=True)
+    fin = support_fin(0.10, is_right=True, length=30.0/math.sqrt(2), height=30.0/math.sqrt(2))
         
     test_obj = cq.Compound.makeCompound([cube.val(), fin.val()])
     
