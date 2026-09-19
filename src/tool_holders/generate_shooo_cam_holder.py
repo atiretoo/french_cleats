@@ -154,16 +154,20 @@ def add_support_fin(holder, mech_width):
     bb = holder.val().BoundingBox()
     z_bed = bb.zmin
     
-    X_min = bb.xmin + 2.0
-    X_max = bb.xmax - 2.0
+    # Calculate exact X boundaries of the baseplate after -45 deg Y rotation
+    import math
+    cos45 = math.cos(math.radians(-45))
+    X_min = (-mech_width / 2.0) * cos45 + 1.0 # 1mm buffer from left edge
+    X_max = (mech_width / 2.0) * cos45 - 1.0  # 1mm buffer from right edge
     
     # The fin profile matches Z = X plane (where the backplate is after rotation)
-    # We leave a 0.2mm gap for breakaway support
+    # We leave a 0.2mm gap for breakaway support.
+    # Using 'ZX' workplane (Local X = Global Z, Local Y = Global X). Extrusion goes to +Y.
     pts = [
-        (X_min, z_bed),
-        (X_max, z_bed),
-        (X_max, X_max - 0.2),
-        (X_min, X_min - 0.2)
+        (z_bed, X_min),
+        (z_bed, X_max),
+        (X_max - 0.2, X_max),
+        (X_min - 0.2, X_min)
     ]
     
     # We will put 3 fins along the Y axis to keep it stable
@@ -173,10 +177,10 @@ def add_support_fin(holder, mech_width):
     
     for y in y_positions:
         fin = (
-            cq.Workplane("XZ")
+            cq.Workplane("ZX")
             .polyline(pts).close()
             .extrude(0.8)
-            .translate((0, y - 0.4, 0))
+            .translate((0, y, 0))
         )
         fins.append(fin)
         
