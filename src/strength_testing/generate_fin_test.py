@@ -1,4 +1,4 @@
-﻿import cadquery as cq
+import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import export_stl, support_fin
@@ -16,7 +16,7 @@ def create_fin_test():
     L = 30.0 / math.sqrt(2)
     
     fin1 = support_fin(z_gap=0.05, is_right=True, length=L, height=L).translate((-10, 0, 0))
-    fin2 = support_fin(z_gap=0.07, is_right=True, length=L, height=L).translate((0, 0, 0))
+    fin2 = support_fin(z_gap=0.08, is_right=True, length=L, height=L).translate((0, 0, 0))
     fin3 = support_fin(z_gap=0.10, is_right=True, length=L, height=L).translate((10, 0, 0))
     
     # Add text labels on top of the cube so we know which is which?
