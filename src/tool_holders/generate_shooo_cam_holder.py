@@ -145,48 +145,44 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     return body
 
 def add_support_fin(holder, mech_width):
-    # Rotate to back_down
+    from core_library import support_fin
+    import math
+    
+    # 1. Rotate to back_down
     holder = holder.rotate((0,0,0), (1,0,0), 180)
     
-    # Tilt 45 degrees around Y-axis (stands on left edge -X)
+    # 2. Tilt 45 degrees around Y-axis (stands on left edge -X)
     holder = holder.rotate((0,0,0), (0,1,0), -45)
     
     bb = holder.val().BoundingBox()
-    z_bed = bb.zmin
     
     # Calculate exact X boundaries of the baseplate after -45 deg Y rotation
-    import math
     cos45 = math.cos(math.radians(-45))
-    X_min = (-mech_width / 2.0) * cos45 + 1.0 # 1mm buffer from left edge
-    X_max = (mech_width / 2.0) * cos45 - 1.0  # 1mm buffer from right edge
+    X_min = (-mech_width / 2.0) * cos45
+    X_max = (mech_width / 2.0) * cos45
     
-    # The fin profile matches Z = X plane (where the backplate is after rotation)
-    # We leave a 0.2mm gap for breakaway support.
-    # Using 'ZX' workplane (Local X = Global Z, Local Y = Global X). Extrusion goes to +Y.
-    pts = [
-        (z_bed, X_min),
-        (z_bed, X_max),
-        (X_max - 0.2, X_max),
-        (X_min - 0.2, X_min)
-    ]
+    length = X_max - X_min
     
-    # We will put 3 fins along the Y axis to keep it stable
-    fins = []
-    # Baseplate Y spans roughly -74 to +20. Center is around -27.
-    y_positions = [-60.0, -27.0, 6.0]
+    # 3. Shift holder so X_min is at X=0, and Z_min is at Z=0.
+    # Since backplate is at Z=X, to keep it at Z=X after translation, we must shift Z by the same amount as X.
+    holder = holder.translate((-X_min, 0, -X_min))
     
-    for y in y_positions:
-        fin = (
-            cq.Workplane("ZX")
-            .polyline(pts).close()
-            .extrude(0.8)
-            .translate((0, y, 0))
-        )
-        fins.append(fin)
-        
-    for fin in fins:
-        holder = holder.union(fin)
-        
+    # 4. Generate the fin from core_library
+    # support_fin generates a fin for Z=Y, starting at Y=0, Z=0.
+    fin = support_fin(normal_gap=0.10, is_right=True, length=length, height=length)
+    
+    # 5. Rotate fin to support Z=X instead of Z=Y.
+    # support_fin is on YZ plane, extruded along X.
+    # If we rotate it -90 around Z, Y goes to X, X goes to -Y.
+    fin = fin.rotate((0,0,0), (0,0,1), -90)
+    
+    # 6. Translate fin to the Y-center of the holder
+    y_center = (bb.ymin + bb.ymax) / 2.0
+    fin = fin.translate((0, y_center, 0))
+    
+    # 7. Union
+    holder = holder.union(fin.val())
+    
     return holder
 
 if __name__ == "__main__":
