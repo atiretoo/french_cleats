@@ -1,4 +1,4 @@
-import cadquery as cq
+﻿import cadquery as cq
 import os
 
 def load_mc_block(filename):
@@ -246,21 +246,21 @@ def support_fin(normal_gap=0.1, is_right=True):
         .translate((-0.8, 0, 0))
     )
     
-    prof_p = [(0.5, 1.0), (0.5, 0.0125), (-4.0, 0.8), (-4.0, 1.0)]
-    prof_n = [(0.5, -1.0), (0.5, -0.0125), (-4.0, -0.8), (-4.0, -1.0)]
+    prof_p = [(1.0, 0.5), (0.0125, 0.5), (0.8, -4.0), (1.0, -4.0)]
+    prof_n = [(-1.0, 0.5), (-0.0125, 0.5), (-0.8, -4.0), (-1.0, -4.0)]
     
     if is_right:
         cut_p = (
             cq.Workplane("ZX", origin=(0, 0, -Z_gap))
             .polyline(prof_p).close()
-            .transformed(offset=(30, 0, 30))
+            .transformed(offset=(0, 30, 30))
             .polyline(prof_p).close()
             .loft()
         )
         cut_n = (
             cq.Workplane("ZX", origin=(0, 0, -Z_gap))
             .polyline(prof_n).close()
-            .transformed(offset=(30, 0, 30))
+            .transformed(offset=(0, 30, 30))
             .polyline(prof_n).close()
             .loft()
         )
@@ -268,16 +268,17 @@ def support_fin(normal_gap=0.1, is_right=True):
         cut_p = (
             cq.Workplane("ZX", origin=(0, 0, -Z_gap))
             .polyline(prof_p).close()
-            .transformed(offset=(30, 0, -30))
+            .transformed(offset=(0, 30, -30))
             .polyline(prof_p).close()
             .loft()
         )
         cut_n = (
             cq.Workplane("ZX", origin=(0, 0, -Z_gap))
             .polyline(prof_n).close()
-            .transformed(offset=(30, 0, -30))
+            .transformed(offset=(0, 30, -30))
             .polyline(prof_n).close()
             .loft()
         )
         
     return wedge.cut(cut_p).cut(cut_n)
+
