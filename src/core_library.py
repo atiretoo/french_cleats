@@ -216,7 +216,7 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
         
     return result.val()
 
-def support_fin(z_gap=0.1, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.2, taper_z_drop=4.0):
+def support_fin(z_gap=0.1, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0):
     Z_gap = z_gap
     
     start_y = max(0, Z_gap)
