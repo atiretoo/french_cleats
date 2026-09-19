@@ -144,7 +144,7 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
             
     return body
 
-def add_support_fin(holder, mech_width):
+def add_support_fin(holder, units):
     from core_library import support_fin
     import math
     
@@ -157,9 +157,10 @@ def add_support_fin(holder, mech_width):
     bb = holder.val().BoundingBox()
     
     # Calculate exact X boundaries of the baseplate after -45 deg Y rotation
+    baseplate_width = units * 28.0
     cos45 = math.cos(math.radians(-45))
-    X_min = (-mech_width / 2.0) * cos45
-    X_max = (mech_width / 2.0) * cos45
+    X_min = (-baseplate_width / 2.0) * cos45
+    X_max = (baseplate_width / 2.0) * cos45
     
     length = X_max - X_min
     
@@ -199,7 +200,7 @@ if __name__ == "__main__":
     units = math.ceil(mech_width / 28.0)
     
     if args.tilt_fin:
-        holder = add_support_fin(holder, mech_width)
+        holder = add_support_fin(holder, units)
         filename = f"shooo_cam_holder_{args.tools}tools_{units}u_{args.mount}_45deg.stl"
         export_stl(holder, filename, print_orientation="face_down", category="tool_holders")
     else:
