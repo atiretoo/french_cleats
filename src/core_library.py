@@ -216,13 +216,11 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
         
     return result.val()
 
-def support_fin(normal_gap=0.1, is_right=True):
-    import math
+def support_fin(normal_gap=0.1, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.2, taper_z_drop=4.0):
     Z_gap = normal_gap * math.sqrt(2)
-    L = 30.0 / math.sqrt(2)
     
     start_y = max(0, Z_gap)
-    end_y = L + min(0, Z_gap)
+    end_y = length + min(0, Z_gap)
     
     start_z = start_y - Z_gap
     end_z = end_y - Z_gap
@@ -242,43 +240,51 @@ def support_fin(normal_gap=0.1, is_right=True):
     wedge = (
         cq.Workplane("YZ")
         .polyline(unique_pts).close()
-        .extrude(1.6)
-        .translate((-0.8, 0, 0))
+        .extrude(fin_width)
+        .translate((-fin_width/2.0, 0, 0))
     )
     
-    prof_p = [(1.0, 0.5), (0.0125, 0.5), (0.8, -4.0), (1.0, -4.0)]
-    prof_n = [(-1.0, 0.5), (-0.0125, 0.5), (-0.8, -4.0), (-1.0, -4.0)]
+    prof_x1 = tip_width / 2.0
+    prof_x2 = fin_width / 2.0
     
+    prof_p = [(fin_width, 1.0), (prof_x1, 1.0), (prof_x1, 0.0), (prof_x2, -taper_z_drop), (fin_width, -taper_z_drop)]
+    prof_n = [(-fin_width, 1.0), (-prof_x1, 1.0), (-prof_x1, 0.0), (-prof_x2, -taper_z_drop), (-fin_width, -taper_z_drop)]
+    
+    # We use XZ to map Local X = Global X, Local Y = Global Z
     if is_right:
         cut_p = (
-            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
+            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
             .polyline(prof_p).close()
-            .transformed(offset=(0, 30, 30))
+            .transformed(offset=(0, height+10, -(height+10)))
             .polyline(prof_p).close()
             .loft()
         )
         cut_n = (
-            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
+            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
             .polyline(prof_n).close()
-            .transformed(offset=(0, 30, 30))
+            .transformed(offset=(0, height+10, -(height+10)))
             .polyline(prof_n).close()
             .loft()
         )
     else:
         cut_p = (
-            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
+            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
             .polyline(prof_p).close()
-            .transformed(offset=(0, 30, -30))
+            .transformed(offset=(0, height+10, height+10))
             .polyline(prof_p).close()
             .loft()
         )
         cut_n = (
-            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
+            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
             .polyline(prof_n).close()
-            .transformed(offset=(0, 30, -30))
+            .transformed(offset=(0, height+10, height+10))
             .polyline(prof_n).close()
             .loft()
         )
         
+    # Prevent cutting below the print bed (Z < 0)
+    bbox = cq.Workplane("XY").box(100, 100, 100).translate((0, 0, 50))
+    cut_p = cut_p.intersect(bbox)
+    cut_n = cut_n.intersect(bbox)
+        
     return wedge.cut(cut_p).cut(cut_n)
-
