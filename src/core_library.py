@@ -216,7 +216,8 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
         
     return result.val()
 
-def support_fin(z_gap=0.1, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0):
+def support_fin(z_gap=0.2, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0, nozzle_width=0.4, layer_height=0.28):
+    import cadquery as cq
     Z_gap = z_gap
     
     start_y = max(0, Z_gap)
@@ -287,4 +288,34 @@ def support_fin(z_gap=0.1, is_right=True, length=30.0, height=30.0, fin_width=1.
     cut_p = cut_p.intersect(bbox)
     cut_n = cut_n.intersect(bbox)
         
-    return wedge.cut(cut_p).cut(cut_n)
+    fin = wedge.cut(cut_p).cut(cut_n)
+    
+    # 1. Chop off the top of the fin where it gets too narrow in Y
+    cutoff_z = height - taper_z_drop
+    fin = fin.cut(cq.Workplane("XY").box(1000, 1000, 1000).translate((0, 0, cutoff_z + 500)))
+    
+    # 2. Add the tiny bridges (bumps)
+    bump_spacing = 4.0
+    bump_y = bump_spacing
+    bumps = None
+    
+    while bump_y < cutoff_z:
+        y_pos = bump_y if is_right else -bump_y
+        
+        # We want the bump to span exactly across the gap. 
+        # Z-gap is z_gap. We make the bump height slightly larger (z_gap + 0.05) so it geometrically intersects.
+        # It's centered exactly in the middle of the gap.
+        b = (cq.Workplane("XY")
+             .box(nozzle_width, layer_height, z_gap + 0.05)
+             .translate((0, y_pos, bump_y - z_gap/2.0)))
+             
+        if bumps is None:
+            bumps = b
+        else:
+            bumps = bumps.union(b)
+        bump_y += bump_spacing
+        
+    if bumps is not None:
+        fin = fin.union(bumps.val())
+        
+    return fin
