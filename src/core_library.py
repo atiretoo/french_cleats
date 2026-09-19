@@ -294,26 +294,28 @@ def support_fin(z_gap=0.2, is_right=True, length=30.0, height=30.0, fin_width=1.
     cutoff_z = height - taper_z_drop
     fin = fin.cut(cq.Workplane("XY").box(1000, 1000, 1000).translate((0, 0, cutoff_z + 500)))
     
-    # 2. Add the tiny bridges (bumps)
+    # 2. Add horizontal bridges (bumps) spanning the gap
     bump_spacing = 4.0
-    bump_y = bump_spacing
+    bump_z = bump_spacing
     bumps = None
     
-    while bump_y < cutoff_z:
-        y_pos = bump_y if is_right else -bump_y
-        
-        # We want the bump to span exactly across the gap. 
-        # Z-gap is z_gap. We make the bump height slightly larger (z_gap + 0.05) so it geometrically intersects.
-        # It's centered exactly in the middle of the gap.
+    while bump_z < cutoff_z:
+        # The fin is at Y = bump_z + z_gap
+        # The part is at Y = bump_z
+        # We bridge the horizontal gap in Y at this specific Z layer
+        y_pos = bump_z + z_gap/2.0
+        if not is_right:
+            y_pos = -y_pos
+            
         b = (cq.Workplane("XY")
-             .box(nozzle_width, layer_height, z_gap + 0.05)
-             .translate((0, y_pos, bump_y - z_gap/2.0)))
+             .box(nozzle_width, z_gap + 0.1, layer_height)
+             .translate((0, y_pos, bump_z)))
              
         if bumps is None:
             bumps = b
         else:
             bumps = bumps.union(b)
-        bump_y += bump_spacing
+        bump_z += bump_spacing
         
     if bumps is not None:
         fin = fin.union(bumps.val())
