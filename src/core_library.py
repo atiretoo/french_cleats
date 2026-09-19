@@ -294,30 +294,26 @@ def support_fin(z_gap=0.2, is_right=True, length=30.0, height=30.0, fin_width=1.
     cutoff_z = height - taper_z_drop
     fin = fin.cut(cq.Workplane("XY").box(1000, 1000, 1000).translate((0, 0, cutoff_z + 500)))
     
-    # 2. Add horizontal bridges (bumps) spanning the gap
+    # 2. Add structural bridges using slices of the shifted fin
     bump_spacing = 4.0
-    bump_z = bump_spacing
-    bumps = None
+    bump_z = 0.0  # Start exactly on the first layer
+    comb = None
     
     while bump_z < cutoff_z:
-        # The fin is at Y = bump_z + z_gap
-        # The part is at Y = bump_z
-        # We bridge the horizontal gap in Y at this specific Z layer
-        y_pos = bump_z + z_gap/2.0
-        if not is_right:
-            y_pos = -y_pos
-            
-        b = (cq.Workplane("XY")
-             .box(nozzle_width, z_gap + 0.1, layer_height)
-             .translate((0, y_pos, bump_z)))
-             
-        if bumps is None:
-            bumps = b
+        slice_box = cq.Workplane("XY").box(1000, 1000, layer_height).translate((0, 0, bump_z))
+        if comb is None:
+            comb = slice_box
         else:
-            bumps = bumps.union(b)
+            comb = comb.union(slice_box)
         bump_z += bump_spacing
         
-    if bumps is not None:
+    if comb is not None:
+        # Shift fin into the part to create the bridge overlap
+        shift_y = -(z_gap + 0.05) if is_right else (z_gap + 0.05)
+        shifted_fin = fin.translate((0, shift_y, 0))
+        
+        # Intersect the shifted fin with the horizontal comb to get the discrete bridge layers
+        bumps = shifted_fin.intersect(comb.val())
         fin = fin.union(bumps.val())
         
     return fin
