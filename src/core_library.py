@@ -1,4 +1,4 @@
-import cadquery as cq
+﻿import cadquery as cq
 import os
 
 def load_mc_block(filename):
@@ -215,3 +215,70 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
         result = result.union(cq.Workplane(cyl))
         
     return result.val()
+
+def support_fin(normal_gap=0.1, is_right=True):
+    import math
+    Z_gap = normal_gap * math.sqrt(2)
+    L = 30.0 / math.sqrt(2)
+    
+    start_y = max(0, Z_gap)
+    end_y = L + min(0, Z_gap)
+    
+    start_z = start_y - Z_gap
+    end_z = end_y - Z_gap
+    
+    if is_right:
+        pts = [(start_y, 0), (start_y, start_z), (end_y, end_z), (end_y, 0)]
+    else:
+        pts = [(-start_y, 0), (-start_y, start_z), (-end_y, end_z), (-end_y, 0)]
+        
+    unique_pts = [pts[0]]
+    for p in pts[1:]:
+        if p != unique_pts[-1]:
+            unique_pts.append(p)
+    if len(unique_pts) > 1 and unique_pts[-1] == unique_pts[0]:
+        unique_pts.pop()
+        
+    wedge = (
+        cq.Workplane("YZ")
+        .polyline(unique_pts).close()
+        .extrude(1.6)
+        .translate((-0.8, 0, 0))
+    )
+    
+    prof_p = [(1.0, 0.5), (0.0125, 0.5), (0.8, -4.0), (1.0, -4.0)]
+    prof_n = [(-1.0, 0.5), (-0.0125, 0.5), (-0.8, -4.0), (-1.0, -4.0)]
+    
+    if is_right:
+        cut_p = (
+            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
+            .polyline(prof_p).close()
+            .transformed(offset=(0, 30, 30))
+            .polyline(prof_p).close()
+            .loft()
+        )
+        cut_n = (
+            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
+            .polyline(prof_n).close()
+            .transformed(offset=(0, 30, 30))
+            .polyline(prof_n).close()
+            .loft()
+        )
+    else:
+        cut_p = (
+            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
+            .polyline(prof_p).close()
+            .transformed(offset=(0, 30, -30))
+            .polyline(prof_p).close()
+            .loft()
+        )
+        cut_n = (
+            cq.Workplane("ZX", origin=(0, 0, -Z_gap))
+            .polyline(prof_n).close()
+            .transformed(offset=(0, 30, -30))
+            .polyline(prof_n).close()
+            .loft()
+        )
+        
+    return wedge.cut(cut_p).cut(cut_n)
+
