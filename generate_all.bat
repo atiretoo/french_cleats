@@ -43,15 +43,13 @@ python src/tool_holders/generate_shooo_cam_holder.py --tools 3 --mount groove --
 python src/tool_holders/generate_shooo_cam_holder.py --tools 4 --mount groove --tilt-fin
 
 echo Generating Auxiliary Tools...
-python src/tools/generate_nut_pusher.py --screw M3 --handle-length 11.0
-python src/tools/generate_nut_pusher.py --screw M4 --handle-length 11.0
+python src/utilities/generate_nut_pusher.py --screw M3 --handle-length 11.0
+python src/utilities/generate_nut_pusher.py --screw M4 --handle-length 11.0
 python src/tool_holders/generate_shooo_cam_holder.py --tools 5 --mount groove
 
 echo Generating Strength Testers...
 python src/strength_testing/generate_strength_tester.py --mount groove
 
-echo Generating Nut Pusher...
-python src/utilities/generate_nut_pusher.py
 
 echo Generating Corner Clamp Holders...
 python src/tool_holders/generate_corner_clamp_holder.py

@@ -3,7 +3,7 @@ import argparse
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import create_baseplate, export_stl
+from core_library import create_baseplate, export_stl
 
 def make_gridfinity_cutout():
     """

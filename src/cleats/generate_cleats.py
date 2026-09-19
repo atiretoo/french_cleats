@@ -1,7 +1,7 @@
 import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import create_baseplate, export_stl, create_nut_slot
+from core_library import create_baseplate, export_stl, create_nut_slot
 import argparse
 import os
 

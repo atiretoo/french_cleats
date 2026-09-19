@@ -2,7 +2,7 @@ import os
 import sys
 
 # Add src to path to import generate_strength_tester
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
 from generate_strength_tester import create_strength_tester
 import cadquery as cq
 

@@ -4,7 +4,7 @@ import sys, os
 import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import create_baseplate, export_stl
+from core_library import create_baseplate, export_stl
 
 def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length=120.0, mount_type="groove", web_thickness=5.5):
     unit_width = 28.0
