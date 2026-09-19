@@ -1,7 +1,7 @@
 import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import export_stl
+from core_library import export_stl
 import math
 
 def create_fin_test():

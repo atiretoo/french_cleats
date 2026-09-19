@@ -5,7 +5,7 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from holder_base import create_baseplate, export_stl
+from core_library import create_baseplate, export_stl
 
 def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole_spacing=25.0, num_holes=None, rail_height=73.0, hole_sizes=None, recess_size=0.0, recess_depth=1.0):
     unit_width = 28.0

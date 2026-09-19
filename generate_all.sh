@@ -31,8 +31,6 @@ python src/tool_holders/generate_v_holder.py --width-units 2 --depth-units 4
 echo "Generating Strength Testers..."
 python src/strength_testing/generate_strength_tester.py --mount groove
 
-echo "Generating Nut Pusher..."
-python src/utilities/generate_nut_pusher.py
 
 echo "Generating Corner Clamp Holders..."
 python src/tool_holders/generate_corner_clamp_holder.py
