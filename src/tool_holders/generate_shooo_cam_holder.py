@@ -170,7 +170,7 @@ def add_support_fin(holder, units):
     
     # 4. Generate the fin from core_library
     # support_fin generates a fin for Z=Y, starting at Y=0, Z=0.
-    fin = support_fin(normal_gap=0.10, is_right=True, length=length, height=length)
+    fin = support_fin(z_gap=0.10, is_right=True, length=length, height=length)
     
     # 5. Rotate fin to support Z=X instead of Z=Y.
     # support_fin is on YZ plane, extruded along X.
