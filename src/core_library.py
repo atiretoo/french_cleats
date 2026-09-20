@@ -216,7 +216,7 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
         
     return result.val()
 
-def support_fin(z_gap=0.2, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0, nozzle_width=0.4, layer_height=0.28):
+def support_fin(z_gap=0.2, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0):
     import cadquery as cq
     Z_gap = z_gap
     
@@ -290,30 +290,8 @@ def support_fin(z_gap=0.2, is_right=True, length=30.0, height=30.0, fin_width=1.
         
     fin = wedge.cut(cut_p).cut(cut_n)
     
-    # 1. Chop off the top of the fin where it gets too narrow in Y
+    # Chop off the top of the fin where it gets too narrow in Y
     cutoff_z = height - taper_z_drop
     fin = fin.cut(cq.Workplane("XY").box(1000, 1000, 1000).translate((0, 0, cutoff_z + 500)))
-    
-    # 2. Add structural bridges using slices of the shifted fin
-    bump_spacing = 4.0
-    bump_z = 0.0  # Start exactly on the first layer
-    comb = None
-    
-    while bump_z < cutoff_z:
-        slice_box = cq.Workplane("XY").box(1000, 1000, layer_height).translate((0, 0, bump_z))
-        if comb is None:
-            comb = slice_box
-        else:
-            comb = comb.union(slice_box)
-        bump_z += bump_spacing
-        
-    if comb is not None:
-        # Shift fin into the part to create the bridge overlap
-        shift_y = -(z_gap + 0.05) if is_right else (z_gap + 0.05)
-        shifted_fin = fin.translate((0, shift_y, 0))
-        
-        # Intersect the shifted fin with the horizontal comb to get the discrete bridge layers
-        bumps = shifted_fin.intersect(comb.val())
-        fin = fin.union(bumps.val())
         
     return fin
