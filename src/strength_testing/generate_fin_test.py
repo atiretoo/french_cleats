@@ -14,9 +14,9 @@ def create_fin_test():
     # Generate 4 fins with different z_gaps and positions
     # Align contact tips with the corners (X = -15.0 and X = 15.0)
     # Tip width is 0.4, so center of fin should be at -14.8 and 14.8
-    fin1 = support_fin(z_gap=0.05, is_right=True, length=L, height=L).translate((-14.8, 0, 0))
-    fin2 = support_fin(z_gap=0.0325, is_right=True, length=L, height=L).translate((-5.0, 0, 0))
-    fin3 = support_fin(z_gap=0.025, is_right=True, length=L, height=L).translate((5.0, 0, 0))
+    fin1 = support_fin(z_gap=0.025, is_right=True, length=L, height=L).translate((-14.8, 0, 0))
+    fin2 = support_fin(z_gap=0.02, is_right=True, length=L, height=L).translate((-5.0, 0, 0))
+    fin3 = support_fin(z_gap=0.01, is_right=True, length=L, height=L).translate((5.0, 0, 0))
     fin4 = support_fin(z_gap=0.0, is_right=True, length=L, height=L).translate((14.8, 0, 0))
         
     test_obj = cq.Compound.makeCompound([cube.val(), fin1.val(), fin2.val(), fin3.val(), fin4.val()])
