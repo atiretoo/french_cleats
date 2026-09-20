@@ -170,7 +170,7 @@ def add_support_fin(holder, units):
     
     # 4. Generate the fin from core_library
     # support_fin generates a fin for Z=Y, starting at Y=0, Z=0.
-    fin = support_fin(z_gap=0.10, is_right=True, length=length, height=length)
+    fin = support_fin(z_gap=0.2, is_right=True, length=length, height=length)
     
     # 5. Rotate fin to support Z=X instead of Z=Y.
     # support_fin is on YZ plane, extruded along X.
@@ -181,8 +181,8 @@ def add_support_fin(holder, units):
     y_center = (bb.ymin + bb.ymax) / 2.0
     fin = fin.translate((0, y_center, 0))
     
-    # 7. Union
-    holder = holder.union(fin.val())
+    # 7. Group into an assembly/compound so they remain separate objects in the STEP file
+    holder = cq.Compound.makeCompound([holder.val(), fin.val()])
     
     return holder
 
