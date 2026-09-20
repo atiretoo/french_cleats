@@ -11,16 +11,19 @@ def create_fin_test():
     
     L = 30.0 / math.sqrt(2)
     
-    # Generate 4 fins with different z_gaps and positions
-    # Align contact tips with the corners (X = -15.0 and X = 15.0)
-    # Tip width is 0.4, so center of fin should be at -14.8 and 14.8
     fin1 = support_fin(z_gap=0.025, is_right=True, length=L, height=L).translate((-14.8, 0, 0))
     fin2 = support_fin(z_gap=0.02, is_right=True, length=L, height=L).translate((-5.0, 0, 0))
     fin3 = support_fin(z_gap=0.01, is_right=True, length=L, height=L).translate((5.0, 0, 0))
     fin4 = support_fin(z_gap=0.0, is_right=True, length=L, height=L).translate((14.8, 0, 0))
         
-    test_obj = cq.Compound.makeCompound([cube.val(), fin1.val(), fin2.val(), fin3.val(), fin4.val()])
-    return test_obj
+    assy = cq.Assembly()
+    assy.add(cube.val(), name="Test_Cube", color=cq.Color(0.8, 0.8, 0.8, 1.0))
+    assy.add(fin1.val(), name="Fin_0.025mm", color=cq.Color(1.0, 0.5, 0.0, 1.0))
+    assy.add(fin2.val(), name="Fin_0.020mm", color=cq.Color(1.0, 0.5, 0.0, 1.0))
+    assy.add(fin3.val(), name="Fin_0.010mm", color=cq.Color(1.0, 0.5, 0.0, 1.0))
+    assy.add(fin4.val(), name="Fin_0.000mm", color=cq.Color(1.0, 0.5, 0.0, 1.0))
+    
+    return assy
 
 def main():
     test_obj = create_fin_test()
