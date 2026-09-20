@@ -84,5 +84,5 @@ if __name__ == "__main__":
         mag_depth=args.mag_depth
     )
     
-    filename = f"magnetic_saw_holder_{args.units}u_M{args.mag_count}xD{args.mag_dia}x{args.mag_depth}_{args.mount}.stl"
+    filename = f"magnetic_saw_holder_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}_{args.mount}.stl"
     export_stl(holder, filename, category="tool_holders")
