@@ -48,11 +48,11 @@ def create_nut_pusher(screw_m="M3", handle_length=11.0):
     notch_depth = (notch_w / 2.0) / math.tan(math.radians(60))
     
     notch_pts = [
-        (-notch_w/2.0, -head_l - 1.0),
-        (-notch_w/2.0, -head_l),
-        (0, -head_l + notch_depth),
-        (notch_w/2.0, -head_l),
-        (notch_w/2.0, -head_l - 1.0)
+        (-head_l - 1.0, -notch_w/2.0),
+        (-head_l, -notch_w/2.0),
+        (-head_l + notch_depth, 0),
+        (-head_l, notch_w/2.0),
+        (-head_l - 1.0, notch_w/2.0)
     ]
     
     notch = (
