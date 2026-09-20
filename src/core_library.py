@@ -160,9 +160,14 @@ def export_stl(shape, filename, rotate_for_printing=None, category="", export_st
         # -Z is already down. No rotation needed.
         pass
         
-    cq.exporters.export(export_shape, out_path_stl)
-    if export_step:
-        cq.exporters.export(export_shape, out_path_step)
+    if isinstance(export_shape, cq.Assembly):
+        export_shape.save(out_path_stl, exportType='STL')
+        if export_step:
+            export_shape.save(out_path_step, exportType='STEP')
+    else:
+        cq.exporters.export(export_shape, out_path_stl)
+        if export_step:
+            cq.exporters.export(export_shape, out_path_step)
     if export_step:
         print(f"Exported {out_path_stl} and {out_path_step}")
     else:
