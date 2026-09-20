@@ -173,7 +173,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
     for pt, sz in zip(hole_pts, actual_hole_sizes):
         hole = (
             cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
-            .center(pt[0], pt[1])
+            .center(pt[1], pt[0])
             .circle(sz/2.0)
             .extrude(40.0) 
         )
@@ -184,7 +184,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
         for pt in hole_pts:
             recess = (
                 cq.Workplane("ZX", origin=(0, shelf_top, 0))
-                .center(pt[0], pt[1])
+                .center(pt[1], pt[0])
                 .circle(recess_size/2.0)
                 .extrude(-recess_depth)
             )

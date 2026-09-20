@@ -102,7 +102,7 @@ def create_strength_tester(shelf_position="top", thickness_mode="full", rail_hei
     hole_z = -backplate_t - shelf_depth + 10.0 
     hole = (
         cq.Workplane("ZX", origin=(0, shelf_top_y + 1, 0))
-        .center(0, hole_z) 
+        .center(hole_z, 0) 
         .circle(5.0/2)
         .extrude(-(shelf_t + 2)) 
     )

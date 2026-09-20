@@ -72,12 +72,12 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
     slot_x = (width/2 - slot_depth) + cut_length / 2.0
     
     slot_centers_z = [-11 - 15 - i*slot_spacing for i in range(num_slots)]
-    slot_pts = [(slot_x, z) for z in slot_centers_z]
+    slot_pts = [(z, slot_x) for z in slot_centers_z]
     
     slots = (
         cq.Workplane("ZX", origin=(0, shelf_top + 1, 0)) 
         .pushPoints(slot_pts)
-        .rect(cut_length, slot_width)
+        .rect(slot_width, cut_length)
         .extrude(-20) 
     )
     tool_holder = tool_holder.cut(slots)
