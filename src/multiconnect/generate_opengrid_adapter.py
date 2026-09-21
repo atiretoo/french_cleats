@@ -185,7 +185,7 @@ def main():
     filename = f"opengrid_adapter_{args.units}u_H{args.rail_height}_{args.screw}.stl"
     
     # Save to exports/stl directory relative to the project root
-    export_stl(adapter, filename, print_orientation='face_down', category='multiconnect')
+    export_stl(adapter, filename, print_orientation='top_down', category='multiconnect')
 
 if __name__ == "__main__":
     main()
