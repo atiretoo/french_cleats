@@ -28,7 +28,7 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     # Distances from bottom edge of the block (the side closest to the groove)
     # The user's original measurements were correctly anchored to the bottom edge!
     reg_hole_1_y_offset = 11.43
-    m3_hole_y_offset = 18.587
+    m3_hole_y_offset = 16.087
     reg_hole_2_y_offset = 29.953
     
     # Cam Post
