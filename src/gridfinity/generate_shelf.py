@@ -20,7 +20,7 @@ def make_gridfinity_cutout():
     )
     return cutout
 
-def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0):
+def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0, print_45_deg=True):
     unit_width = 28.0
     width = width_units * unit_width
     shelf_depth = depth_units * unit_width
@@ -117,6 +117,23 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
     )
     tool_holder = tool_holder.cut(recesses)
     
+        if print_45_deg:
+        # Generate 45-degree support fins at the left and right corners of the backplate.
+        # When rotated 135 degrees, these fins will point straight down and form vertical pillars
+        # perfectly supporting the backplate.
+        total_height = top_y - bottom_y
+        fin_len = total_height / 2.0
+        fin = support_fin(z_gap=0.0, is_right=False, length=fin_len, height=fin_len)
+        
+        # Translate to left and right corners
+        fin_left = fin.translate((-width/2 + 1.6/2, top_y, 0))
+        fin_right = fin.translate((width/2 - 1.6/2, top_y, 0))
+        
+        tool_holder = tool_holder.union(fin_left).union(fin_right)
+        
+        # Rotate 135 degrees to form a V-shape on the print bed
+        tool_holder = tool_holder.rotate((0,0,0), (1,0,0), 135)
+        
     return tool_holder, width_units, depth_units
 
 def main():
@@ -136,7 +153,7 @@ def main():
     
     gf_str = "_GF" if not args.no_gridfinity else ""
     filename = f"shelf_{fw}x{fd}u{gf_str}_groove_H{args.rail_height}.stl"
-    export_stl(holder, filename, category='gridfinity')
+    export_stl(holder, filename, category='gridfinity', print_orientation='face_down')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
