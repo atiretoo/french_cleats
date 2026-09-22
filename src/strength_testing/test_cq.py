@@ -13,8 +13,8 @@ pts = [
     (-88-t, -4-t),
     (-90-t, 0),
     (-96, 0),
-    (-96, -11),
-    (10, -11),
+    (-96, -BACKPLATE_THICKNESS),
+    (10, -BACKPLATE_THICKNESS),
     (10, -36),
     (20, -36),
     (20, 0)
@@ -32,7 +32,7 @@ tool_holder = (
 try:
     tool_holder = tool_holder.edges(
         cq.selectors.ParallelDirSelector(cq.Vector(1, 0, 0)) &
-        cq.selectors.NearestToPointSelector((0, 10, -11))
+        cq.selectors.NearestToPointSelector((0, 10, -BACKPLATE_THICKNESS))
     ).fillet(5.0)
 except Exception as e:
     print("Fillet error:", e)

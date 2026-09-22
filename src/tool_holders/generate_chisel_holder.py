@@ -3,14 +3,14 @@ import argparse
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 import math
 
 def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=None, slot_width=26.0, slot_widths=None, slot_depth=4.0, slot_depths=None, rail_height=73.0, shelf_pos="mid"):
     mech_width = num_tools * spacing
     units = max(1, math.ceil(mech_width / 28.0))
-    width = units * UNIT_WIDTH
+    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
     shelf_depth = 28.0 # 1U deep
     
     if not hole_sizes: hole_sizes = [hole_size] * num_tools
@@ -33,10 +33,10 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
     
     # Add Shelf
     shelf_pts = [
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth),
-        (shelf_top, -11 - shelf_depth),
-        (shelf_top, -11)
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS)
     ]
     shelf = (
         cq.Workplane("YZ")
@@ -53,9 +53,9 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
             for o in objectList:
                 if not isinstance(o, cq.Edge): continue
                 b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
+                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
                     res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
+                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
                     res.append(o)
             return res
 
@@ -65,7 +65,7 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
         pass # fallback if filleting fails
     
     # Cut holes and slots independently to avoid self-intersection boolean bugs
-    z_center = -11.0 - shelf_depth / 2.0
+    z_center = -BACKPLATE_THICKNESS - shelf_depth / 2.0
     start_x = - (mech_width / 2.0) + (spacing / 2.0)
     
     for i in range(num_tools):

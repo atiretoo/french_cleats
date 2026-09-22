@@ -3,10 +3,10 @@ import argparse
 import math
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl, create_nut_slot
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl, create_nut_slot
 
 def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="left"):
-    width = units * UNIT_WIDTH
+    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
     brace_width = 10.0
     flange_thickness = 10.0
     
@@ -31,7 +31,7 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         extension_block = (
             cq.Workplane("XY")
             .box(width, extra_drop, 11.0)
-            .translate((0, bottom_y - extra_drop/2.0, -11.0/2.0))
+            .translate((0, bottom_y - extra_drop/2.0, -BACKPLATE_THICKNESS/2.0))
         )
         tool_holder = tool_holder.union(extension_block)
         
@@ -41,11 +41,11 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         (bracket_bottom, 0),
         (bracket_bottom, -drop)
     ]
-    # Actually wait! Earlier we found the backplate front is Z=-11!
+    # Actually wait! Earlier we found the backplate front is Z=-BACKPLATE_THICKNESS!
     web_pts = [
-        (top_y, -11.0),
-        (bracket_bottom, -11.0),
-        (bracket_bottom, -11.0 - drop)
+        (top_y, -BACKPLATE_THICKNESS),
+        (bracket_bottom, -BACKPLATE_THICKNESS),
+        (bracket_bottom, -BACKPLATE_THICKNESS - drop)
     ]
     
     web = (
@@ -57,8 +57,8 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
     
     # Create the 28mm wide hypotenuse flange
     dir_inward = cq.Vector(0, -1, 1).normalized()
-    p1 = cq.Vector(0, top_y, -11.0)
-    p2 = cq.Vector(0, bracket_bottom, -11.0 - drop)
+    p1 = cq.Vector(0, top_y, -BACKPLATE_THICKNESS)
+    p2 = cq.Vector(0, bracket_bottom, -BACKPLATE_THICKNESS - drop)
     
     p1_in = p1 + dir_inward * flange_thickness
     p2_in = p2 + dir_inward * flange_thickness
@@ -117,13 +117,13 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
                 
                 # 2. Joint edges are exactly at joint_x
                 if abs(b.xmax - b.xmin) < 0.1 and abs(b.xmin - joint_x) < 0.1:
-                    # Backplate-web joint (vertical at Z = -11.0)
-                    if abs(b.zmax - (-11.0)) < 0.1 and abs(b.zmin - (-11.0)) < 0.1:
+                    # Backplate-web joint (vertical at Z = -BACKPLATE_THICKNESS)
+                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 0.1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 0.1:
                         if o.Length() > 20:
                             res.append(o)
-                    # Flange-web joint (diagonal, touches Z = -11.0)
+                    # Flange-web joint (diagonal, touches Z = -BACKPLATE_THICKNESS)
                     elif abs(b.ymax - b.ymin) > 10 and abs(b.zmax - b.zmin) > 10:
-                        if abs(b.zmax - (-11.0)) < 0.1:
+                        if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 0.1:
                             res.append(o)
             return res
 
@@ -137,7 +137,7 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
     
     for i in [0.2, 0.5, 0.8]:
         y = top_y - drop * i
-        z = -11.0 - drop * i
+        z = -BACKPLATE_THICKNESS - drop * i
         pt = cq.Vector(0, y, z)
         
         # M3 clearance hole

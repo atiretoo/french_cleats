@@ -4,10 +4,10 @@ import sys, os
 import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl, create_nut_slot
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl, create_nut_slot
 
 def create_cam_holder(units=1, mount_type="groove"):
-    width = units * UNIT_WIDTH
+    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
     
     # Baseplate
     body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(units=units, mount_type=mount_type, num_rows=2)
@@ -15,7 +15,7 @@ def create_cam_holder(units=1, mount_type="groove"):
     # U-channel extending from baseplate
     # Left and right walls sticking out to Z = -25.0
     # But they must leave a 2.5mm slit behind them so a wide saw blade can pass through!
-    # Baseplate front is at Z = -11.0. Slit goes from Z = -11.0 to -13.5.
+    # Baseplate front is at Z = -BACKPLATE_THICKNESS. Slit goes from Z = -BACKPLATE_THICKNESS to -13.5.
     # The walls start at Z = -13.5 and go to -25.0.
     # To support the walls, they connect to the baseplate at the top (Y = 10 to 20).
     
@@ -23,10 +23,10 @@ def create_cam_holder(units=1, mount_type="groove"):
     wall_thickness = 5.0
     
     # Top support block (connects walls to baseplate)
-    # Z from -11.0 to -13.5
+    # Z from -BACKPLATE_THICKNESS to -13.5
     # Y from 10.0 to 20.0
     support = (
-        cq.Workplane("XY").workplane(offset=-11.0)
+        cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS)
         .center(0, 15.0)
         .rect(width, 10.0)
         .extrude(-2.5) # out to -13.5
@@ -40,14 +40,14 @@ def create_cam_holder(units=1, mount_type="groove"):
         cq.Workplane("XY").workplane(offset=-13.5)
         .center(-gap/2.0 - wall_thickness/2.0, top_y - wall_h/2.0)
         .rect(wall_thickness, wall_h)
-        .extrude(-11.5)
+        .extrude(-BACKPLATE_THICKNESS.5)
     )
     # Right wall
     right_wall = (
         cq.Workplane("XY").workplane(offset=-13.5)
         .center(gap/2.0 + wall_thickness/2.0, top_y - wall_h/2.0)
         .rect(wall_thickness, wall_h)
-        .extrude(-11.5)
+        .extrude(-BACKPLATE_THICKNESS.5)
     )
     
     body = body.union(left_wall).union(right_wall)

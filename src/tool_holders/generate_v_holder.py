@@ -5,14 +5,14 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_v_holder(width_units=2, depth_units=4, rail_height=73.0):
     brace_thickness = 5.0
     shelf_thickness = 5.0
     
-    width = width_units * UNIT_WIDTH
-    shelf_depth = depth_units * UNIT_WIDTH
+    width = width_units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    shelf_depth = depth_units * UNIT_WIDTH, BACKPLATE_THICKNESS
     
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(width_units, rail_height, mount_type="groove", num_rows=2)
     
@@ -30,7 +30,7 @@ def create_v_holder(width_units=2, depth_units=4, rail_height=73.0):
     ]
     
     shelf = (
-        cq.Workplane("XY", origin=(0, 0, -11))
+        cq.Workplane("XY", origin=(0, 0, -BACKPLATE_THICKNESS))
         .polyline(v_pts).close()
         .extrude(-shelf_depth)
     )

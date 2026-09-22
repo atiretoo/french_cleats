@@ -4,13 +4,13 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clearance=10.0, rail_height=73.0):
     brace_thickness = 2.5
     
-    width = width_units * UNIT_WIDTH
-    shelf_depth = depth_units * UNIT_WIDTH
+    width = width_units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    shelf_depth = depth_units * UNIT_WIDTH, BACKPLATE_THICKNESS
     
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(width_units, rail_height, mount_type="groove", num_rows=2)
     
@@ -18,10 +18,10 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
     shelf_bot = top_y - 45.0
     
     shelf_pts = [
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth),
-        (shelf_top, -11 - shelf_depth),
-        (shelf_top, -11)
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS)
     ]
     shelf = (
         cq.Workplane("YZ")
@@ -33,9 +33,9 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
     
     # Braces
     brace_pts = [
-        (bottom_y, -11),
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth)
+        (bottom_y, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
     ]
     brace_x_positions = [-width/2 + brace_thickness/2]
     if width_units > 1:
@@ -69,9 +69,9 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
             for o in objectList:
                 if not isinstance(o, cq.Edge): continue
                 b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
+                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
                     res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
+                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
                     res.append(o)
             return res
 
@@ -82,11 +82,11 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
         
     # Cut the slots (1 per unit width)
     slot_length = shelf_depth - back_clearance + 5.0 # extra length to break through front edge safely
-    z_center = -11.0 - back_clearance - slot_length / 2.0
+    z_center = -BACKPLATE_THICKNESS - back_clearance - slot_length / 2.0
     
     slot_pts = []
     for i in range(width_units):
-        x = -width/2 + UNIT_WIDTH/2 + i * UNIT_WIDTH
+        x = -width/2 + UNIT_WIDTH, BACKPLATE_THICKNESS/2 + i * UNIT_WIDTH, BACKPLATE_THICKNESS
         slot_pts.append((z_center, x))
         
     slots = (

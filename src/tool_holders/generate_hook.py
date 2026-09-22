@@ -4,7 +4,7 @@ import math
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rail_height=73.0, fillet_radius=3.0, tip_fillet=3.0):
     """
@@ -17,8 +17,8 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     - fillet_radius: Radius of fillet connecting the hook rod to the backplate (default: 3.0mm)
     - tip_fillet: Radius of fillet on the tip of the hook (default: 3.0mm)
     """
-    width = width_units * UNIT_WIDTH
-    length = length_units * UNIT_WIDTH
+    width = width_units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    length = length_units * UNIT_WIDTH, BACKPLATE_THICKNESS
     radius = diameter / 2.0
     
     # Create the standard groove-mount baseplate
@@ -30,14 +30,14 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     total_height = top_y - bottom_y
     hook_y = bottom_y + total_height / 3.0
     
-    # The front face of the backplate is at Z = -11.0, facing in -Z direction.
+    # The front face of the backplate is at Z = -BACKPLATE_THICKNESS, facing in -Z direction.
     # We extrude a cylinder along +Z, fillet its tip, then rotate and translate.
     # To slope upwards (+Y) by slope_deg while projecting outwards into -Z,
     # we rotate around X-axis by -(180 - slope_deg) = -(180 - 5) = -175 deg.
     rot_angle = -(180.0 - slope_deg)
     
     # Embed the cylinder slightly inside the backplate so the intersection with
-    # the front face (Z = -11.0) is a single, clean planar closed loop edge
+    # the front face (Z = -BACKPLATE_THICKNESS) is a single, clean planar closed loop edge
     # which CadQuery's OpenCASCADE BRepFillet engine can easily and reliably fillet.
     embed_depth = 4.0
     total_rod_len = length + embed_depth
@@ -57,12 +57,12 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     hook_rod = (
         hook_rod
         .rotate((0, 0, 0), (1, 0, 0), rot_angle)
-        .translate((0, hook_y, -11.0 + embed_depth))
+        .translate((0, hook_y, -BACKPLATE_THICKNESS + embed_depth))
     )
     
     tool_holder = tool_holder.union(hook_rod)
     
-    # Fillet where hook cylinder meets the backplate front face (Z = -11.0)
+    # Fillet where hook cylinder meets the backplate front face (Z = -BACKPLATE_THICKNESS)
     if fillet_radius > 0:
         class BaseIntersectionSelector(cq.Selector):
             def filter(self, objectList):
@@ -71,7 +71,7 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
                     if not isinstance(o, cq.Edge):
                         continue
                     b = o.BoundingBox()
-                    if abs(b.zmax - (-11.0)) < 1e-3 and abs(b.zmin - (-11.0)) < 1e-3:
+                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 1e-3 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1e-3:
                         if abs(b.ymin - hook_y) < (diameter + 2.0) and (b.xmax - b.xmin) > (radius):
                             res.append(o)
                 return res

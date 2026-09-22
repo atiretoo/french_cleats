@@ -3,10 +3,10 @@ import argparse
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groove"):
-    width = units * UNIT_WIDTH
+    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
     
     slot_spacing = 30.0
     slot_width = 7.0
@@ -21,9 +21,9 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
     shelf_bot = top_y - 50.0
     
     brace_pts = [
-        (bottom_y, -11),
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth)
+        (bottom_y, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
     ]
     brace = (
         cq.Workplane("YZ")
@@ -34,10 +34,10 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
     tool_holder = tool_holder.union(brace)
     
     shelf_pts = [
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth),
-        (shelf_top, -11 - shelf_depth),
-        (shelf_top, -11)
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS)
     ]
     shelf = (
         cq.Workplane("YZ")
@@ -55,13 +55,13 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
             for o in objectList:
                 if not isinstance(o, cq.Edge): continue
                 b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
+                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
                     res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
+                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
                     res.append(o)
                 elif abs(b.xmin - brace_inner_x) < 1 and abs(b.ymin - shelf_bot) < 1 and b.zmax - b.zmin > 10:
                     res.append(o)
-                elif abs(b.xmin - brace_inner_x) < 1 and abs(b.zmin - (-11)) < 1 and b.ymax - b.ymin > 10:
+                elif abs(b.xmin - brace_inner_x) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.ymax - b.ymin > 10:
                     res.append(o)
             return res
 
@@ -70,7 +70,7 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
     cut_length = slot_depth + 5.0
     slot_x = (width/2 - slot_depth) + cut_length / 2.0
     
-    slot_centers_z = [-11 - 15 - i*slot_spacing for i in range(num_slots)]
+    slot_centers_z = [-BACKPLATE_THICKNESS - 15 - i*slot_spacing for i in range(num_slots)]
     slot_pts = [(z, slot_x) for z in slot_centers_z]
     
     slots = (

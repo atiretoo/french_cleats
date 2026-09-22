@@ -3,10 +3,10 @@ import argparse
 import sys, os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_magnetic_holder(units=1, mount_type="groove", mag_count=2, mag_dia=10.2, mag_depth=2.0):
-    width = units * UNIT_WIDTH
+    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
     
     # Baseplate
     body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(units=units, mount_type=mount_type, num_rows=2)
@@ -25,7 +25,7 @@ def create_magnetic_holder(units=1, mount_type="groove", mag_count=2, mag_dia=10
     
     if mag_count > 0:
         mags = (
-            cq.Workplane("XY").workplane(offset=-11.0) # Front face of baseplate
+            cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS) # Front face of baseplate
             .pushPoints(mag_pts)
             .circle(mag_dia / 2.0)
             .extrude(mag_depth) # Cut into the block (+Z)
@@ -35,7 +35,7 @@ def create_magnetic_holder(units=1, mount_type="groove", mag_count=2, mag_dia=10
         # Push holes
         # 2mm diameter, all the way through to the back
         push_holes = (
-            cq.Workplane("XY").workplane(offset=-11.0)
+            cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS)
             .pushPoints(mag_pts)
             .circle(2.0 / 2.0)
             .extrude(20.0) # All the way to +Z

@@ -5,7 +5,7 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole_spacing=25.0, num_holes=None, rail_height=73.0, hole_sizes=None, recess_size=0.0, recess_depth=1.0):
     brace_thickness = 2.5
@@ -14,8 +14,8 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
     fillet_size = 5.0
     backplate_thickness = 11.0
     
-    width = width_units * UNIT_WIDTH
-    shelf_depth = depth_units * UNIT_WIDTH
+    width = width_units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    shelf_depth = depth_units * UNIT_WIDTH, BACKPLATE_THICKNESS
     
     has_right_brace = width_units > 1
     
@@ -28,7 +28,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
         actual_hole_sizes = [hole_size] * (num_holes if num_holes else 0)
         
     back_clearance = fillet_size + (max(actual_hole_sizes[0], recess_size) if hole_sizes else effective_max_size) / 2.0
-    Z_start = -11.0 - back_clearance
+    Z_start = -BACKPLATE_THICKNESS - back_clearance
     
     x_min = -width/2 + brace_thickness + x_margin + effective_max_size/2
     x_max = width/2 - (brace_thickness if has_right_brace else 0) - x_margin - effective_max_size/2
@@ -42,7 +42,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
     dz = dz_straight
     
     if not hole_sizes and num_holes is None:
-        Z_end = -11.0 - shelf_depth + front_margin + effective_max_size / 2.0
+        Z_end = -BACKPLATE_THICKNESS - shelf_depth + front_margin + effective_max_size / 2.0
         D_avail = abs(Z_end - Z_start) if Z_start >= Z_end else 0
         
         n_straight = int(D_avail / dz_straight) + 1 if D_avail >= 0 else 0
@@ -76,12 +76,12 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
             d_req = d_straight
             dz = dz_straight
             
-        required_depth_units = int(math.ceil(d_req / UNIT_WIDTH))
+        required_depth_units = int(math.ceil(d_req / UNIT_WIDTH, BACKPLATE_THICKNESS))
         if required_depth_units > depth_units:
             print(f"Warning: {num_holes} holes would overflow the {depth_units}U depth.")
             print(f"Automatically increasing depth to {required_depth_units}U.")
             depth_units = required_depth_units
-            shelf_depth = depth_units * UNIT_WIDTH
+            shelf_depth = depth_units * UNIT_WIDTH, BACKPLATE_THICKNESS
 
     if num_holes == 0:
         print(f"Error: Not enough depth to fit even 1 hole.")
@@ -95,10 +95,10 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
     
     # Add Shelf
     shelf_pts = [
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth),
-        (shelf_top, -11 - shelf_depth),
-        (shelf_top, -11)
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS)
     ]
     shelf = (
         cq.Workplane("YZ")
@@ -120,9 +120,9 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
         
     # Add Braces
     brace_pts = [
-        (bottom_y, -11),
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth)
+        (bottom_y, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
     ]
     
     brace_x_positions = [-width/2 + brace_thickness/2]
@@ -157,9 +157,9 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
             for o in objectList:
                 if not isinstance(o, cq.Edge): continue
                 b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
+                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
                     res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
+                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
                     res.append(o)
             return res
 

@@ -54,14 +54,14 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     
     start_x = - (mech_width / 2.0)
     
-    top_z = -11.0 - block_h
+    top_z = -BACKPLATE_THICKNESS - block_h
     
     for i in range(num_tools + 1):
         x_pos = start_x + (block_x / 2.0) + i * (block_x + gap)
         
         # Block
         block = (
-            cq.Workplane("XY").workplane(offset=-11.0)
+            cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS)
             .center(x_pos, block_y_bot + block_y/2.0)
             .rect(block_x, block_y)
             .extrude(-block_h)
@@ -104,7 +104,7 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
             
             # Boss (base)
             boss = (
-                cq.Workplane("XY").workplane(offset=-11.0)
+                cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS)
                 .center(post_center_x, post_y)
                 .circle(boss_r)
                 .extrude(-boss_h)
@@ -113,7 +113,7 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
             
             # Main pin
             pin = (
-                cq.Workplane("XY").workplane(offset=-11.0 - boss_h)
+                cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS - boss_h)
                 .center(post_center_x, post_y)
                 .circle(post_r)
                 .extrude(-(post_h - boss_h))

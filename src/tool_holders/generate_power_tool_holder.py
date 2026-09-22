@@ -4,10 +4,10 @@ import sys, os
 import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length=120.0, mount_type="groove", web_thickness=5.5):
-    width = units * UNIT_WIDTH
+    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
     backplate_thickness = 11.0
     
     # Baseplate
@@ -139,11 +139,11 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
             for o in objectList:
                 if o.ShapeType() == 'Edge':
                     b = o.BoundingBox()
-                    # Vertical inner corners of braces (parallel to Y, at Z=-11, |X| = 28 - 5.5 = 22.5)
+                    # Vertical inner corners of braces (parallel to Y, at Z=-BACKPLATE_THICKNESS, |X| = 28 - 5.5 = 22.5)
                     if abs(b.ymax - b.ymin) > 1.0 and abs(b.xmax - b.xmin) < 0.1 and abs(b.zmax - b.zmin) < 0.1:
                         if abs(b.zmin - back_z) < 0.1 and abs(abs(b.xmin) - (width/2.0 - web_thickness)) < 0.1:
                             res.append(o)
-                    # Horizontal corner of shelf (parallel to X, at Z=-11, Y = 15.0)
+                    # Horizontal corner of shelf (parallel to X, at Z=-BACKPLATE_THICKNESS, Y = 15.0)
                     if abs(b.xmax - b.xmin) > 1.0 and abs(b.ymax - b.ymin) < 0.1 and abs(b.zmax - b.zmin) < 0.1:
                         if abs(b.zmin - back_z) < 0.1 and abs(b.ymin - (top_y - shelf_t)) < 0.1:
                             res.append(o)

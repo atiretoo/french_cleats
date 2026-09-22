@@ -4,14 +4,14 @@ import math
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_width=10.0, 
                                slot_spacing=30.0, start_clearance=15.0, groove_depth=15.0, 
                                chord=134.9375, arc_height=19.05, rail_height=73.0):
     
-    width = width_units * UNIT_WIDTH
-    shelf_depth = depth_units * UNIT_WIDTH
+    width = width_units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    shelf_depth = depth_units * UNIT_WIDTH, BACKPLATE_THICKNESS
     
     # Calculate arc radius from measured chord and height
     arc_radius = (chord**2 / (8 * arc_height)) + (arc_height / 2)
@@ -41,9 +41,9 @@ def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_w
         (-width/2, v_outer_bottom)
     ]
     
-    # Baseplate face is at Z = -11
+    # Baseplate face is at Z = -BACKPLATE_THICKNESS
     shelf = (
-        cq.Workplane("XY", origin=(0, 0, -11))
+        cq.Workplane("XY", origin=(0, 0, -BACKPLATE_THICKNESS))
         .polyline(v_pts).close()
         .extrude(-shelf_depth)
     )
@@ -64,7 +64,7 @@ def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_w
     p5 = (-cutout_half_width, shelf_top + 10.0)
     
     # Cut the slots
-    start_z = -11.0 - start_clearance
+    start_z = -BACKPLATE_THICKNESS - start_clearance
     
     for i in range(num_slots):
         z_center = start_z - i * slot_spacing
