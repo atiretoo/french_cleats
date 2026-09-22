@@ -4,7 +4,7 @@ import sys, os
 import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl, create_nut_slot
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model, create_nut_slot
 
 def create_cam_holder(units=1, mount_type="groove"):
     width = units * UNIT_WIDTH
@@ -141,8 +141,8 @@ def create_cam():
 if __name__ == "__main__":
     holder = create_cam_holder(units=1, mount_type="groove")
     filename = "cam_saw_holder_1u_groove.stl"
-    export_stl(holder, filename, category="tool_holders")
+    export_model(holder, filename, category="tool_holders")
     
     cam = create_cam()
     cam_filename = "cam_saw_holder_cam.stl"
-    export_stl(cam, cam_filename, category="tool_holders", rotate_for_printing=False)
+    export_model(cam, cam_filename, category="tool_holders", rotate_for_printing=False)

@@ -5,7 +5,7 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
 
 def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole_spacing=25.0, num_holes=None, rail_height=73.0, hole_sizes=None, recess_size=0.0, recess_depth=1.0):
     brace_thickness = 2.5
@@ -242,7 +242,7 @@ def main():
         layout_str = f"_N{args.num_holes}" if args.num_holes is not None else ""
         filename = f"screwdriver_holder_{fw}x{fd}u_groove_H{args.rail_height}_D{args.hole_size}_S{args.hole_spacing}{layout_str}.stl"
         
-    export_stl(holder, filename, category='tool_holders')
+    export_model(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

@@ -110,7 +110,7 @@ def get_main_repo_root(current_dir):
         # Fallback if git fails for some reason
         return os.path.join(current_dir, '..')
 
-def export_stl(shape, filename, rotate_for_printing=None, category="", export_step=True, print_orientation="left_down"):
+def export_model(shape, filename, rotate_for_printing=None, category="", export="both", print_orientation="left_down"):
     import os
     import cadquery as cq
     
@@ -162,13 +162,13 @@ def export_stl(shape, filename, rotate_for_printing=None, category="", export_st
         
     if isinstance(export_shape, cq.Assembly):
         export_shape.save(out_path_stl, exportType='STL')
-        if export_step:
+        if export in ["both", "step"]:
             export_shape.save(out_path_step, exportType='STEP')
     else:
         cq.exporters.export(export_shape, out_path_stl)
-        if export_step:
+        if export in ["both", "step"]:
             cq.exporters.export(export_shape, out_path_step)
-    if export_step:
+    if export == "both":
         print(f"Exported {out_path_stl} and {out_path_step}")
     else:
         print(f"Exported {out_path_stl}")

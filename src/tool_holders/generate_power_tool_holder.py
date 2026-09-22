@@ -4,7 +4,7 @@ import sys, os
 import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
 
 def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length=120.0, mount_type="groove", web_thickness=5.5):
     width = units * UNIT_WIDTH
@@ -198,4 +198,4 @@ if __name__ == "__main__":
     )
     
     filename = f"power_tool_holder_{args.units}u_L{args.length}_{args.mount}.stl"
-    export_stl(holder, filename, print_orientation="top_down", category="tool_holders")
+    export_model(holder, filename, print_orientation="top_down", category="tool_holders")

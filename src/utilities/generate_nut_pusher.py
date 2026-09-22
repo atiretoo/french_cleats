@@ -3,7 +3,7 @@ import argparse
 import sys, os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_stl
+from core_library import export_model
 
 def create_nut_pusher(screw_m="M3", handle_length=11.0):
     """
@@ -75,4 +75,4 @@ if __name__ == "__main__":
     filename = f"nut_pusher_{args.screw}_L{args.handle_length}.stl"
     
     # back_down rotates +Z (the handle) to touch the print bed, so it stands tall.
-    export_stl(pusher, filename, print_orientation="back_down", category="utilities")
+    export_model(pusher, filename, print_orientation="back_down", category="utilities")

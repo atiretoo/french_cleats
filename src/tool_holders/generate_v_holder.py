@@ -5,7 +5,7 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
 
 def create_v_holder(width_units=2, depth_units=4, rail_height=73.0):
     brace_thickness = 5.0
@@ -71,7 +71,7 @@ def main():
     )
     
     filename = f"v_holder_{fw}x{fd}u_groove_H{args.rail_height}.stl"
-    export_stl(holder, filename, category='tool_holders')
+    export_model(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

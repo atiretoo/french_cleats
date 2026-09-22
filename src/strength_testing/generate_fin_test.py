@@ -1,7 +1,7 @@
 ﻿import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_stl, support_fin
+from core_library import export_model, support_fin
 import math
 
 def create_fin_test():
@@ -28,7 +28,7 @@ def create_fin_test():
 def main():
     test_obj = create_fin_test()
     filename = "fin_test_cube.stl"
-    export_stl(test_obj, filename, print_orientation="face_down", category='strength_testing', export_step=True)
+    export_model(test_obj, filename, print_orientation="face_down", category='strength_testing', export="both")
     print(f"Exported {filename} and fin_test_cube.step")
 
 if __name__ == "__main__":

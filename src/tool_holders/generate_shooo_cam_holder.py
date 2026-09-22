@@ -4,7 +4,7 @@ import sys, os
 import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl, create_nut_slot
+from core_library import create_baseplate, export_model, create_nut_slot
 
 def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     # === Shooo's Mechanism Dimensions ===
@@ -202,7 +202,7 @@ if __name__ == "__main__":
     if args.tilt_fin:
         holder = add_support_fin(holder, units)
         filename = f"shooo_cam_holder_{args.tools}tools_{units}u_{args.mount}_45deg.stl"
-        export_stl(holder, filename, print_orientation="face_down", category="tool_holders")
+        export_model(holder, filename, print_orientation="face_down", category="tool_holders")
     else:
         filename = f"shooo_cam_holder_{args.tools}tools_{units}u_{args.mount}.stl"
-        export_stl(holder, filename, print_orientation="back_down", category="tool_holders")
+        export_model(holder, filename, print_orientation="back_down", category="tool_holders")

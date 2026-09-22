@@ -3,7 +3,7 @@ import argparse
 import sys, os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
 
 def create_magnetic_holder(units=1, mount_type="groove", mag_count=2, mag_dia=10.2, mag_depth=2.0):
     width = units * UNIT_WIDTH
@@ -84,4 +84,4 @@ if __name__ == "__main__":
     )
     
     filename = f"magnetic_saw_holder_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}_{args.mount}.stl"
-    export_stl(holder, filename, category="tool_holders")
+    export_model(holder, filename, category="tool_holders")

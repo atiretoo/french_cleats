@@ -1,7 +1,7 @@
 import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, export_stl
+from core_library import UNIT_WIDTH, export_model
 import math
 
 def create_depth_tester():
@@ -81,7 +81,7 @@ def create_depth_tester():
 def main():
     tester = create_depth_tester()
     filename = "corner_clamp_tester_1u.stl"
-    export_stl(tester, filename, category='strength_testing', export_step=False)
+    export_model(tester, filename, category='strength_testing', export="stl")
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

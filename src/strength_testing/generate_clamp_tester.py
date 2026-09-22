@@ -1,7 +1,7 @@
 import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_stl
+from core_library import export_model
 
 def create_tester():
     # A simple flat slab to test slot depths and spacings
@@ -57,7 +57,7 @@ def create_tester():
 
 def main():
     tester = create_tester()
-    export_stl(tester, "clamp_tester.stl", category='strength_testing', export_step=False)
+    export_model(tester, "clamp_tester.stl", category='strength_testing', export="stl")
     print("Exported clamp_tester.stl")
 
 if __name__ == "__main__":

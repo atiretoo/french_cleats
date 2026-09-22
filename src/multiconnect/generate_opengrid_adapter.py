@@ -3,7 +3,7 @@ import argparse
 import os
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, export_stl, create_nut_slot
+from core_library import UNIT_WIDTH, export_model, create_nut_slot
 
 def load_mc_block(filename, opengrid_path):
     path = os.path.join(opengrid_path, filename)
@@ -184,7 +184,7 @@ def main():
     filename = f"opengrid_adapter_{args.units}u_H{args.rail_height}_{args.screw}.stl"
     
     # Save to exports/stl directory relative to the project root
-    export_stl(adapter, filename, print_orientation='top_down', category='multiconnect')
+    export_model(adapter, filename, print_orientation='top_down', category='multiconnect')
 
 if __name__ == "__main__":
     main()

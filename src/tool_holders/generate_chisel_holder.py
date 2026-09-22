@@ -3,7 +3,7 @@ import argparse
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
 
 import math
 
@@ -151,7 +151,7 @@ def main():
     units = max(1, math.ceil(mech_width / 28.0))
     
     filename = f"chisel_holder_{args.tools}tools_{units}u_{args.shelf_pos}_groove_H{args.rail_height}{sd_str}{sw_str}{hs_str}.stl"
-    export_stl(holder, filename, category='tool_holders')
+    export_model(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl, create_nut_slot
+from core_library import UNIT_WIDTH, create_baseplate, export_model, create_nut_slot
 import argparse
 import os
 
@@ -140,13 +140,13 @@ def main():
     if args.type in ["top", "both"]:
         top = create_top_cleat(args.units, args.rail_thickness, args.mount, args.screw)
         filename = f"top_cleat_{args.units}u_{args.mount}_T{args.rail_thickness}_{args.screw}.stl"
-        export_stl(top, filename, category='cleats')
+        export_model(top, filename, category='cleats')
         print(f"Exported {filename}")
         
     if args.type in ["bottom", "both"] and args.mount == "groove":
         bot = create_bottom_cleat(args.units, args.rail_thickness, args.screw)
         filename = f"bottom_cleat_{args.units}u_groove_T{args.rail_thickness}_{args.screw}.stl"
-        export_stl(bot, filename, category='cleats')
+        export_model(bot, filename, category='cleats')
         print(f"Exported {filename}")
 
 if __name__ == "__main__":

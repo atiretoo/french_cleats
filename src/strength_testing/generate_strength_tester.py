@@ -3,7 +3,7 @@ import argparse
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, create_baseplate, export_stl
+from core_library import UNIT_WIDTH, create_baseplate, export_model
 
 def create_strength_tester(shelf_position="top", thickness_mode="full", rail_height=73.0, mount_type="groove"):
     units = 1
@@ -142,7 +142,7 @@ def main():
         for thick in ["full", "half"]:
             holder = create_strength_tester(pos, thick, mount_type=args.mount)
             filename = f"tester_{pos}_{thick}_{args.mount}.stl"
-            export_stl(holder, filename, category='strength_testing', export_step=False)
+            export_model(holder, filename, category='strength_testing', export="stl")
             print(f"Exported {filename}")
 
 if __name__ == "__main__":

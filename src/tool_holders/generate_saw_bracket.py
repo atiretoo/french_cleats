@@ -3,7 +3,7 @@ import argparse
 import math
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl, create_nut_slot
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model, create_nut_slot
 
 def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="left"):
     width = units * UNIT_WIDTH
@@ -222,7 +222,7 @@ def main():
         
         filename = f"circular_saw_bracket_{args.units}u_L{int(args.hypotenuse)}_{side}.stl"
         # pass rotate_for_printing=False since we already rotated it
-        export_stl(oriented_bracket, filename, rotate_for_printing=False, category='tool_holders')
+        export_model(oriented_bracket, filename, rotate_for_printing=False, category='tool_holders')
         print(f"Exported {filename}")
     
     template = create_drilling_template(
@@ -230,7 +230,7 @@ def main():
         width=args.units * 28.0
     )
     template_filename = f"circular_saw_template_{args.units}u_L{int(args.hypotenuse)}.stl"
-    export_stl(template, template_filename, rotate_for_printing=False, category='tool_holders')
+    export_model(template, template_filename, rotate_for_printing=False, category='tool_holders')
     print(f"Exported {template_filename}")
 
 if __name__ == "__main__":
