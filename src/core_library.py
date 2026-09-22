@@ -175,6 +175,9 @@ def export_stl(shape, filename, rotate_for_printing=None, category="", export_st
 import cadquery as cq
 import math
 
+UNIT_WIDTH = 28.0
+BACKPLATE_THICKNESS = 11.0
+
 def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.0):
     """
     Creates a nut capture slot (and optional push hole) centered at (0,0,0).

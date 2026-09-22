@@ -3,7 +3,7 @@ import argparse
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl, support_fin
+from core_library import create_baseplate, export_stl, UNIT_WIDTH, BACKPLATE_THICKNESS
 
 def make_gridfinity_cutout():
     """
@@ -20,10 +20,9 @@ def make_gridfinity_cutout():
     )
     return cutout
 
-def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0, print_45_deg=True):
-    unit_width = 28.0
-    width = width_units * unit_width
-    shelf_depth = depth_units * unit_width
+def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0):
+        width = width_units * UNIT_WIDTH
+    shelf_depth = depth_units * UNIT_WIDTH
     shelf_thickness = 7.0
     brace_thickness = 5.0
     
@@ -39,10 +38,10 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
     
     # 1. Add the main shelf slab
     shelf_pts = [
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth),
-        (shelf_top, -11 - shelf_depth),
-        (shelf_top, -11)
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS)
     ]
     shelf = (
         cq.Workplane("YZ")
@@ -56,9 +55,9 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
     # Brace goes from the bottom of the baseplate to the bottom of the shelf,
     # and extends to the front of the shelf.
     brace_pts = [
-        (bottom_y, -11),
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth)
+        (bottom_y, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
     ]
     
     # Left brace
@@ -89,7 +88,7 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
             for iz in range(num_z):
                 # Calculate center positions
                 cx = (ix - num_x / 2.0 + 0.5) * 42.0
-                cz = -11.0 - shelf_depth / 2.0 + (iz - num_z / 2.0 + 0.5) * 42.0
+                cz = -BACKPLATE_THICKNESS - shelf_depth / 2.0 + (iz - num_z / 2.0 + 0.5) * 42.0
                 
                 # The GF cutout is built in +Z. We want to cut DOWN into the shelf (-Y).
                 # Rotate around X-axis by 90 degrees maps +Z to -Y.
@@ -117,23 +116,6 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
     )
     tool_holder = tool_holder.cut(recesses)
     
-    if print_45_deg:
-        # Generate 45-degree support fins at the left and right corners of the backplate.
-        # When rotated 135 degrees, these fins will point straight down and form vertical pillars
-        # perfectly supporting the backplate.
-        total_height = top_y - bottom_y
-        fin_len = total_height / 2.0
-        fin = support_fin(z_gap=0.0, is_right=False, length=fin_len, height=fin_len)
-        
-        # Translate to left and right corners
-        fin_left = fin.translate((-width/2 + 1.6/2, top_y, 0))
-        fin_right = fin.translate((width/2 - 1.6/2, top_y, 0))
-        
-        tool_holder = tool_holder.union(fin_left).union(fin_right)
-        
-        # Rotate 135 degrees to form a V-shape on the print bed
-        tool_holder = tool_holder.rotate((0,0,0), (1,0,0), 135)
-        
     return tool_holder, width_units, depth_units
 
 def main():
@@ -153,7 +135,7 @@ def main():
     
     gf_str = "_GF" if not args.no_gridfinity else ""
     filename = f"shelf_{fw}x{fd}u{gf_str}_groove_H{args.rail_height}.stl"
-    export_stl(holder, filename, category='gridfinity', print_orientation='face_down')
+    export_stl(holder, filename, category='gridfinity')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
