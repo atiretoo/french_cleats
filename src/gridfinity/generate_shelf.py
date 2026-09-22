@@ -17,9 +17,10 @@
 import cadquery as cq
 import argparse
 
+import math
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_model, UNIT_WIDTH, BACKPLATE_THICKNESS
+from core_library import create_baseplate, export_model, support_fin, UNIT_WIDTH, BACKPLATE_THICKNESS
 
 def make_gridfinity_cutout():
     """
@@ -140,6 +141,9 @@ def main():
     parser.add_argument("--depth-units", type=int, default=3, help="Number of units deep")
     parser.add_argument("--no-gridfinity", action="store_true", help="Disable Gridfinity baseplate geometry")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
+    parser.add_argument("--print-orientation", type=str, default="45_deg", choices=["45_deg", "back_down", "left_down"], help="Print orientation (default: 45_deg with support fins)")
+    parser.add_argument("--no-support-fins", action="store_true", help="Disable support fins")
+    parser.add_argument("--export", type=str, default="both", choices=["stl", "step", "both"], help="Export format")
     args = parser.parse_args()
     
     holder, fw, fd = create_shelf(
@@ -149,9 +153,42 @@ def main():
         rail_height=args.rail_height
     )
     
+    if args.print_orientation == "45_deg":
+        # Rotate holder: back_down (180 around X) then +45 around Y
+        holder = holder.rotate((0, 0, 0), (1, 0, 0), 180).rotate((0, 0, 0), (0, 1, 0), 45)
+        z_min = holder.val().BoundingBox().zmin
+        holder = holder.translate((0, 0, -z_min))
+        
+        if not args.no_support_fins:
+            width = fw * UNIT_WIDTH
+            L = width / math.sqrt(2)
+            fin_w = 1.6
+            
+            fin_proto = support_fin(z_gap=0.0, is_right=False, length=L, height=L, fin_width=fin_w)
+            fin_proto = fin_proto.rotate((0, 0, 0), (0, 0, 1), -90).translate((L / 2, 0, 0))
+            
+            bb = holder.val().BoundingBox()
+            top_y = bb.ymin
+            bot_y = bb.ymax
+            
+            fin_top = fin_proto.translate((0, top_y + fin_w / 2, 0))
+            fin_bot = fin_proto.translate((0, bot_y - fin_w / 2, 0))
+            
+            assy = cq.Assembly()
+            assy.add(holder.val(), name="Shelf", color=cq.Color(0.8, 0.5, 0.1, 1.0))
+            assy.add(fin_top.val(), name="Fin_Top", color=cq.Color(0.2, 0.7, 0.2, 1.0))
+            assy.add(fin_bot.val(), name="Fin_Bottom", color=cq.Color(0.2, 0.7, 0.2, 1.0))
+            export_shape = assy
+        else:
+            export_shape = holder
+        print_orient = "none"
+    else:
+        export_shape = holder
+        print_orient = args.print_orientation
+    
     gf_str = "_GF" if not args.no_gridfinity else ""
     filename = f"shelf_{fw}x{fd}u{gf_str}_groove_H{args.rail_height}.stl"
-    export_model(holder, filename, category='gridfinity')
+    export_model(export_shape, filename, category='gridfinity', print_orientation=print_orient, export=args.export)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
