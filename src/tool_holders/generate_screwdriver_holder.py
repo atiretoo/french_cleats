@@ -14,8 +14,8 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
     fillet_size = 5.0
     backplate_thickness = 11.0
     
-    width = width_units * UNIT_WIDTH, BACKPLATE_THICKNESS
-    shelf_depth = depth_units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    width = width_units * UNIT_WIDTH
+    shelf_depth = depth_units * UNIT_WIDTH
     
     has_right_brace = width_units > 1
     
@@ -81,7 +81,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
             print(f"Warning: {num_holes} holes would overflow the {depth_units}U depth.")
             print(f"Automatically increasing depth to {required_depth_units}U.")
             depth_units = required_depth_units
-            shelf_depth = depth_units * UNIT_WIDTH, BACKPLATE_THICKNESS
+            shelf_depth = depth_units * UNIT_WIDTH
 
     if num_holes == 0:
         print(f"Error: Not enough depth to fit even 1 hole.")

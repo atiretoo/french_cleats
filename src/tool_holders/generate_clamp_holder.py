@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groove"):
-    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    width = units * UNIT_WIDTH
     
     slot_spacing = 30.0
     slot_width = 7.0

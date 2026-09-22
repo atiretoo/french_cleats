@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl, create_nut_slot
 
 def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="left"):
-    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    width = units * UNIT_WIDTH
     brace_width = 10.0
     flange_thickness = 10.0
     

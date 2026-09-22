@@ -10,8 +10,8 @@ def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_w
                                slot_spacing=30.0, start_clearance=15.0, groove_depth=15.0, 
                                chord=134.9375, arc_height=19.05, rail_height=73.0):
     
-    width = width_units * UNIT_WIDTH, BACKPLATE_THICKNESS
-    shelf_depth = depth_units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    width = width_units * UNIT_WIDTH
+    shelf_depth = depth_units * UNIT_WIDTH
     
     # Calculate arc radius from measured chord and height
     arc_radius = (chord**2 / (8 * arc_height)) + (arc_height / 2)

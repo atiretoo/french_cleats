@@ -17,8 +17,8 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     - fillet_radius: Radius of fillet connecting the hook rod to the backplate (default: 3.0mm)
     - tip_fillet: Radius of fillet on the tip of the hook (default: 3.0mm)
     """
-    width = width_units * UNIT_WIDTH, BACKPLATE_THICKNESS
-    length = length_units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    width = width_units * UNIT_WIDTH
+    length = length_units * UNIT_WIDTH
     radius = diameter / 2.0
     
     # Create the standard groove-mount baseplate

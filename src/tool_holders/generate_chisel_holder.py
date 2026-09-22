@@ -10,7 +10,7 @@ import math
 def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=None, slot_width=26.0, slot_widths=None, slot_depth=4.0, slot_depths=None, rail_height=73.0, shelf_pos="mid"):
     mech_width = num_tools * spacing
     units = max(1, math.ceil(mech_width / 28.0))
-    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    width = units * UNIT_WIDTH
     shelf_depth = 28.0 # 1U deep
     
     if not hole_sizes: hole_sizes = [hole_size] * num_tools

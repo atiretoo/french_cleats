@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_stl
 
 def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length=120.0, mount_type="groove", web_thickness=5.5):
-    width = units * UNIT_WIDTH, BACKPLATE_THICKNESS
+    width = units * UNIT_WIDTH
     backplate_thickness = 11.0
     
     # Baseplate
