@@ -5,18 +5,17 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl
+from core_library import UNIT_WIDTH, create_baseplate, export_stl
 
 def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole_spacing=25.0, num_holes=None, rail_height=73.0, hole_sizes=None, recess_size=0.0, recess_depth=1.0):
-    unit_width = 28.0
     brace_thickness = 2.5
     x_margin = 3.0
     front_margin = 3.0
     fillet_size = 5.0
     backplate_thickness = 11.0
     
-    width = width_units * unit_width
-    shelf_depth = depth_units * unit_width
+    width = width_units * UNIT_WIDTH
+    shelf_depth = depth_units * UNIT_WIDTH
     
     has_right_brace = width_units > 1
     
@@ -77,12 +76,12 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
             d_req = d_straight
             dz = dz_straight
             
-        required_depth_units = int(math.ceil(d_req / unit_width))
+        required_depth_units = int(math.ceil(d_req / UNIT_WIDTH))
         if required_depth_units > depth_units:
             print(f"Warning: {num_holes} holes would overflow the {depth_units}U depth.")
             print(f"Automatically increasing depth to {required_depth_units}U.")
             depth_units = required_depth_units
-            shelf_depth = depth_units * unit_width
+            shelf_depth = depth_units * UNIT_WIDTH
 
     if num_holes == 0:
         print(f"Error: Not enough depth to fit even 1 hole.")

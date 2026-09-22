@@ -4,11 +4,10 @@ import sys, os
 import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl, create_nut_slot
+from core_library import UNIT_WIDTH, create_baseplate, export_stl, create_nut_slot
 
 def create_cam_holder(units=1, mount_type="groove"):
-    unit_width = 28.0
-    width = units * unit_width
+    width = units * UNIT_WIDTH
     
     # Baseplate
     body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(units=units, mount_type=mount_type, num_rows=2)

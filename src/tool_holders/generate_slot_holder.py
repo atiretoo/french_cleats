@@ -4,14 +4,13 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl
+from core_library import UNIT_WIDTH, create_baseplate, export_stl
 
 def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clearance=10.0, rail_height=73.0):
-    unit_width = 28.0
     brace_thickness = 2.5
     
-    width = width_units * unit_width
-    shelf_depth = depth_units * unit_width
+    width = width_units * UNIT_WIDTH
+    shelf_depth = depth_units * UNIT_WIDTH
     
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(width_units, rail_height, mount_type="groove", num_rows=2)
     
@@ -87,7 +86,7 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
     
     slot_pts = []
     for i in range(width_units):
-        x = -width/2 + unit_width/2 + i * unit_width
+        x = -width/2 + UNIT_WIDTH/2 + i * UNIT_WIDTH
         slot_pts.append((z_center, x))
         
     slots = (

@@ -3,7 +3,7 @@ import argparse
 import os
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_stl, create_nut_slot
+from core_library import UNIT_WIDTH, export_stl, create_nut_slot
 
 def load_mc_block(filename, opengrid_path):
     path = os.path.join(opengrid_path, filename)
@@ -20,8 +20,7 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     if opengrid_path is None:
         opengrid_path = os.path.expanduser("~/Desktop/3dp/opengrid/Multiconnect modeling files")
         
-    unit_width = 28.0
-    width = units * unit_width
+    width = units * UNIT_WIDTH
     
     if screw_m == "M3":
         screw_d, nut_waf, nut_thick = 3.4, 5.5, 2.4
@@ -147,7 +146,7 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     sin30 = math.sin(angle)
     
     for i in range(units):
-        x = -width/2 + unit_width/2 + i*unit_width
+        x = -width/2 + UNIT_WIDTH/2 + i*UNIT_WIDTH
         
         # Top screw hole
         hole_top = cq.Workplane("XY").workplane(offset=-10).center(x, top_screw_y).circle(screw_d/2).extrude(50)

@@ -1,7 +1,7 @@
 import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl, create_nut_slot
+from core_library import UNIT_WIDTH, create_baseplate, export_stl, create_nut_slot
 import argparse
 import os
 
@@ -11,8 +11,7 @@ def load_round_button():
     return model
 
 def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m="M3"):
-    unit_width = 28.0
-    width = units * unit_width
+    width = units * UNIT_WIDTH
     
     ridge_depth = 4.0
     tip_clearance = 2.0
@@ -57,7 +56,7 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
         slot_z_center = 4.0 + slot_t / 2.0
         
         for i in range(units):
-            x = -width/2 + unit_width/2 + i*unit_width
+            x = -width/2 + UNIT_WIDTH/2 + i*UNIT_WIDTH
             hole = cq.Workplane("XY").workplane(offset=-10).center(x, screw_y).circle(screw_d/2).extrude(50)
             cleat = cleat.cut(hole)
             
@@ -69,7 +68,7 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
     else:
         button = load_round_button()
         for i in range(units):
-            x = -width/2 + unit_width/2 + i*unit_width
+            x = -width/2 + UNIT_WIDTH/2 + i*UNIT_WIDTH
             btn_inst = button.translate((x, screw_y, rail_thickness + 4.0))
             cleat = cleat.union(btn_inst)
             
@@ -77,8 +76,7 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
 
 
 def create_bottom_cleat(units=2, rail_thickness=19.0, screw_m="M3"):
-    unit_width = 28.0
-    width = units * unit_width
+    width = units * UNIT_WIDTH
     
     if screw_m == "M3":
         screw_d, nut_waf, nut_thick = 3.4, 5.5, 2.4
@@ -114,7 +112,7 @@ def create_bottom_cleat(units=2, rail_thickness=19.0, screw_m="M3"):
     slot_z_center = 4.0 + slot_t / 2.0
     
     for i in range(units):
-        x = -width/2 + unit_width/2 + i*unit_width
+        x = -width/2 + UNIT_WIDTH/2 + i*UNIT_WIDTH
         hole = cq.Workplane("XY").workplane(offset=-10).center(x, screw_y).circle(screw_d/2).extrude(50)
         cleat = cleat.cut(hole)
         

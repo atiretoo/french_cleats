@@ -4,7 +4,7 @@ import math
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl
+from core_library import UNIT_WIDTH, create_baseplate, export_stl
 
 def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rail_height=73.0, fillet_radius=3.0, tip_fillet=3.0):
     """
@@ -17,9 +17,8 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     - fillet_radius: Radius of fillet connecting the hook rod to the backplate (default: 3.0mm)
     - tip_fillet: Radius of fillet on the tip of the hook (default: 3.0mm)
     """
-    unit_width = 28.0
-    width = width_units * unit_width
-    length = length_units * unit_width
+    width = width_units * UNIT_WIDTH
+    length = length_units * UNIT_WIDTH
     radius = diameter / 2.0
     
     # Create the standard groove-mount baseplate

@@ -1,12 +1,11 @@
 import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_stl
+from core_library import UNIT_WIDTH, export_stl
 import math
 
 def create_depth_tester():
-    unit_width = 28.0
-    width = unit_width # 1U
+    width = UNIT_WIDTH # 1U
     
     # Depths to test
     depths = [10.0, 15.0, 20.0, 25.0]

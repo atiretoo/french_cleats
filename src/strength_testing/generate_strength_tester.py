@@ -3,14 +3,13 @@ import argparse
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl
+from core_library import UNIT_WIDTH, create_baseplate, export_stl
 
 def create_strength_tester(shelf_position="top", thickness_mode="full", rail_height=73.0, mount_type="groove"):
     units = 1
-    unit_width = 28.0 
-    width = units * unit_width
+    width = units * UNIT_WIDTH
     shelf_u = 6
-    shelf_depth = shelf_u * unit_width 
+    shelf_depth = shelf_u * UNIT_WIDTH 
     
     if thickness_mode == "ultra_thin":
         backplate_t = 5.5
