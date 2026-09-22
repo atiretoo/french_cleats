@@ -21,7 +21,7 @@ def make_gridfinity_cutout():
     return cutout
 
 def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0):
-        width = width_units * UNIT_WIDTH
+    width = width_units * UNIT_WIDTH
     shelf_depth = depth_units * UNIT_WIDTH
     shelf_thickness = 7.0
     brace_thickness = 5.0
