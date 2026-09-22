@@ -1,5 +1,9 @@
 import cadquery as cq
 import os
+import math
+
+UNIT_WIDTH = 28.0
+BACKPLATE_THICKNESS = 11.0
 
 def load_mc_block(filename):
     path = os.path.join(os.path.dirname(__file__), '../../opengrid/Multiconnect Modeling Files', filename)
@@ -110,7 +114,7 @@ def get_main_repo_root(current_dir):
         # Fallback if git fails for some reason
         return os.path.join(current_dir, '..')
 
-def export_model(shape, filename, rotate_for_printing=None, category="", export="both", print_orientation="left_down"):
+def export_model(shape, filename, category="", export="both", print_orientation="left_down"):
     import os
     import cadquery as cq
     
@@ -130,13 +134,6 @@ def export_model(shape, filename, rotate_for_printing=None, category="", export=
     os.makedirs(os.path.dirname(out_path_stl), exist_ok=True)
     os.makedirs(os.path.dirname(out_path_step), exist_ok=True)
     
-    # Backward compatibility for old boolean flag
-    if rotate_for_printing is not None:
-        if rotate_for_printing:
-            print_orientation = "left_down"
-        else:
-            print_orientation = "back_down"
-            
     export_shape = shape
     
     # Apply rotation based on desired print orientation
@@ -156,8 +153,8 @@ def export_model(shape, filename, rotate_for_printing=None, category="", export=
     elif print_orientation == "back_down":
         # Rotate +Z to point down (-Z)
         export_shape = export_shape.rotate((0, 0, 0), (1, 0, 0), 180)
-    elif print_orientation == "face_down":
-        # -Z is already down. No rotation needed.
+    elif print_orientation in ["face_down", "none", None]:
+        # -Z is already down (or raw orientation requested). No rotation needed.
         pass
         
     if isinstance(export_shape, cq.Assembly):
@@ -172,11 +169,7 @@ def export_model(shape, filename, rotate_for_printing=None, category="", export=
         print(f"Exported {out_path_stl} and {out_path_step}")
     else:
         print(f"Exported {out_path_stl}")
-import cadquery as cq
-import math
 
-UNIT_WIDTH = 28.0
-BACKPLATE_THICKNESS = 11.0
 
 def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.0):
     """
