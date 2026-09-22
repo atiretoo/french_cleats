@@ -117,7 +117,7 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
     )
     tool_holder = tool_holder.cut(recesses)
     
-        if print_45_deg:
+    if print_45_deg:
         # Generate 45-degree support fins at the left and right corners of the backplate.
         # When rotated 135 degrees, these fins will point straight down and form vertical pillars
         # perfectly supporting the backplate.
