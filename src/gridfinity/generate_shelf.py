@@ -135,7 +135,8 @@ def main():
     
     gf_str = "_GF" if not args.no_gridfinity else ""
     filename = f"shelf_{fw}x{fd}u{gf_str}_groove_H{args.rail_height}.stl"
-    export_stl(holder, filename, category='gridfinity')
+    holder = holder.rotate((0,0,0), (0,1,0), 45)
+    export_stl(holder, filename, category='gridfinity', print_orientation='face_down')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
