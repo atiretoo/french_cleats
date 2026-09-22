@@ -233,7 +233,7 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
         
     return result.val()
 
-def support_fin(z_gap=0.01, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0):
+def support_fin(z_gap=0.01, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0, cutoff_top=False):
     """
     Generates a 45-degree support fin.
     Note: For the cleanest breakaway, use z_gap=0.0 mm if the fin tip is perfectly aligned 
@@ -313,8 +313,9 @@ def support_fin(z_gap=0.01, is_right=True, length=30.0, height=30.0, fin_width=1
         
     fin = wedge.cut(cut_p).cut(cut_n)
     
-    # Chop off the top of the fin where it gets too narrow in Y
-    cutoff_z = height - taper_z_drop
-    fin = fin.cut(cq.Workplane("XY").box(1000, 1000, 1000).translate((0, 0, cutoff_z + 500)))
+    # Optional: chop off the top of the fin where it gets too narrow in Y
+    if cutoff_top:
+        cutoff_z = height - taper_z_drop
+        fin = fin.cut(cq.Workplane("XY").box(1000, 1000, 1000).translate((0, 0, cutoff_z + 500)))
         
     return fin

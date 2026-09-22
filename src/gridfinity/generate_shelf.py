@@ -171,8 +171,8 @@ def main():
             top_y = bb.ymin
             bot_y = bb.ymax
             
-            fin_top = fin_proto.translate((0, top_y + fin_w / 2, 0))
-            fin_bot = fin_proto.translate((0, bot_y - fin_w / 2, 0))
+            fin_top = fin_proto.translate((0, top_y, 0))
+            fin_bot = fin_proto.translate((0, bot_y, 0))
             
             assy = cq.Assembly()
             assy.add(holder.val(), name="Shelf", color=cq.Color(0.8, 0.5, 0.1, 1.0))
