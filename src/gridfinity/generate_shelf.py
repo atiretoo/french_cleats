@@ -163,16 +163,18 @@ def main():
             width = fw * UNIT_WIDTH
             L = width / math.sqrt(2)
             fin_w = 1.6
+            tip_w = 0.4
             
-            fin_proto = support_fin(z_gap=0.0, is_right=False, length=L, height=L, fin_width=fin_w)
+            fin_proto = support_fin(z_gap=0.0, is_right=False, length=L, height=L, fin_width=fin_w, tip_width=tip_w, cutoff_top=True)
             fin_proto = fin_proto.rotate((0, 0, 0), (0, 0, 1), -90).translate((L / 2, 0, 0))
             
             bb = holder.val().BoundingBox()
             top_y = bb.ymin
             bot_y = bb.ymax
             
-            fin_top = fin_proto.translate((0, top_y, 0))
-            fin_bot = fin_proto.translate((0, bot_y, 0))
+            # Line up the outside edge of the taper tip with the corner of the backplate
+            fin_top = fin_proto.translate((0, top_y + tip_w / 2, 0))
+            fin_bot = fin_proto.translate((0, bot_y - tip_w / 2, 0))
             
             assy = cq.Assembly()
             assy.add(holder.val(), name="Shelf", color=cq.Color(0.8, 0.5, 0.1, 1.0))
