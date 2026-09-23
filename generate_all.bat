@@ -34,6 +34,9 @@ python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --m
 python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --mag-count 3 --mag-dia 10.2 --mag-depth 2.0
 python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --mag-count 2 --mag-dia 19.2 --mag-depth 2.0
 
+echo Generating Hook Holders...
+python src/tool_holders/generate_hook.py --width-units 1 --length-units 4 --diameter 10.0 --slope 5.0
+
 echo Generating Auxiliary Tools...
 python src/utilities/generate_nut_pusher.py --screw M3 --handle-length 11.0
 python src/utilities/generate_nut_pusher.py --screw M4 --handle-length 11.0

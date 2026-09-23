@@ -235,6 +235,7 @@ def main():
     parser.add_argument("--recess-size", type=float, default=0.0, help="Diameter of recess at top of hole")
     parser.add_argument("--recess-depth", type=float, default=1.0, help="Depth of recess at top of hole")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
+    parser.add_argument("--print-orientation", type=str, default="right_down", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down"], help="Print orientation for STL export")
     args = parser.parse_args()
     
     hole_sizes_list = None
@@ -259,7 +260,7 @@ def main():
         layout_str = f"_N{args.num_holes}" if args.num_holes is not None else ""
         filename = f"screwdriver_holder_{fw}x{fd}u_groove_H{args.rail_height}_D{args.hole_size}_S{args.hole_spacing}{layout_str}.stl"
         
-    export_stl(holder, filename, category='tool_holders')
+    export_stl(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
