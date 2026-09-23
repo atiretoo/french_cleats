@@ -16,8 +16,6 @@ python src/tool_holders/generate_screwdriver_holder.py --width-units 1 --depth-u
 python src/tool_holders/generate_screwdriver_holder.py --width-units 1 --depth-units 6 --hole-size 14 --hole-spacing 30
 python src/tool_holders/generate_screwdriver_holder.py --width-units 1 --depth-units 6 --hole-spacing 26 --hole-sizes 20,18,15.5,15,14,10 --recess-size 23 --recess-depth 1
 
-echo "Generating Clamp Holders..."
-python src/tool_holders/generate_clamp_holder.py --units 3 --num-slots 4 --mount groove
 
 echo "Generating Chisel Holders..."
 python src/tool_holders/generate_chisel_holder.py --units 4 --shelf-pos mid
@@ -32,11 +30,6 @@ echo "Generating Strength Testers..."
 python src/strength_testing/generate_strength_tester.py --mount groove
 
 
-echo "Generating Corner Clamp Holders..."
-python src/tool_holders/generate_corner_clamp_holder.py
-
-echo "Generating Corner Clamp Tester..."
-python src/strength_testing/generate_corner_clamp_tester.py
 
 echo "Generating Shelves..."
 python src/gridfinity/generate_shelf.py --width-units 3 --depth-units 3
