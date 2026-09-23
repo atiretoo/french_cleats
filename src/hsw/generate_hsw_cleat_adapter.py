@@ -21,7 +21,20 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, export_model, create_nut_slot
+from core_library import (
+    UNIT_WIDTH,
+    export_model,
+    create_nut_slot,
+    HSW_ASSETS_DIR,
+    BACKPLATE_TOP_Y,
+    TOP_RIDGE_Y,
+    RIDGE_DEPTH,
+    DEFAULT_RAIL_HEIGHT,
+    RAIL_PLAY,
+    get_bottom_groove_y,
+    get_bottom_edge_y,
+    get_backplate_height,
+)
 
 def load_hsw_plug(step_path=None, orientation="standard"):
     """
@@ -36,17 +49,9 @@ def load_hsw_plug(step_path=None, orientation="standard"):
         Retains default orientation so flats face up/down (HSW rotated wall pitch 23.6 / 47.2 mm).
     """
     if step_path is None:
-        candidate_paths = [
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "insert-empty.step"),
-            os.path.expanduser("~/OneDrive/Documents/3dp/honeycomb-storage-wall/Base STEP files/insert-empty.step"),
-            os.path.expanduser("~/Desktop/3dp/honeycomb-storage-wall/Base STEP files/insert-empty.step"),
-        ]
-        for p in candidate_paths:
-            if os.path.exists(p):
-                step_path = p
-                break
-                
-    if step_path is None or not os.path.exists(step_path):
+        step_path = os.path.join(HSW_ASSETS_DIR, "insert-empty.step")
+        
+    if not os.path.exists(step_path):
         raise FileNotFoundError(f"HSW insert STEP file not found at: {step_path}")
         
     model = cq.importers.importStep(step_path).val()
@@ -78,7 +83,7 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
     Reference Frame:
       - Top: +Y
       - Bottom: -Y
-      - Front: -Z (cleat locking ridge and screw face)
+      - Front: -Z (cleat locking ridges and screw faces)
       - Back: +Z (flush face resting against HSW wall, male plugs protruding into wall)
       - Left: -X
       - Right: +X
@@ -87,13 +92,15 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
     
     if orientation == "standard":
         pitch = 40.88
+        # Standard: points are up/down along Y (radius = 22.55 / 2 = 11.275)
+        plug_radius_y = 11.275
     elif orientation == "rotated":
         pitch = float(rotated_pitch)
+        # Rotated: flats are up/down along Y (radius = 19.70 / 2 = 9.85)
+        plug_radius_y = 9.85
     else:
         raise ValueError(f"Unknown orientation: {orientation}")
         
-    half_pitch = pitch / 2.0
-    
     if screw_m == "M3":
         screw_d = 3.4
         nut_waf = 5.5
@@ -113,37 +120,37 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
     slot_z_center = 4.0 + slot_t / 2.0
     backplate_thickness = max(8.0, 4.0 + slot_t + 1.2)
     
-    if height is not None:
-        y_top = height / 2.0
-        y_bot = -height / 2.0
-    else:
-        if orientation == "standard":
-            y_top = 36.0
-            y_bot = -36.0
-        else:
-            if pitch <= 30.0:
-                y_top = 28.0
-                y_bot = -28.0
-            else:
-                y_top = 38.0
-                y_bot = -38.0
-                
+    # Standard heights and ridge locations
+    if height is None:
+        height = get_backplate_height()  # Default 114.0 mm
+        
+    y_top = BACKPLATE_TOP_Y  # 20.0 mm
+    y_bot = y_top - height    # default: 20.0 - 114.0 = -94.0 mm
+    
+    top_screw_y = TOP_RIDGE_Y  # 10.0 mm
+    bottom_screw_y = y_bot + 10.0  # default: -84.0 mm (matching get_bottom_groove_y())
+    
     t = backplate_thickness
-    ridge_depth = 3.0
+    ridge_depth = RIDGE_DEPTH  # 3.0 mm
     
     # Invariant Object Reference Frame & Workplane rules:
     # Use "YZ" workplane (Local X = Global Y, Local Y = Global Z)
     # Profile includes:
     # 1. 45-degree French cleat downward slope at top (+Y)
-    # 2. Shallow trapezoidal locking ridge (3.0mm depth, 1.0mm flat, 7.0mm base) at screw position (Y=0)
-    # 3. Flat back face at Z=t resting flush against wall
+    # 2. Top shallow trapezoidal locking ridge at top_screw_y (Y=10.0)
+    # 3. Bottom shallow trapezoidal locking ridge at bottom_screw_y (Y=-84.0)
+    # 4. Flat back face at Z=t resting flush against wall
     pts = [
         (y_top, t),
         (y_top - t, 0.0),
-        (3.5, 0.0),
-        (0.5, -ridge_depth),
-        (-0.5, -ridge_depth),
-        (-3.5, 0.0),
+        (top_screw_y + 3.5, 0.0),
+        (top_screw_y + 0.5, -ridge_depth),
+        (top_screw_y - 0.5, -ridge_depth),
+        (top_screw_y - 3.5, 0.0),
+        (bottom_screw_y + 3.5, 0.0),
+        (bottom_screw_y + 0.5, -ridge_depth),
+        (bottom_screw_y - 0.5, -ridge_depth),
+        (bottom_screw_y - 3.5, 0.0),
         (y_bot, 0.0),
         (y_bot, t)
     ]
@@ -155,27 +162,41 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
         .translate((-width / 2.0, 0, 0))
     )
     
-    # Clearance screw hole along Z at (X=0, Y=0)
-    screw_hole = (
-        cq.Workplane("XY")
-        .workplane(offset=-ridge_depth - 5.0)
-        .center(0, 0)
-        .circle(screw_d / 2.0)
-        .extrude(backplate_thickness + ridge_depth + 10.0)
-    )
-    body = body.cut(screw_hole)
+    # Clearance screw holes along Z at X=0
+    for sy in [top_screw_y, bottom_screw_y]:
+        screw_hole = (
+            cq.Workplane("XY")
+            .workplane(offset=-ridge_depth - 5.0)
+            .center(0, sy)
+            .circle(screw_d / 2.0)
+            .extrude(backplate_thickness + ridge_depth + 10.0)
+        )
+        body = body.cut(screw_hole)
     
-    # Captive nut slot sliding from top face (Y=y_top) down to screw position (Y=0)
-    slot_depth = y_top
-    slot_solid = create_nut_slot(screw_m, depth=slot_depth, push_hole=True)
-    slot_solid = cq.Workplane(slot_solid).translate((0, 0, slot_z_center)).val()
-    body = body.cut(cq.Workplane(slot_solid))
+    # Shortest-path side-entry captive nut slots:
+    # Nut slides in from right (+X) side across width/2 (14mm).
+    # Pusher hole exits through left (-X) side.
+    side_depth = width / 2.0  # 14.0 mm
+    for sy in [top_screw_y, bottom_screw_y]:
+        slot_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
+        # Rotate -90 degrees around Z so +Y (entry) maps to +X (right edge), and -Y (pusher) maps to -X (left edge)
+        slot_solid = cq.Workplane(slot_solid).rotate((0, 0, 0), (0, 0, 1), -90).val()
+        slot_solid = slot_solid.translate(cq.Vector(0, sy, slot_z_center))
+        body = body.cut(cq.Workplane(slot_solid))
+    
+    # HSW Plugs position:
+    # Plugs start 5.0 mm below topmost ridge.
+    # Top ridge lower edge is at top_screw_y - 3.5 = 6.5 mm.
+    # Plug top boundary starts at 6.5 - 5.0 = 1.5 mm.
+    plug_top_bound_y = (top_screw_y - 3.5) - 5.0  # 1.5 mm
+    top_plug_y = plug_top_bound_y - plug_radius_y
+    bot_plug_y = top_plug_y - pitch
     
     # Load and position HSW male connector plugs on the back face (Z=t)
     plug = load_hsw_plug(step_path=step_path, orientation=orientation)
     
-    top_plug = plug.translate((0, half_pitch, t))
-    bot_plug = plug.translate((0, -half_pitch, t))
+    top_plug = plug.translate((0, top_plug_y, t))
+    bot_plug = plug.translate((0, bot_plug_y, t))
     
     adapter = body.union(cq.Workplane(top_plug)).union(cq.Workplane(bot_plug))
     return adapter
@@ -188,7 +209,7 @@ def main():
         "--step-path",
         type=str,
         default=None,
-        help="Path to official HSW insert-empty.step (optional, auto-detected by default)"
+        help="Path to official HSW insert-empty.step (optional, defaults to assets/hsw/insert-empty.step)"
     )
     parser.add_argument(
         "--hsw-orientation",
@@ -212,7 +233,7 @@ def main():
         "--height",
         type=float,
         default=None,
-        help="Optional total height in mm"
+        help="Total adapter height in mm (default: matches standard backplate height 114.0 mm)"
     )
     parser.add_argument(
         "--export",

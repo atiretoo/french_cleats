@@ -29,10 +29,11 @@ def create_magnetic_holder(
     mag_depth=2.0,
     style="flat",
     shelf_depth=70.0,
-    shelf_thickness=8.0,
+    shelf_thickness=None,
     shelf_height=30.0,
     shelf_side="right",
     mag_margin=15.0,
+    mag_spacing=None,
     mag_y=None,
 ):
     """
@@ -82,11 +83,14 @@ def create_magnetic_holder(
             body = body.cut(push_holes)
             
     elif style == "perpendicular":
+        if shelf_thickness is None:
+            shelf_thickness = max(4.0, 2.0 * mag_depth)
+            
         back_z = -BACKPLATE_THICKNESS
         front_z = -BACKPLATE_THICKNESS - shelf_depth
         tip_bottom_y = top_y - shelf_height
         
-        # Position the vertical shelf plate
+        # Position the vertical shelf plate (default right side)
         if shelf_side == "right":
             shelf_origin_x = width / 2.0 - shelf_thickness
             extrude_dir = 1
@@ -112,19 +116,23 @@ def create_magnetic_holder(
         )
         body = body.union(shelf)
         
-        # Magnets embedded on the side face of the projection
-        mag_y_val = mag_y if mag_y is not None else (top_y - shelf_height / 2.0)
+        # Center the column of magnets on the projection along the Z-axis
+        z_center = (back_z + front_z) / 2.0
+        
+        # Center magnets along the Y-axis according to how deep (top to bottom) the brace is at z_center
+        # At z_center (halfway along depth), the brace bottom edge is at:
+        y_brace_at_z = (bottom_y + tip_bottom_y) / 2.0
+        y_mid = (top_y + y_brace_at_z) / 2.0
+        
+        spacing = mag_spacing if mag_spacing is not None else max(mag_dia + 6.0, 18.0)
         
         mag_pts = []
         if mag_count == 1:
-            mag_pts.append((mag_y_val, (back_z + front_z) / 2.0))
+            mag_pts.append((y_mid, z_center))
         elif mag_count > 1:
-            eff_margin = min(mag_margin, shelf_depth / (mag_count + 1))
-            start_z = back_z - eff_margin
-            end_z = front_z + eff_margin
-            step = (end_z - start_z) / (mag_count - 1)
             for i in range(mag_count):
-                mag_pts.append((mag_y_val, start_z + i * step))
+                y_pos = y_mid - ((mag_count - 1) / 2.0 - i) * spacing
+                mag_pts.append((y_pos, z_center))
                 
         if mag_count > 0:
             extrude_depth = extrude_dir * mag_depth
@@ -189,11 +197,12 @@ if __name__ == "__main__":
         help="Holder style: flat against wall or perpendicular projection"
     )
     parser.add_argument("--shelf-depth", type=float, default=70.0, help="Depth of perpendicular shelf projection in mm (default 70.0)")
-    parser.add_argument("--shelf-thickness", type=float, default=8.0, help="Thickness of perpendicular shelf plate in mm (default 8.0)")
+    parser.add_argument("--shelf-thickness", type=float, default=None, help="Thickness of perpendicular shelf plate in mm (default 2x magnet depth)")
     parser.add_argument("--shelf-height", type=float, default=30.0, help="Vertical height of shelf front face before triangular brace in mm (default 30.0)")
     parser.add_argument("--shelf-side", type=str, default="right", choices=["right", "left"], help="Side of tool holder for shelf projection (default right)")
-    parser.add_argument("--mag-margin", type=float, default=15.0, help="Margin from shelf ends for magnets along depth in mm (default 15.0)")
-    parser.add_argument("--mag-y", type=float, default=None, help="Y-coordinate for magnets in perpendicular style (default centered on shelf height)")
+    parser.add_argument("--mag-spacing", type=float, default=None, help="Vertical spacing between magnets in column in mm (default: mag_dia + 6.0)")
+    parser.add_argument("--mag-y", type=float, default=None, help="Optional Y-coordinate override for magnets in perpendicular style")
+    parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format (default: both)")
     parser.add_argument("--print-orientation", type=str, default=None, choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down", "none"], help="Print orientation for STL export")
     args = parser.parse_args()
 
@@ -208,7 +217,7 @@ if __name__ == "__main__":
         shelf_thickness=args.shelf_thickness,
         shelf_height=args.shelf_height,
         shelf_side=args.shelf_side,
-        mag_margin=args.mag_margin,
+        mag_spacing=args.mag_spacing,
         mag_y=args.mag_y,
     )
     
@@ -220,4 +229,4 @@ if __name__ == "__main__":
         default_orient = "left_down"
         
     orient = args.print_orientation if args.print_orientation is not None else default_orient
-    export_model(holder, filename, category="tool_holders", print_orientation=orient)
+    export_model(holder, filename, category="tool_holders", print_orientation=orient, export=args.export)

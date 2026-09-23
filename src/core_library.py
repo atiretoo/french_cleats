@@ -21,8 +21,36 @@ import math
 UNIT_WIDTH = 28.0
 BACKPLATE_THICKNESS = 11.0
 
-def load_mc_block(filename):
-    path = os.path.join(os.path.dirname(__file__), '../../opengrid/Multiconnect Modeling Files', filename)
+# Repository Asset Paths
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ASSETS_DIR = os.path.join(REPO_ROOT, "assets")
+MULTICONNECT_ASSETS_DIR = os.path.join(ASSETS_DIR, "multiconnect")
+HSW_ASSETS_DIR = os.path.join(ASSETS_DIR, "hsw")
+
+# Standard Wall & Ridge Spacing Constants
+DEFAULT_RAIL_HEIGHT = 73.0
+RAIL_PLAY = 1.0
+BACKPLATE_TOP_Y = 20.0
+TOP_RIDGE_Y = 10.0          # 10.0mm below top edge (Y = 20.0)
+TOP_GROOVE_Y = 10.0
+RIDGE_DEPTH = 3.0
+RIDGE_CLEARANCE = 0.5
+
+def get_bottom_groove_y(rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
+    return -rail_height - play - 10.0
+
+def get_bottom_edge_y(rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
+    return get_bottom_groove_y(rail_height, play) - 10.0
+
+def get_backplate_height(rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
+    return BACKPLATE_TOP_Y - get_bottom_edge_y(rail_height, play)
+
+def load_mc_block(filename, base_dir=None):
+    if base_dir is None:
+        base_dir = MULTICONNECT_ASSETS_DIR
+    path = os.path.join(base_dir, filename)
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Multiconnect asset not found: {path}")
     model = cq.importers.importStep(path).val()
     bb = model.BoundingBox()
     dx = - (bb.xmin + bb.xmax) / 2
@@ -32,33 +60,33 @@ def load_mc_block(filename):
     dz = - bb.zmax
     return model.translate((dx, dy, dz))
 
-def create_baseplate(units=2, rail_height=73.0, backplate_thickness=11.0, mount_type="groove", num_rows=2):
-    unit_width = 28.0 
+def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickness=11.0, mount_type="groove", num_rows=2):
+    unit_width = UNIT_WIDTH
     width = units * unit_width
     
     if mount_type == "groove":
         t = 0.1
-        ridge_depth = 4.0
-        ridge_clearance = 0.5 
-        play = 1.0
+        ridge_depth = RIDGE_DEPTH
+        ridge_clearance = RIDGE_CLEARANCE
+        play = RAIL_PLAY
         
-        bottom_groove_y = -rail_height - play - 10.0
-        bottom_y = bottom_groove_y - 10.0
+        bottom_groove_y = get_bottom_groove_y(rail_height, play)
+        bottom_y = get_bottom_edge_y(rail_height, play)
         
         pts = [
-            (20, 0),
-            (14+t, 0),
-            (12+t, -ridge_depth - ridge_clearance),
-            (8-t,  -ridge_depth - ridge_clearance),
-            (6-t,  0),
-            (bottom_groove_y + 4 + t, 0),
-            (bottom_groove_y + 2 + t, -ridge_depth - ridge_clearance),
-            (bottom_groove_y - 2 - t, -ridge_depth - ridge_clearance),
-            (bottom_groove_y - 4 - t, 0),
+            (BACKPLATE_TOP_Y, 0),
+            (TOP_GROOVE_Y + 3.5 + t, 0),
+            (TOP_GROOVE_Y + 0.5 + t, -ridge_depth - ridge_clearance),
+            (TOP_GROOVE_Y - 0.5 - t, -ridge_depth - ridge_clearance),
+            (TOP_GROOVE_Y - 3.5 - t, 0),
+            (bottom_groove_y + 3.5 + t, 0),
+            (bottom_groove_y + 0.5 + t, -ridge_depth - ridge_clearance),
+            (bottom_groove_y - 0.5 - t, -ridge_depth - ridge_clearance),
+            (bottom_groove_y - 3.5 - t, 0),
             (bottom_y, 0),
             (bottom_y, -backplate_thickness),
-            (20, -backplate_thickness),
-            (20, 0)
+            (BACKPLATE_TOP_Y, -backplate_thickness),
+            (BACKPLATE_TOP_Y, 0)
         ]
         
         baseplate = (
@@ -71,9 +99,9 @@ def create_baseplate(units=2, rail_height=73.0, backplate_thickness=11.0, mount_
         screw_pts = []
         for i in range(units):
             x = -width/2 + unit_width/2 + i*unit_width
-            screw_pts.extend([(x, 10), (x, bottom_groove_y)])
+            screw_pts.extend([(x, TOP_GROOVE_Y), (x, bottom_groove_y)])
             
-        return baseplate, 20.0, bottom_y, bottom_groove_y, screw_pts, []
+        return baseplate, BACKPLATE_TOP_Y, bottom_y, bottom_groove_y, screw_pts, []
         
     elif mount_type == "multiconnect":
         top_y = 28.0

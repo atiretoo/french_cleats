@@ -19,10 +19,14 @@ import argparse
 import os
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, export_model, create_nut_slot
+from core_library import UNIT_WIDTH, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR
 
-def load_mc_block(filename, opengrid_path):
+def load_mc_block(filename, opengrid_path=None):
+    if opengrid_path is None:
+        opengrid_path = MULTICONNECT_ASSETS_DIR
     path = os.path.join(opengrid_path, filename)
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Multiconnect asset not found at: {path}")
     model = cq.importers.importStep(path).val()
     bb = model.BoundingBox()
     dx = - (bb.xmin + bb.xmax) / 2
@@ -34,7 +38,7 @@ def load_mc_block(filename, opengrid_path):
 
 def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     if opengrid_path is None:
-        opengrid_path = os.path.expanduser("~/Desktop/3dp/opengrid/Multiconnect modeling files")
+        opengrid_path = MULTICONNECT_ASSETS_DIR
         
     width = units * UNIT_WIDTH
     
@@ -120,13 +124,13 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
         adapter = adapter.union(bot_filler)
         
     # Ridges on the Z=0 face pointing into -Z
-    ridge_depth = 4.0
+    ridge_depth = 3.0
     
     top_ridge_pts = [
-        (top_screw_y + 4, 0),
-        (top_screw_y + 2, -ridge_depth),
-        (top_screw_y - 2, -ridge_depth),
-        (top_screw_y - 4, 0)
+        (top_screw_y + 3.5, 0),
+        (top_screw_y + 0.5, -ridge_depth),
+        (top_screw_y - 0.5, -ridge_depth),
+        (top_screw_y - 3.5, 0)
     ]
     
     top_ridge = (
@@ -138,10 +142,10 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     adapter = adapter.union(top_ridge)
     
     bot_ridge_pts = [
-        (bottom_screw_y + 4, 0),
-        (bottom_screw_y + 2, -ridge_depth),
-        (bottom_screw_y - 2, -ridge_depth),
-        (bottom_screw_y - 4, 0)
+        (bottom_screw_y + 3.5, 0),
+        (bottom_screw_y + 0.5, -ridge_depth),
+        (bottom_screw_y - 0.5, -ridge_depth),
+        (bottom_screw_y - 3.5, 0)
     ]
     
     bot_ridge = (
@@ -168,22 +172,37 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
         hole_top = cq.Workplane("XY").workplane(offset=-10).center(x, top_screw_y).circle(screw_d/2).extrude(50)
         adapter = adapter.cut(hole_top)
         
-        # Top nut slot
-        depth_top = top_y - top_screw_y
-        slot_top_solid = create_nut_slot(screw_m, depth=depth_top, push_hole=True, push_hole_angle=-30.0)
-        slot_top_solid = slot_top_solid.translate(cq.Vector(x, top_screw_y, slot_z_center))
-        adapter = adapter.cut(cq.Workplane(slot_top_solid))
-        
         # Bottom screw hole
         hole_bot = cq.Workplane("XY").workplane(offset=-10).center(x, bottom_screw_y).circle(screw_d/2).extrude(50)
         adapter = adapter.cut(hole_bot)
         
-        # Bottom nut slot
-        depth_bot = bottom_screw_y - bottom_y
-        slot_bot_solid = create_nut_slot(screw_m, depth=depth_bot, push_hole=True, push_hole_angle=-30.0)
-        slot_bot_solid = cq.Workplane(slot_bot_solid).rotate(cq.Vector(0,0,0), cq.Vector(0,0,1), 180).val()
-        slot_bot_solid = slot_bot_solid.translate(cq.Vector(x, bottom_screw_y, slot_z_center))
-        adapter = adapter.cut(cq.Workplane(slot_bot_solid))
+        if units == 1:
+            # Shortest path: slide in from right (+X) side, push hole exits through left (-X) side
+            side_depth = width / 2.0  # 14mm
+            # Top nut slot (side entry)
+            slot_top_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
+            slot_top_solid = cq.Workplane(slot_top_solid).rotate((0,0,0), (0,0,1), -90).val()
+            slot_top_solid = slot_top_solid.translate(cq.Vector(x, top_screw_y, slot_z_center))
+            adapter = adapter.cut(cq.Workplane(slot_top_solid))
+            
+            # Bottom nut slot (side entry)
+            slot_bot_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
+            slot_bot_solid = cq.Workplane(slot_bot_solid).rotate((0,0,0), (0,0,1), -90).val()
+            slot_bot_solid = slot_bot_solid.translate(cq.Vector(x, bottom_screw_y, slot_z_center))
+            adapter = adapter.cut(cq.Workplane(slot_bot_solid))
+        else:
+            # Top nut slot (vertical from top)
+            depth_top = top_y - top_screw_y
+            slot_top_solid = create_nut_slot(screw_m, depth=depth_top, push_hole=True, push_hole_angle=-30.0)
+            slot_top_solid = slot_top_solid.translate(cq.Vector(x, top_screw_y, slot_z_center))
+            adapter = adapter.cut(cq.Workplane(slot_top_solid))
+            
+            # Bottom nut slot (vertical from bottom)
+            depth_bot = bottom_screw_y - bottom_y
+            slot_bot_solid = create_nut_slot(screw_m, depth=depth_bot, push_hole=True, push_hole_angle=-30.0)
+            slot_bot_solid = cq.Workplane(slot_bot_solid).rotate(cq.Vector(0,0,0), cq.Vector(0,0,1), 180).val()
+            slot_bot_solid = slot_bot_solid.translate(cq.Vector(x, bottom_screw_y, slot_z_center))
+            adapter = adapter.cut(cq.Workplane(slot_bot_solid))
 
     return adapter
 
@@ -192,7 +211,8 @@ def main():
     parser.add_argument("--units", type=int, default=2, help="Number of units wide")
     parser.add_argument("--rail-height", type=float, default=73.0, help="French cleat height in mm")
     parser.add_argument("--screw", type=str, default="M3", help="Screw size")
-    parser.add_argument("--opengrid-path", type=str, default=None, help="Path to Multiconnect Modeling Files")
+    parser.add_argument("--opengrid-path", type=str, default=None, help="Path to Multiconnect Modeling Files (optional)")
+    parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format (default: both)")
     
     args = parser.parse_args()
     
@@ -200,7 +220,7 @@ def main():
     filename = f"opengrid_adapter_{args.units}u_H{args.rail_height}_{args.screw}.stl"
     
     # Save to exports/stl directory relative to the project root
-    export_model(adapter, filename, print_orientation='top_down', category='multiconnect')
+    export_model(adapter, filename, print_orientation='top_down', category='multiconnect', export=args.export)
 
 if __name__ == "__main__":
     main()
