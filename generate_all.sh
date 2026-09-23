@@ -51,9 +51,6 @@ python src/gridfinity/generate_shelf.py --width-units 3 --depth-units 3
 python src/gridfinity/generate_shelf.py --width-units 6 --depth-units 3
 python src/gridfinity/generate_shelf.py --width-units 6 --depth-units 6
 
-echo "Generating Fin Test..."
-python src/strength_testing/generate_fin_test.py
-
 echo "Zipping STEP files for Release..."
 cd exports && zip -r step_files.zip step/ && cd ..
 

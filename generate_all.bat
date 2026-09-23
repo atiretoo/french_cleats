@@ -51,8 +51,6 @@ python src/gridfinity/generate_shelf.py --width-units 3 --depth-units 3
 python src/gridfinity/generate_shelf.py --width-units 6 --depth-units 3
 python src/gridfinity/generate_shelf.py --width-units 6 --depth-units 6
 
-echo Generating Fin Test...
-
 echo Zipping STEP files for Release...
 if exist exports\step_files.zip del exports\step_files.zip
 powershell -Command "Compress-Archive -Path exports\step\* -DestinationPath exports\step_files.zip -Force"
