@@ -23,11 +23,10 @@ from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, expo
 
 import math
 
-def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=None, slot_width=26.0, slot_widths=None, slot_depth=4.0, slot_depths=None, rail_height=73.0, shelf_pos="mid"):
+def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=None, slot_width=26.0, slot_widths=None, slot_depth=4.0, slot_depths=None, rail_height=73.0, shelf_pos="mid", shelf_depth=38.0, chamfer_depth=2.0, chamfer_angle=60.0):
     mech_width = num_tools * spacing
     units = max(1, math.ceil(mech_width / 28.0))
     width = units * UNIT_WIDTH
-    shelf_depth = 28.0 # 1U deep
     
     if not hole_sizes: hole_sizes = [hole_size] * num_tools
     if not slot_widths: slot_widths = [slot_width] * num_tools
@@ -102,6 +101,22 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
             .extrude(40.0)
         )
         tool_holder = tool_holder.cut(slot)
+        
+        if chamfer_depth > 0:
+            extra = 1.0
+            r_bot = hole_sizes[i] / 2.0
+            half_angle = chamfer_angle / 2.0
+            r_top = r_bot + chamfer_depth * math.tan(math.radians(half_angle))
+            r_extra = r_top + extra * math.tan(math.radians(half_angle))
+            
+            chamfer_cone = cq.Solid.makeCone(
+                radius1=r_bot,
+                radius2=r_extra,
+                height=chamfer_depth + extra,
+                pnt=(x, shelf_top - chamfer_depth, z_center),
+                dir=(0, 1, 0)
+            )
+            tool_holder = tool_holder.cut(chamfer_cone)
     
     # Cut screws
     if screw_pts:
@@ -144,6 +159,9 @@ def main():
     parser.add_argument("--slot-depths", type=parse_list, default=None, help="Comma separated slot depths in mm")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
     parser.add_argument("--shelf-pos", choices=["mid", "top"], default="mid", help="Position of the shelf on the backplate")
+    parser.add_argument("--shelf-depth", type=float, default=38.0, help="Depth of the shelf in mm")
+    parser.add_argument("--chamfer-depth", type=float, default=2.0, help="Depth of the hole chamfer in mm")
+    parser.add_argument("--chamfer-angle", type=float, default=60.0, help="Angle of the hole chamfer in degrees")
     args = parser.parse_args()
     
     holder = create_chisel_holder(
@@ -156,7 +174,10 @@ def main():
         slot_depth=args.slot_depth,
         slot_depths=args.slot_depths,
         rail_height=args.rail_height,
-        shelf_pos=args.shelf_pos
+        shelf_pos=args.shelf_pos,
+        shelf_depth=args.shelf_depth,
+        chamfer_depth=args.chamfer_depth,
+        chamfer_angle=args.chamfer_angle
     )
     
     sd_str = "_VAR" if args.slot_depths else ""
