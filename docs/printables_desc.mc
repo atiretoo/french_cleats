@@ -13,9 +13,9 @@ Most French cleat models available online suffer from two key problems:
 2. Friction-fit slide connections frequently bind or jam when printed across different machines and tolerances.
 
 This system solves both issues by utilizing a **two-part modular design**:
-* **Cleat Bases (Top & Bottom):** Print on their sides with continuous filament strands running along the load-bearing $45^\circ$ bevel, maximizing shear strength.
+* **Cleat Bases (Top & Bottom):** Print on their sides with continuous filament strands running along the load-bearing 45° bevel, maximizing shear strength.
 * **Tool Holders & Adaptors:** Fasten securely to the cleats using standard M3 machine screws into heat-set inserts or standard M3 hex nuts.
-* **Trapezoidal Locking Grooves:** Self-aligning $45^\circ$ angled grooves lock the backplate firmly against the cleats, eliminating wobble, rotation, and sagging even under heavy loads.
+* **Trapezoidal Locking Grooves:** Self-aligning 45° angled grooves lock the backplate firmly against the cleats, eliminating wobble, rotation, and sagging even under heavy loads.
 * **28 mm Grid Standard:** Built upon the 28 mm pitch shared with **OpenGrid** (by David D) and seamlessly compatible with **Gridfinity** (by Zack Freedman).
 
 ---
@@ -23,7 +23,7 @@ This system solves both issues by utilizing a **two-part modular design**:
 ## IMPORTANT: French Cleat Rail Height Requirement
 
 > ### Critical Sizing Note
-> The pre-rendered STL and STEP files provided in this release are dimensioned specifically for **French cleat wall strips that are 73 mm (approx. 2-7/8") high**, with a standard $45^\circ$ top bevel and nominal 19 mm (3/4") thickness.
+> The pre-rendered STL and STEP files provided in this release are dimensioned specifically for **French cleat wall strips that are 73 mm (approx. 2-7/8") high**, with a standard 45° top bevel and nominal 19 mm (3/4") thickness.
 >
 > If your workshop French cleat rails are **any height other than 73 mm**:
 > 1. **Best & Fastest Option — Custom Generation via GitHub:**  
@@ -36,7 +36,7 @@ This system solves both issues by utilizing a **two-part modular design**:
 ## Included Components (Release v1.2.1)
 
 ### 1. Modular Cleat Mounts
-* **Top Cleats (1U, 2U, 3U, 4U):** Grips the wall rail's $45^\circ$ top bevel. Incorporates the self-aligning trapezoidal ridge and rear slots for standard M3 hex nuts.
+* **Top Cleats (1U, 2U, 3U, 4U):** Grips the wall rail's 45° top bevel. Incorporates the self-aligning trapezoidal ridge and rear slots for standard M3 hex nuts.
 * **Bottom Cleats (1U, 2U, 3U, 4U):** Rests against the bottom edge of the rail to keep tools perfectly plumb and eliminate peel-away torque.
 
 ### 2. Tool Holders
@@ -51,7 +51,7 @@ This system solves both issues by utilizing a **two-part modular design**:
   * 2x 10.2 mm dia x 2.0 mm depth
   * 3x 10.2 mm dia x 2.0 mm depth
   * 2x 19.2 mm dia x 2.0 mm depth
-* **Hook Holder (1x4U, 10 mm Dia, 5° Slope):** 112 mm cylindrical hook with a $5^\circ$ upward retention angle and filleted tip for extension cords, tape rolls, air hoses, and hanging tools.
+* **Hook Holder (1x4U, 10 mm Dia, 5° Slope):** 112 mm cylindrical hook with a 5° upward retention angle and filleted tip for extension cords, tape rolls, air hoses, and hanging tools.
 * **V-Holder (2x4U):** Dual angled V-jaws for pliers, wire strippers, aviation snips, hand clamps, and irregularly shaped tools.
 
 ### 3. Gridfinity & System Adapters
@@ -70,7 +70,7 @@ All exported STL models have been audited and pre-oriented for optimal slicing:
 * **Print Orientations:**
   * **Braced Holders (Slot, Screwdriver, Chisel, V-Holder):** Pre-rotated to print flat on their side with the support gusset resting on the build plate. This ensures continuous, uninterrupted extrusion across the shelf cantilever with **zero supports required**.
   * **Hook Holder & Gridfinity Shelves:** Pre-rotated to print flat on their backplates.
-  * **Cleats:** Pre-rotated to print on their side faces, providing maximum layer strength across the $45^\circ$ cleat bevel.
+  * **Cleats:** Pre-rotated to print on their side faces, providing maximum layer strength across the 45° cleat bevel.
 * **Material:** **PETG**, **ABS**, or **ASA** is strongly recommended for workshop longevity, creep resistance under load, and impact toughness. **PLA** is suitable for lighter hand tool organizers.
 * **Perimeters / Walls:** 4–5 walls (approx. 1.6–2.0 mm wall thickness).
 * **Top & Bottom Layers:** 4–5 layers.
