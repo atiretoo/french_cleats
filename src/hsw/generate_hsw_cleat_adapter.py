@@ -36,9 +36,17 @@ def load_hsw_plug(step_path=None, orientation="standard"):
         Retains default orientation so flats face up/down (HSW rotated wall pitch 23.6 / 47.2 mm).
     """
     if step_path is None:
-        step_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "insert-empty.step")
-        
-    if not os.path.exists(step_path):
+        candidate_paths = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "insert-empty.step"),
+            os.path.expanduser("~/OneDrive/Documents/3dp/honeycomb-storage-wall/Base STEP files/insert-empty.step"),
+            os.path.expanduser("~/Desktop/3dp/honeycomb-storage-wall/Base STEP files/insert-empty.step"),
+        ]
+        for p in candidate_paths:
+            if os.path.exists(p):
+                step_path = p
+                break
+                
+    if step_path is None or not os.path.exists(step_path):
         raise FileNotFoundError(f"HSW insert STEP file not found at: {step_path}")
         
     model = cq.importers.importStep(step_path).val()
@@ -63,7 +71,7 @@ def load_hsw_plug(step_path=None, orientation="standard"):
         
     return plug
 
-def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m="M3", height=None):
+def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m="M3", height=None, step_path=None):
     """
     Builds a 1U-wide Honeycomb Storage Wall to French Cleat adapter.
     
@@ -164,8 +172,7 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
     body = body.cut(cq.Workplane(slot_solid))
     
     # Load and position HSW male connector plugs on the back face (Z=t)
-    step_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "insert-empty.step")
-    plug = load_hsw_plug(step_path, orientation=orientation)
+    plug = load_hsw_plug(step_path=step_path, orientation=orientation)
     
     top_plug = plug.translate((0, half_pitch, t))
     bot_plug = plug.translate((0, -half_pitch, t))
@@ -176,6 +183,12 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
 def main():
     parser = argparse.ArgumentParser(
         description="Generate Honeycomb Storage Wall (HSW) to French Cleat Adapter"
+    )
+    parser.add_argument(
+        "--step-path",
+        type=str,
+        default=None,
+        help="Path to official HSW insert-empty.step (optional, auto-detected by default)"
     )
     parser.add_argument(
         "--hsw-orientation",
@@ -220,7 +233,8 @@ def main():
         orientation=args.hsw_orientation,
         rotated_pitch=args.rotated_pitch,
         screw_m=args.screw,
-        height=args.height
+        height=args.height,
+        step_path=args.step_path
     )
     
     if args.hsw_orientation == "standard":
