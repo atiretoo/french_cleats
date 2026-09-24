@@ -1,7 +1,9 @@
-# Open Source French Cleat System
-**Version 1.2.0**
+# Modular French Cleat (MFC) System
+**Version 1.2.1**
 
 A fully parametric, modular 3D printed French Cleat organization system.
+
+Find ready-to-print models on [Printables: Modular French Cleat (MFC) System](https://www.printables.com/model/1844209-modular-french-cleat-mfc-system-parametric-opengri).
 
 This project was born out of necessity for my own workshop. I needed heavy-duty tool holders for heavy tools and jigs. I initially experimented with Hexagon Storage Wall (HSW) and OpenGrid, but ultimately returned to the strength of French cleats. However, I found that every French cleat tool holder on Printables used wildly different approaches for sizing tools, with inconsistent cleat thicknesses and heights. This repository is an attempt to standardize French cleat tool holders into a unified, highly tolerant, and predictable system.
 
