@@ -33,8 +33,25 @@ RAIL_PLAY = 1.0
 BACKPLATE_TOP_Y = 20.0
 TOP_RIDGE_Y = 10.0          # 10.0mm below top edge (Y = 20.0)
 TOP_GROOVE_Y = 10.0
-RIDGE_DEPTH = 3.0
-RIDGE_CLEARANCE = 0.5
+
+# Shallow Groove & Ridge Standard Constants (v2.0)
+# Groove geometry (cut into backplate):
+GROOVE_DEPTH = 3.0                     # Depth of groove cut into backplate (mm)
+GROOVE_SURFACE_HALF_WIDTH = 3.5         # Half-width of groove at Z=0 (7.0mm surface opening)
+GROOVE_BOTTOM_HALF_WIDTH = 0.5          # Half-width of flat bottom (1.0mm flat bottom at 45 deg)
+
+# Ridge clearance standards:
+RIDGE_SIDE_CLEARANCE = 0.45             # Sidewall clearance along Y on each 45-degree slope (mm)
+RIDGE_DEPTH_CLEARANCE = 0.70            # Tip clearance along Z between ridge crest and groove bottom (mm)
+
+# Derived Ridge geometry (raised projection on cleat):
+RIDGE_HEIGHT = GROOVE_DEPTH - RIDGE_DEPTH_CLEARANCE                   # 2.30mm
+RIDGE_SURFACE_HALF_WIDTH = GROOVE_SURFACE_HALF_WIDTH - RIDGE_SIDE_CLEARANCE  # 3.05mm (6.10mm base width)
+RIDGE_PEAK_HALF_WIDTH = RIDGE_SURFACE_HALF_WIDTH - RIDGE_HEIGHT       # 0.75mm (1.50mm flat crest at 45 deg)
+
+# Backward compatibility aliases
+RIDGE_DEPTH = RIDGE_HEIGHT
+RIDGE_CLEARANCE = RIDGE_DEPTH_CLEARANCE
 
 def get_bottom_groove_y(rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
     return -rail_height - play - 10.0
@@ -75,14 +92,14 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
         
         pts = [
             (BACKPLATE_TOP_Y - 2.0, 0),
-            (TOP_GROOVE_Y + 3.5 + t, 0),
-            (TOP_GROOVE_Y + 0.5 + t, -ridge_depth - ridge_clearance),
-            (TOP_GROOVE_Y - 0.5 - t, -ridge_depth - ridge_clearance),
-            (TOP_GROOVE_Y - 3.5 - t, 0),
-            (bottom_groove_y + 3.5 + t, 0),
-            (bottom_groove_y + 0.5 + t, -ridge_depth - ridge_clearance),
-            (bottom_groove_y - 0.5 - t, -ridge_depth - ridge_clearance),
-            (bottom_groove_y - 3.5 - t, 0),
+            (TOP_GROOVE_Y + GROOVE_SURFACE_HALF_WIDTH, 0),
+            (TOP_GROOVE_Y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+            (TOP_GROOVE_Y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+            (TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH, 0),
+            (bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH, 0),
+            (bottom_groove_y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+            (bottom_groove_y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+            (bottom_groove_y - GROOVE_SURFACE_HALF_WIDTH, 0),
             (bottom_y + 2.0, 0),
             (bottom_y, -2.0),
             (bottom_y, -backplate_thickness),

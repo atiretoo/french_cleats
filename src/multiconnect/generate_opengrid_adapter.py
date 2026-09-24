@@ -18,8 +18,10 @@ import cadquery as cq
 import argparse
 import os
 import sys, os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR
+from core_library import (
+    UNIT_WIDTH, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR,
+    RIDGE_HEIGHT, RIDGE_SURFACE_HALF_WIDTH, RIDGE_PEAK_HALF_WIDTH
+)
 
 def load_mc_block(filename, opengrid_path=None):
     if opengrid_path is None:
@@ -124,13 +126,11 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
         adapter = adapter.union(bot_filler)
         
     # Ridges on the Z=0 face pointing into -Z
-    ridge_depth = 3.0
-    
     top_ridge_pts = [
-        (top_screw_y + 3.5, 0),
-        (top_screw_y + 0.5, -ridge_depth),
-        (top_screw_y - 0.5, -ridge_depth),
-        (top_screw_y - 3.5, 0)
+        (top_screw_y + RIDGE_SURFACE_HALF_WIDTH, 0),
+        (top_screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
+        (top_screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
+        (top_screw_y - RIDGE_SURFACE_HALF_WIDTH, 0)
     ]
     
     top_ridge = (
@@ -142,10 +142,10 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     adapter = adapter.union(top_ridge)
     
     bot_ridge_pts = [
-        (bottom_screw_y + 3.5, 0),
-        (bottom_screw_y + 0.5, -ridge_depth),
-        (bottom_screw_y - 0.5, -ridge_depth),
-        (bottom_screw_y - 3.5, 0)
+        (bottom_screw_y + RIDGE_SURFACE_HALF_WIDTH, 0),
+        (bottom_screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
+        (bottom_screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
+        (bottom_screw_y - RIDGE_SURFACE_HALF_WIDTH, 0)
     ]
     
     bot_ridge = (
