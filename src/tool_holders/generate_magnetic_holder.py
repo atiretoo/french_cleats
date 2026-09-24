@@ -90,15 +90,17 @@ def create_magnetic_holder(
         front_z = -BACKPLATE_THICKNESS - shelf_depth
         tip_bottom_y = top_y - shelf_height
         
-        # Position the vertical shelf plate (default right side)
+        # Position the vertical shelf plate (default right side matching other 1u holders at -X)
         if shelf_side == "right":
-            shelf_origin_x = width / 2.0 - shelf_thickness
-            extrude_dir = 1
-            face_x = shelf_origin_x  # Inner side face
-        else:
             shelf_origin_x = -width / 2.0
-            extrude_dir = -1
+            shelf_thickness_extrude = shelf_thickness
+            cut_dir = -1
             face_x = -width / 2.0 + shelf_thickness  # Inner side face
+        else:
+            shelf_origin_x = width / 2.0 - shelf_thickness
+            shelf_thickness_extrude = shelf_thickness
+            cut_dir = 1
+            face_x = width / 2.0 - shelf_thickness  # Inner side face
             
         # Draw the vertical projection + triangular brace on the YZ plane
         # In cq.Workplane("YZ"): Local X = Global Y, Local Y = Global Z, Normal = +Global X.
@@ -112,7 +114,7 @@ def create_magnetic_holder(
         shelf = (
             cq.Workplane("YZ", origin=(shelf_origin_x, 0, 0))
             .polyline(shelf_pts).close()
-            .extrude(shelf_thickness)
+            .extrude(shelf_thickness_extrude)
         )
         body = body.union(shelf)
         
@@ -135,8 +137,8 @@ def create_magnetic_holder(
                 mag_pts.append((y_pos, z_center))
                 
         if mag_count > 0:
-            extrude_depth = extrude_dir * mag_depth
-            push_extrude = extrude_dir * (shelf_thickness + 5.0)
+            extrude_depth = cut_dir * mag_depth
+            push_extrude = cut_dir * (shelf_thickness + 5.0)
             
             mags = (
                 cq.Workplane("YZ", origin=(face_x, 0, 0))
