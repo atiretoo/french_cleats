@@ -35,12 +35,21 @@ echo Generating Thin Tool Holders...
 python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --mag-count 2 --mag-dia 10.2 --mag-depth 2.0
 python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --mag-count 3 --mag-dia 10.2 --mag-depth 2.0
 python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --mag-count 2 --mag-dia 19.2 --mag-depth 2.0
+python src/tool_holders/generate_magnetic_holder.py --style perpendicular --units 1 --mag-count 2 --mag-dia 10.2 --mag-depth 2.0 --shelf-depth 70.0
+python src/tool_holders/generate_magnetic_holder.py --style perpendicular --units 1 --mag-count 3 --mag-dia 10.2 --mag-depth 2.0 --shelf-depth 70.0
 python src/tool_holders/generate_cam_holder.py --units 1 --mount groove
 echo Generating Multi-Tool Cam Holders...
 python src/tool_holders/generate_shooo_cam_holder.py --tools 1 --mount groove --tilt-fin
 python src/tool_holders/generate_shooo_cam_holder.py --tools 2 --mount groove --tilt-fin
 python src/tool_holders/generate_shooo_cam_holder.py --tools 3 --mount groove --tilt-fin
 python src/tool_holders/generate_shooo_cam_holder.py --tools 4 --mount groove --tilt-fin
+
+echo Generating Hook Holders...
+python src/tool_holders/generate_hook.py --width-units 1 --length-units 4 --diameter 10.0 --slope 5.0
+
+echo Generating HSW Cleat Adapters...
+python src/hsw/generate_hsw_cleat_adapter.py --hsw-orientation standard
+python src/hsw/generate_hsw_cleat_adapter.py --hsw-orientation rotated
 
 echo Generating Auxiliary Tools...
 python src/utilities/generate_nut_pusher.py --screw M3 --handle-length 11.0

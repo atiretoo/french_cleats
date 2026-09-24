@@ -125,6 +125,7 @@ def main():
     parser.add_argument("--slope", type=float, default=5.0, help="Upward slope angle in degrees (default: 5.0)")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail (default: 73.0)")
     parser.add_argument("--fillet-radius", type=float, default=3.0, help="Base fillet radius (default: 3.0)")
+    parser.add_argument("--print-orientation", type=str, default="back_down", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down"], help="Print orientation for STL export (default: back_down)")
     args = parser.parse_args()
     
     holder, wu, lu = create_hook(
@@ -137,7 +138,7 @@ def main():
     )
     
     filename = f"hook_{wu}x{lu}u_D{int(args.diameter)}mm_{int(args.slope)}deg_groove_H{args.rail_height}.stl"
-    export_model(holder, filename, category='tool_holders')
+    export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

@@ -102,7 +102,7 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
     
     slot_pts = []
     for i in range(width_units):
-        x = -width/2 + UNIT_WIDTH, BACKPLATE_THICKNESS/2 + i * UNIT_WIDTH
+        x = -width/2 + UNIT_WIDTH/2.0 + i * UNIT_WIDTH
         slot_pts.append((z_center, x))
         
     slots = (
@@ -138,6 +138,7 @@ def main():
     parser.add_argument("--slot-width", type=float, default=6.25, help="Width of the slot in mm")
     parser.add_argument("--back-clearance", type=float, default=10.0, help="Distance from backplate to start of slot")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
+    parser.add_argument("--print-orientation", type=str, default="right_down", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down"], help="Print orientation for STL export")
     args = parser.parse_args()
     
     holder, fw, fd = create_slot_holder(
@@ -149,7 +150,7 @@ def main():
     )
     
     filename = f"slot_holder_{fw}x{fd}u_groove_H{args.rail_height}_W{args.slot_width}.stl"
-    export_model(holder, filename, category='tool_holders')
+    export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

@@ -56,14 +56,14 @@ def create_cam_holder(units=1, mount_type="groove"):
         cq.Workplane("XY").workplane(offset=-13.5)
         .center(-gap/2.0 - wall_thickness/2.0, top_y - wall_h/2.0)
         .rect(wall_thickness, wall_h)
-        .extrude(-BACKPLATE_THICKNESS.5)
+        .extrude(-(BACKPLATE_THICKNESS + 0.5))
     )
     # Right wall
     right_wall = (
         cq.Workplane("XY").workplane(offset=-13.5)
         .center(gap/2.0 + wall_thickness/2.0, top_y - wall_h/2.0)
         .rect(wall_thickness, wall_h)
-        .extrude(-BACKPLATE_THICKNESS.5)
+        .extrude(-(BACKPLATE_THICKNESS + 0.5))
     )
     
     body = body.union(left_wall).union(right_wall)

@@ -158,7 +158,7 @@ def get_main_repo_root(current_dir):
         # Fallback if git fails for some reason
         return os.path.join(current_dir, '..')
 
-def export_model(shape, filename, category="", export="both", print_orientation="left_down"):
+def export_model(shape, filename, category="", export="both", print_orientation="left_down", rotate_for_printing=None):
     import os
     import cadquery as cq
     
@@ -178,6 +178,13 @@ def export_model(shape, filename, category="", export="both", print_orientation=
     os.makedirs(os.path.dirname(out_path_stl), exist_ok=True)
     os.makedirs(os.path.dirname(out_path_step), exist_ok=True)
     
+    # Backward compatibility for old boolean flag
+    if rotate_for_printing is not None:
+        if rotate_for_printing:
+            print_orientation = "left_down"
+        else:
+            print_orientation = "none"
+            
     export_shape = shape
     
     # Apply rotation based on desired print orientation
