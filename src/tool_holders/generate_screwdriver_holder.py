@@ -122,6 +122,15 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
         .extrude(width)
         .translate((-width/2, 0, 0))
     )
+    try:
+        shelf = shelf.edges('>Y and <Z').fillet(2.0)
+    except Exception:
+        pass
+    try:
+        if not has_right_brace:
+            shelf = shelf.edges('>X and >Y and |Z').fillet(2.0)
+    except Exception:
+        pass
     tool_holder = tool_holder.union(shelf)
     
     hole_pts = []

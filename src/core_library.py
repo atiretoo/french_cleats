@@ -74,7 +74,7 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
         bottom_y = get_bottom_edge_y(rail_height, play)
         
         pts = [
-            (BACKPLATE_TOP_Y, 0),
+            (BACKPLATE_TOP_Y - 2.0, 0),
             (TOP_GROOVE_Y + 3.5 + t, 0),
             (TOP_GROOVE_Y + 0.5 + t, -ridge_depth - ridge_clearance),
             (TOP_GROOVE_Y - 0.5 - t, -ridge_depth - ridge_clearance),
@@ -83,10 +83,12 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
             (bottom_groove_y + 0.5 + t, -ridge_depth - ridge_clearance),
             (bottom_groove_y - 0.5 - t, -ridge_depth - ridge_clearance),
             (bottom_groove_y - 3.5 - t, 0),
-            (bottom_y, 0),
+            (bottom_y + 2.0, 0),
+            (bottom_y, -2.0),
             (bottom_y, -backplate_thickness),
             (BACKPLATE_TOP_Y, -backplate_thickness),
-            (BACKPLATE_TOP_Y, 0)
+            (BACKPLATE_TOP_Y, -2.0),
+            (BACKPLATE_TOP_Y - 2.0, 0)
         ]
         
         baseplate = (
@@ -95,6 +97,11 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
             .extrude(width)
             .translate((-width/2, 0, 0))
         )
+        
+        try:
+            baseplate = baseplate.edges('>Y and <Z').fillet(min(2.5, backplate_thickness / 3.0))
+        except Exception:
+            pass
         
         screw_pts = []
         for i in range(units):
@@ -158,7 +165,56 @@ def get_main_repo_root(current_dir):
         # Fallback if git fails for some reason
         return os.path.join(current_dir, '..')
 
-def export_model(shape, filename, category="", export="both", print_orientation="left_down", rotate_for_printing=None):
+class OuterFaceEdgesSelector(cq.Selector):
+    def __init__(self, axis, val, tol=0.01):
+        self.axis = axis
+        self.val = val
+        self.tol = tol
+    def filter(self, objectList):
+        res = []
+        for o in objectList:
+            if not isinstance(o, cq.Edge): continue
+            bb = o.BoundingBox()
+            if self.axis == 'X':
+                at_face = abs(bb.xmin - self.val) < self.tol and abs(bb.xmax - self.val) < self.tol
+            elif self.axis == 'Z':
+                at_face = abs(bb.zmin - self.val) < self.tol and abs(bb.zmax - self.val) < self.tol
+            elif self.axis == 'Y':
+                at_face = abs(bb.ymin - self.val) < self.tol and abs(bb.ymax - self.val) < self.tol
+            else:
+                at_face = False
+            if at_face and (o.geomType() != 'CIRCLE' or o.Length() > 20.0):
+                res.append(o)
+        return res
+
+def apply_bed_chamfer(shape, print_orientation, dist=2.0):
+    if shape is None or isinstance(shape, cq.Assembly) or print_orientation in ['none', None] or dist <= 0:
+        return shape
+    try:
+        bb = shape.val().BoundingBox()
+        if print_orientation == 'right_down':
+            sel = OuterFaceEdgesSelector('X', bb.xmin)
+        elif print_orientation == 'left_down':
+            sel = OuterFaceEdgesSelector('X', bb.xmax)
+        elif print_orientation == 'back_down':
+            sel = OuterFaceEdgesSelector('Z', bb.zmax)
+        elif print_orientation == 'face_down':
+            sel = OuterFaceEdgesSelector('Z', bb.zmin)
+        elif print_orientation == 'top_down':
+            sel = OuterFaceEdgesSelector('Y', bb.ymax)
+        elif print_orientation == 'bottom_down':
+            sel = OuterFaceEdgesSelector('Y', bb.ymin)
+        else:
+            return shape
+            
+        edges = shape.edges(sel).vals()
+        if edges:
+            return shape.edges(sel).chamfer(dist)
+    except Exception:
+        pass
+    return shape
+
+def export_model(shape, filename, category="", export="both", print_orientation="left_down", rotate_for_printing=None, bed_chamfer=2.0):
     import os
     import cadquery as cq
     
@@ -186,6 +242,10 @@ def export_model(shape, filename, category="", export="both", print_orientation=
             print_orientation = "none"
             
     export_shape = shape
+    
+    # Apply build plate perimeter chamfer if requested
+    if bed_chamfer and bed_chamfer > 0:
+        export_shape = apply_bed_chamfer(export_shape, print_orientation, dist=bed_chamfer)
     
     # Apply rotation based on desired print orientation
     # In CAD: Z=0 is back, -Z is front. +Y is top, -Y is bottom. +X is right, -X is left.

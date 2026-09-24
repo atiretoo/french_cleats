@@ -59,6 +59,10 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
         .extrude(width)
         .translate((-width/2, 0, 0))
     )
+    try:
+        shelf = shelf.edges('>Y and <Z').fillet(2.0)
+    except Exception:
+        pass
     tool_holder = tool_holder.union(shelf)
     
     # Fillet only the top and bottom edges of the shelf where it meets the backplate

@@ -61,6 +61,10 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
         .extrude(width)
         .translate((-width/2, 0, 0))
     )
+    try:
+        shelf = shelf.edges('>Y and <Z').fillet(2.0)
+    except Exception:
+        pass
     tool_holder = tool_holder.union(shelf)
     
     brace_inner_x = -width/2 + brace_thickness

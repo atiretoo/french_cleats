@@ -45,6 +45,15 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
         .extrude(width)
         .translate((-width/2, 0, 0))
     )
+    try:
+        shelf = shelf.edges('>Y and <Z').fillet(2.0)
+    except Exception:
+        pass
+    try:
+        if width_units == 1:
+            shelf = shelf.edges('>X and >Y and |Z').fillet(2.0)
+    except Exception:
+        pass
     tool_holder = tool_holder.union(shelf)
     
     # Braces
