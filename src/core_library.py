@@ -41,13 +41,13 @@ GROOVE_SURFACE_HALF_WIDTH = 3.5         # Half-width of groove at Z=0 (7.0mm sur
 GROOVE_BOTTOM_HALF_WIDTH = 0.5          # Half-width of flat bottom (1.0mm flat bottom at 45 deg)
 
 # Ridge clearance standards:
-RIDGE_SIDE_CLEARANCE = 0.45             # Sidewall clearance along Y on each 45-degree slope (mm)
-RIDGE_DEPTH_CLEARANCE = 0.70            # Tip clearance along Z between ridge crest and groove bottom (mm)
+RIDGE_SIDE_CLEARANCE = 0.20             # Sidewall clearance along Y on each 45-degree slope (mm) - physically verified v2.0 standard
+RIDGE_DEPTH_CLEARANCE = 0.80            # Tip clearance along Z between ridge crest and groove bottom (mm)
 
 # Derived Ridge geometry (raised projection on cleat):
-RIDGE_HEIGHT = GROOVE_DEPTH - RIDGE_DEPTH_CLEARANCE                   # 2.30mm
-RIDGE_SURFACE_HALF_WIDTH = GROOVE_SURFACE_HALF_WIDTH - RIDGE_SIDE_CLEARANCE  # 3.05mm (6.10mm base width)
-RIDGE_PEAK_HALF_WIDTH = RIDGE_SURFACE_HALF_WIDTH - RIDGE_HEIGHT       # 0.75mm (1.50mm flat crest at 45 deg)
+RIDGE_HEIGHT = GROOVE_DEPTH - RIDGE_DEPTH_CLEARANCE                   # 2.20mm
+RIDGE_SURFACE_HALF_WIDTH = GROOVE_SURFACE_HALF_WIDTH - RIDGE_SIDE_CLEARANCE  # 3.30mm (6.60mm base width)
+RIDGE_PEAK_HALF_WIDTH = RIDGE_SURFACE_HALF_WIDTH - RIDGE_HEIGHT       # 1.10mm (2.20mm flat crest at 45 deg)
 
 # Backward compatibility aliases
 RIDGE_DEPTH = RIDGE_HEIGHT
