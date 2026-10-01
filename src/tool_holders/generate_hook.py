@@ -78,7 +78,8 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     
     tool_holder = tool_holder.union(hook_rod)
     
-    # Fillet where hook cylinder meets the backplate front face (Z = -BACKPLATE_THICKNESS)
+    # 1. Fillet where hook cylinder meets the backplate front face (Z = -BACKPLATE_THICKNESS)
+    # The user rule specifies 5.0 mm fillet for edges joining to the backplate.
     if fillet_radius > 0:
         class BaseIntersectionSelector(cq.Selector):
             def filter(self, objectList):
@@ -93,9 +94,27 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
                 return res
 
         try:
-            tool_holder = tool_holder.edges(BaseIntersectionSelector()).fillet(fillet_radius)
+            # Change from 3.0 to 5.0 to match the 5mm load-bearing fillet rule
+            tool_holder = tool_holder.edges(BaseIntersectionSelector()).fillet(5.0)
         except Exception as e:
             print(f"Warning: Fillet at hook base could not be applied ({e})")
+            
+    # 2. Fillet the exposed front edges of the backplate (Z = -BACKPLATE_THICKNESS) with 2.5mm
+    class FrontEdgeSel(cq.Selector):
+        def filter(self, ol):
+            res = []
+            for o in ol:
+                if isinstance(o, cq.Edge):
+                    b = o.BoundingBox()
+                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 1e-2 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1e-2:
+                        if abs(b.xmax - width/2) < 1e-2 or abs(b.xmin - -width/2) < 1e-2 or abs(b.ymax - top_y) < 1e-2 or abs(b.ymin - bottom_y) < 1e-2:
+                            res.append(o)
+            return res
+
+    try:
+        tool_holder = tool_holder.edges(FrontEdgeSel()).fillet(2.5)
+    except Exception as e:
+        print(f"Warning: Front edge fillets could not be applied ({e})")
             
     # Cut screw holes
     screws = (
