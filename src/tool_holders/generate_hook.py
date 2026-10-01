@@ -52,19 +52,32 @@ def add_support_fins(holder, width_units, bottom_groove_y):
     # The physical right edge is chamfered, so it sits at X = -1.414, Z = +1.414
     # The back fin should start here and end before the left chamfer
     fin_back_len = length_total - 2 * offset
-    fin_back = support_fin(z_gap=0.10, is_right=False, length=fin_back_len, height=fin_back_len, fin_width=fin_width)
-    fin_back = fin_back.rotate((0,0,0), (0,0,1), -90)
+    
+    # Create a simple un-tapered wedge for the back fins to avoid visual gaps at the bed
+    # We want a right triangle supporting Z = -X, but offset by 0.1mm for easy breakaway
+    z_gap = 0.1
+    fin_back = (
+        cq.Workplane("XY")
+        .polyline([(-z_gap, 0), (-fin_back_len, 0), (-fin_back_len, fin_back_len - z_gap)]).close()
+        .extrude(fin_width)
+    )
+    # The extrude goes in +Z, so it's laying flat. We need to rotate it to stand up.
+    # We want it in the XZ plane.
+    fin_back = fin_back.rotate((0,0,0), (1,0,0), 90) # Now X is X, Y is -Z, Z is Y.
+    # Center its thickness (Y axis) on 0
+    fin_back = fin_back.translate((0, fin_width/2.0, 0))
     # Translate fin to match the chamfered face: UP by offset, LEFT by offset
     fin_back = fin_back.translate((-offset, 0, offset))
     
     # 5. Generate Front Fins (supporting Z = X right face) to act as kickstands for the CoG
-    # The right face of the baseplate is a 45-degree angle going up and right: Z = X.
-    # The fin needs to have its hypotenuse touching this face, and its vertical edge on the far right.
-    # support_fin(is_right=True) provides exactly this.
-    fin_front_len = 16.0 # Long enough to catch the CoG
-    fin_front = support_fin(z_gap=0.10, is_right=True, length=fin_front_len, height=fin_front_len, fin_width=fin_width)
-    fin_front = fin_front.rotate((0,0,0), (0,0,1), -90)
-    # Translate fin UP by offset to match the flat chamfer bottom, and RIGHT by offset to stay on Z=X.
+    fin_front_len = 6.3 # Matches the length of the right edge to not stick up in the air
+    fin_front = (
+        cq.Workplane("XY")
+        .polyline([(z_gap, 0), (fin_front_len, 0), (fin_front_len, fin_front_len - z_gap)]).close()
+        .extrude(fin_width)
+    )
+    fin_front = fin_front.rotate((0,0,0), (1,0,0), 90)
+    fin_front = fin_front.translate((0, fin_width/2.0, 0))
     fin_front = fin_front.translate((offset, 0, offset))
     
     # 6. Translate fins to the exact groove edges
