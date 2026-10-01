@@ -57,14 +57,15 @@ def add_support_fins(holder, width_units, bottom_groove_y):
     # Translate fin to match the chamfered face: UP by offset, LEFT by offset
     fin_back = fin_back.translate((-offset, 0, offset))
     
-    # 5. Generate Front Fins (supporting Z = -X + 15.556) to act as kickstands for the CoG
-    # The front face is 11.0mm thick, shifted by (+7.778, 0, +7.778)
-    # So its plane is Z = -X + 15.556. A fin shifted by +15.556 in X will support this.
-    front_shift = 11.0 * cos45 * 2 # 15.556
-    fin_front_len = 12.0 # Covers the lower half of the front face
-    fin_front = support_fin(z_gap=0.10, is_right=False, length=fin_front_len, height=fin_front_len, fin_width=fin_width)
+    # 5. Generate Front Fins (supporting Z = X right face) to act as kickstands for the CoG
+    # The right face of the baseplate is a 45-degree angle going up and right: Z = X.
+    # The fin needs to have its hypotenuse touching this face, and its vertical edge on the far right.
+    # support_fin(is_right=True) provides exactly this.
+    fin_front_len = 16.0 # Long enough to catch the CoG
+    fin_front = support_fin(z_gap=0.10, is_right=True, length=fin_front_len, height=fin_front_len, fin_width=fin_width)
     fin_front = fin_front.rotate((0,0,0), (0,0,1), -90)
-    fin_front = fin_front.translate((front_shift, 0, 0))
+    # Translate fin UP by offset to match the flat chamfer bottom, and RIGHT by offset to stay on Z=X.
+    fin_front = fin_front.translate((offset, 0, offset))
     
     # 6. Translate fins to the exact groove edges
     TOP_GROOVE_Y = 10.0
@@ -74,7 +75,7 @@ def add_support_fins(holder, width_units, bottom_groove_y):
     flipped_top_edge = -(TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH) # -6.5
     flipped_bot_edge = -(bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH) # e.g. +59.5
     
-    # Fin spans from Y to Y - fin_width. Place them just inside the flat region.
+    # Fin spans from Y - fin_width/2 to Y + fin_width/2. Place them just inside the flat region.
     y_target_1 = flipped_top_edge + (fin_width / 2.0)
     y_target_2 = flipped_bot_edge - (fin_width / 2.0)
     
@@ -84,7 +85,7 @@ def add_support_fins(holder, width_units, bottom_groove_y):
     holder = holder.union(fin_front.val().translate((0, y_target_1, 0)))
     holder = holder.union(fin_front.val().translate((0, y_target_2, 0)))
     
-    # Drop the entire model by `offset` (1.414) so the physical chamfered edge touches Z=0!
+    # Drop the entire model by `offset` (1.414) so the physical chamfered bottom touches Z=0!
     holder = holder.translate((0, 0, -offset))
     
     return holder
