@@ -91,7 +91,7 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
         bottom_y = get_bottom_edge_y(rail_height, play)
         
         pts = [
-            (BACKPLATE_TOP_Y - 2.0, 0),
+            (BACKPLATE_TOP_Y, 0),
             (TOP_GROOVE_Y + GROOVE_SURFACE_HALF_WIDTH, 0),
             (TOP_GROOVE_Y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
             (TOP_GROOVE_Y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
@@ -100,12 +100,10 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
             (bottom_groove_y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
             (bottom_groove_y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
             (bottom_groove_y - GROOVE_SURFACE_HALF_WIDTH, 0),
-            (bottom_y + 2.0, 0),
-            (bottom_y, -2.0),
+            (bottom_y, 0),
             (bottom_y, -backplate_thickness),
             (BACKPLATE_TOP_Y, -backplate_thickness),
-            (BACKPLATE_TOP_Y, -2.0),
-            (BACKPLATE_TOP_Y - 2.0, 0)
+            (BACKPLATE_TOP_Y, 0)
         ]
         
         baseplate = (
@@ -115,8 +113,22 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
             .translate((-width/2, 0, 0))
         )
         
+        # 1. Fillet the 4 vertical Z-edges (thickness corners)
         try:
-            baseplate = baseplate.edges('>Y and <Z').fillet(min(2.5, backplate_thickness / 3.0))
+            baseplate = baseplate.edges("|Z").fillet(min(2.5, backplate_thickness / 3.0))
+        except Exception:
+            pass
+            
+        # 2. Chamfer the 4 outer back edges (on the >Z face at Z=0)
+        try:
+            outer_edges = []
+            for e in baseplate.edges(">Z").vals():
+                c = e.Center()
+                if abs(c.x) > (width/2 - 0.1) or c.y > (BACKPLATE_TOP_Y - 0.1) or c.y < (bottom_y + 0.1):
+                    outer_edges.append(e)
+            
+            if outer_edges:
+                baseplate = baseplate.newObject(outer_edges).chamfer(2.0)
         except Exception:
             pass
         
