@@ -20,7 +20,62 @@ import math
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model, support_fin
+
+def add_support_fins(holder, width_units, bottom_groove_y):
+    # 1. Rotate to back_down
+    holder = holder.rotate((0,0,0), (1,0,0), 180)
+    
+    # 2. Tilt 45 degrees around Y-axis to the right (stands on right edge +X)
+    holder = holder.rotate((0,0,0), (0,1,0), 45)
+    
+    baseplate_width = width_units * 28.0
+    cos45 = math.cos(math.radians(45))
+    
+    # Right edge is at +W/2 before rotation.
+    X_right = (baseplate_width / 2.0) * cos45
+    Z_right = -(baseplate_width / 2.0) * cos45
+    
+    # Left edge is at -W/2 before rotation.
+    X_left = (-baseplate_width / 2.0) * cos45
+    Z_left = (baseplate_width / 2.0) * cos45
+    
+    length = X_right - X_left
+    
+    # 3. Shift holder so right edge is at X=0 and Z=0
+    holder = holder.translate((-X_right, 0, -Z_right))
+    
+    # 4. Generate the fin from core_library for Z=-X (using is_right=False)
+    fin_width = 1.6
+    fin1 = support_fin(z_gap=0.10, is_right=False, length=length, height=length, fin_width=fin_width)
+    fin2 = support_fin(z_gap=0.10, is_right=False, length=length, height=length, fin_width=fin_width)
+    
+    # 5. Rotate fins to support Z=-X
+    fin1 = fin1.rotate((0,0,0), (0,0,1), -90)
+    fin2 = fin2.rotate((0,0,0), (0,0,1), -90)
+    
+    # 6. Translate fins to the groove edges
+    TOP_GROOVE_Y = 10.0
+    GROOVE_SURFACE_HALF_WIDTH = 3.5
+    
+    orig_top_edge = TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH
+    orig_bot_edge = bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH
+    
+    # After 180 deg X rotation (back_down), Y is inverted
+    flipped_top_edge = -orig_top_edge
+    flipped_bot_edge = -orig_bot_edge
+    
+    # Fin spans from Y to Y - fin_width. We place them just inside the flat region.
+    y_target_1 = flipped_top_edge + fin_width
+    y_target_2 = flipped_bot_edge
+    
+    fin1 = fin1.translate((0, y_target_1, 0))
+    fin2 = fin2.translate((0, y_target_2, 0))
+    
+    holder = holder.union(fin1.val())
+    holder = holder.union(fin2.val())
+    
+    return holder
 
 def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rail_height=73.0, fillet_radius=3.0, tip_fillet=3.0):
     """
@@ -134,7 +189,7 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     )
     tool_holder = tool_holder.cut(recesses)
     
-    return tool_holder, width_units, length_units
+    return tool_holder, width_units, length_units, bottom_groove_y
 
 def main():
     parser = argparse.ArgumentParser(description="Generate French Cleat Hook")
@@ -144,10 +199,10 @@ def main():
     parser.add_argument("--slope", type=float, default=5.0, help="Upward slope angle in degrees (default: 5.0)")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail (default: 73.0)")
     parser.add_argument("--fillet-radius", type=float, default=3.0, help="Base fillet radius (default: 3.0)")
-    parser.add_argument("--print-orientation", type=str, default="back_down", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down"], help="Print orientation for STL export (default: back_down)")
+    parser.add_argument("--print-orientation", type=str, default="right_down_45", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down", "right_down_45"], help="Print orientation for STL export (default: right_down_45)")
     args = parser.parse_args()
     
-    holder, wu, lu = create_hook(
+    holder, wu, lu, bottom_groove_y = create_hook(
         width_units=args.width_units,
         length_units=args.length_units,
         diameter=args.diameter,
@@ -156,8 +211,13 @@ def main():
         fillet_radius=args.fillet_radius
     )
     
-    filename = f"hook_{wu}x{lu}u_D{int(args.diameter)}mm_{int(args.slope)}deg_groove_H{args.rail_height}.stl"
-    export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
+    if args.print_orientation == "right_down_45":
+        holder = add_support_fins(holder, wu, bottom_groove_y)
+        filename = f"hook_{wu}x{lu}u_D{int(args.diameter)}mm_{int(args.slope)}deg_groove_H{args.rail_height}_45deg.stl"
+        export_model(holder, filename, category='tool_holders', print_orientation="face_down")
+    else:
+        filename = f"hook_{wu}x{lu}u_D{int(args.diameter)}mm_{int(args.slope)}deg_groove_H{args.rail_height}.stl"
+        export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
