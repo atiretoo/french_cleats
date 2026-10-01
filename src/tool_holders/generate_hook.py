@@ -23,7 +23,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model, support_fin
 
 def add_support_fins(holder, width_units, bottom_groove_y):
-    # 1. Rotate to back_down
+    # 1. Rotate to back_down (backplate at Z=0, hook points to +Z)
     holder = holder.rotate((0,0,0), (1,0,0), 180)
     
     # 2. Tilt 45 degrees around Y-axis to the right (stands on right edge +X)
@@ -38,42 +38,54 @@ def add_support_fins(holder, width_units, bottom_groove_y):
     
     # Left edge is at -W/2 before rotation.
     X_left = (-baseplate_width / 2.0) * cos45
-    Z_left = (baseplate_width / 2.0) * cos45
     
-    length = X_right - X_left
+    length_total = X_right - X_left
     
-    # 3. Shift holder so right edge is at X=0 and Z=0
+    # 3. Shift holder so theoretical sharp right edge is at X=0 and Z=0
     holder = holder.translate((-X_right, 0, -Z_right))
     
-    # 4. Generate the fin from core_library for Z=-X (using is_right=False)
+    # 4. Generate Back Fins (supporting Z = -X plane)
     fin_width = 1.6
-    fin1 = support_fin(z_gap=0.10, is_right=False, length=length, height=length, fin_width=fin_width)
-    fin2 = support_fin(z_gap=0.10, is_right=False, length=length, height=length, fin_width=fin_width)
+    chamfer = 2.0
+    offset = chamfer * cos45 # 1.414
     
-    # 5. Rotate fins to support Z=-X
-    fin1 = fin1.rotate((0,0,0), (0,0,1), -90)
-    fin2 = fin2.rotate((0,0,0), (0,0,1), -90)
+    # The physical right edge is chamfered, so it sits at X = -1.414, Z = +1.414
+    # The back fin should start here and end before the left chamfer
+    fin_back_len = length_total - 2 * offset
+    fin_back = support_fin(z_gap=0.10, is_right=False, length=fin_back_len, height=fin_back_len, fin_width=fin_width)
+    fin_back = fin_back.rotate((0,0,0), (0,0,1), -90)
+    # Translate fin to match the chamfered face: UP by offset, LEFT by offset
+    fin_back = fin_back.translate((-offset, 0, offset))
     
-    # 6. Translate fins to the groove edges
+    # 5. Generate Front Fins (supporting Z = -X + 15.556) to act as kickstands for the CoG
+    # The front face is 11.0mm thick, shifted by (+7.778, 0, +7.778)
+    # So its plane is Z = -X + 15.556. A fin shifted by +15.556 in X will support this.
+    front_shift = 11.0 * cos45 * 2 # 15.556
+    fin_front_len = 12.0 # Covers the lower half of the front face
+    fin_front = support_fin(z_gap=0.10, is_right=False, length=fin_front_len, height=fin_front_len, fin_width=fin_width)
+    fin_front = fin_front.rotate((0,0,0), (0,0,1), -90)
+    fin_front = fin_front.translate((front_shift, 0, 0))
+    
+    # 6. Translate fins to the exact groove edges
     TOP_GROOVE_Y = 10.0
     GROOVE_SURFACE_HALF_WIDTH = 3.5
     
-    orig_top_edge = TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH
-    orig_bot_edge = bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH
+    # After 180 deg X rotation, Y is inverted
+    flipped_top_edge = -(TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH) # -6.5
+    flipped_bot_edge = -(bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH) # e.g. +59.5
     
-    # After 180 deg X rotation (back_down), Y is inverted
-    flipped_top_edge = -orig_top_edge
-    flipped_bot_edge = -orig_bot_edge
+    # Fin spans from Y to Y - fin_width. Place them just inside the flat region.
+    y_target_1 = flipped_top_edge + (fin_width / 2.0)
+    y_target_2 = flipped_bot_edge - (fin_width / 2.0)
     
-    # Fin spans from Y to Y - fin_width. We place them just inside the flat region.
-    y_target_1 = flipped_top_edge + fin_width
-    y_target_2 = flipped_bot_edge
+    # Apply Y translations and Union
+    holder = holder.union(fin_back.val().translate((0, y_target_1, 0)))
+    holder = holder.union(fin_back.val().translate((0, y_target_2, 0)))
+    holder = holder.union(fin_front.val().translate((0, y_target_1, 0)))
+    holder = holder.union(fin_front.val().translate((0, y_target_2, 0)))
     
-    fin1 = fin1.translate((0, y_target_1, 0))
-    fin2 = fin2.translate((0, y_target_2, 0))
-    
-    holder = holder.union(fin1.val())
-    holder = holder.union(fin2.val())
+    # Drop the entire model by `offset` (1.414) so the physical chamfered edge touches Z=0!
+    holder = holder.translate((0, 0, -offset))
     
     return holder
 
