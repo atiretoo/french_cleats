@@ -65,7 +65,7 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
     brace_pts = [
         (top_y - shelf_t, back_z),         # Top back
         (top_y - shelf_t, front_z),        # Front tip
-        (bottom_y, back_z),                # Bottom back
+        (bottom_y + 2.5, back_z),          # Bottom back (stops before baseplate fillet)
     ]
     
     # We have two braces, one on the left, one on the right.
