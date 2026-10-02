@@ -53,19 +53,28 @@ def add_support_fins(holder, width_units, bottom_groove_y):
     # The back fin should start here and end before the left chamfer
     fin_back_len = length_total - 2 * offset
     
-    # Create a simple un-tapered wedge for the back fins to avoid visual gaps at the bed
+    # Create a tapered breakaway support rib
     # We want a right triangle supporting Z = -X, but offset by 0.1mm for easy breakaway
     z_gap = 0.1
+    fin_back_len = length_total - 2 * offset
+    
     fin_back = (
         cq.Workplane("XY")
         .polyline([(-z_gap, 0), (-fin_back_len, 0), (-fin_back_len, fin_back_len - z_gap)]).close()
         .extrude(fin_width)
     )
-    # The extrude goes in +Z, so it's laying flat. We need to rotate it to stand up.
-    # We want it in the XZ plane.
+    # Rotate to stand up in XZ plane
     fin_back = fin_back.rotate((0,0,0), (1,0,0), 90) # Now X is X, Y is -Z, Z is Y.
     # Center its thickness (Y axis) on 0
     fin_back = fin_back.translate((0, fin_width/2.0, 0))
+    
+    # Chamfer the hypotenuse edges to create a 0.5mm wide breakaway contact point
+    # The hypotenuse edges are in the Y=-0.8 and Y=0.8 planes, and have centers with X < 0 and Z > 0
+    class HypoSel(cq.Selector):
+        def filter(self, ol):
+            return [e for e in ol if e.Center().z > 0.1 and e.Center().x < -0.1 and abs(abs(e.Center().y) - (fin_width/2.0)) < 0.01]
+    fin_back = fin_back.edges(HypoSel()).chamfer(0.55)
+    
     # Translate fin to match the chamfered face: UP by offset, LEFT by offset
     fin_back = fin_back.translate((-offset, 0, offset))
     
@@ -78,6 +87,12 @@ def add_support_fins(holder, width_units, bottom_groove_y):
     )
     fin_front = fin_front.rotate((0,0,0), (1,0,0), 90)
     fin_front = fin_front.translate((0, fin_width/2.0, 0))
+    
+    class FrontHypoSel(cq.Selector):
+        def filter(self, ol):
+            return [e for e in ol if e.Center().z > 0.1 and e.Center().x > 0.1 and abs(abs(e.Center().y) - (fin_width/2.0)) < 0.01]
+    fin_front = fin_front.edges(FrontHypoSel()).chamfer(0.55)
+    
     fin_front = fin_front.translate((offset, 0, offset))
     
     # 6. Translate fins to the exact groove edges
@@ -88,9 +103,10 @@ def add_support_fins(holder, width_units, bottom_groove_y):
     flipped_top_edge = -(TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH) # -6.5
     flipped_bot_edge = -(bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH) # e.g. +59.5
     
-    # Fin spans from Y - fin_width/2 to Y + fin_width/2. Place them just inside the flat region.
-    y_target_1 = flipped_top_edge + (fin_width / 2.0)
-    y_target_2 = flipped_bot_edge - (fin_width / 2.0)
+    # Fin spans from Y - fin_width/2 to Y + fin_width/2.
+    # We want the tip of the taper (center of the fin) to align perfectly with the groove edge.
+    y_target_1 = flipped_top_edge
+    y_target_2 = flipped_bot_edge
     
     # Apply Y translations and Union
     holder = holder.union(fin_back.val().translate((0, y_target_1, 0)))
