@@ -29,3 +29,7 @@
     *   `print_orientation="left_down"` or `"right_down"`: Rests the holder on its physical Left or Right side edge (parallel to the Top-Bottom axis).
     *   `print_orientation="back_down"`: Rotates the model so its physical Back rests flat on the print bed.
     *   `print_orientation="top_down"` or `"bottom_down"`: Stands the holder on its physical Top or Bottom edge.
+
+## 6. Angled Print Supports
+*   **Pattern:** Always use the centralized `support_fin()` function from `core_library.py` to generate breakaway supports when positioning models at an angle (e.g., 45-degree tilts).
+*   **Implementation:** Do not manually generate inline wedges, custom lofts, or hardcoded prisms to act as supports. If `support_fin()` does not align correctly or produces unexpected tapers, debug its rotation, translation, and placement relative to the model's global coordinates rather than replacing it with raw CAD logic.
