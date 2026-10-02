@@ -59,26 +59,29 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
         .extrude(width)
         .translate((-width/2, 0, 0))
     )
-    # No pre-union outer fillets! We keep the edges sharp for side printability.
+    try:
+        shelf = shelf.edges('>Y and <Z').fillet(2.0)
+    except Exception:
+        pass
     tool_holder = tool_holder.union(shelf)
     
     # Fillet only the top and bottom edges of the shelf where it meets the backplate
-    class ShelfJuncSel(cq.Selector):
-        def filter(self, ol):
+    class FilletSelector(cq.Selector):
+        def filter(self, objectList):
             res = []
-            for o in ol:
-                if isinstance(o, cq.Edge):
-                    b = o.BoundingBox()
-                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 1e-2 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1e-2:
-                        if abs(b.ymax - b.ymin) < 1e-2:
-                            if abs(b.ymax - shelf_top) < 1e-2 or abs(b.ymax - shelf_bot) < 1e-2:
-                                res.append(o)
+            for o in objectList:
+                if not isinstance(o, cq.Edge): continue
+                b = o.BoundingBox()
+                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
+                    res.append(o)
+                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
+                    res.append(o)
             return res
 
     try:
-        tool_holder = tool_holder.edges(ShelfJuncSel()).fillet(5.0)
-    except Exception as e:
-        print(f"Warning: Shelf junction fillet failed: {e}")
+        tool_holder = tool_holder.edges(FilletSelector()).fillet(5.0)
+    except:
+        pass # fallback if filleting fails
     
     # Cut holes and slots independently to avoid self-intersection boolean bugs
     z_center = -BACKPLATE_THICKNESS - shelf_depth / 2.0

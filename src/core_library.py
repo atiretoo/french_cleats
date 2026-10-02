@@ -91,7 +91,7 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
         bottom_y = get_bottom_edge_y(rail_height, play)
         
         pts = [
-            (BACKPLATE_TOP_Y, 0),
+            (BACKPLATE_TOP_Y - 2.0, 0),
             (TOP_GROOVE_Y + GROOVE_SURFACE_HALF_WIDTH, 0),
             (TOP_GROOVE_Y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
             (TOP_GROOVE_Y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
@@ -100,10 +100,12 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
             (bottom_groove_y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
             (bottom_groove_y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
             (bottom_groove_y - GROOVE_SURFACE_HALF_WIDTH, 0),
-            (bottom_y, 0),
+            (bottom_y + 2.0, 0),
+            (bottom_y, -2.0),
             (bottom_y, -backplate_thickness),
             (BACKPLATE_TOP_Y, -backplate_thickness),
-            (BACKPLATE_TOP_Y, 0)
+            (BACKPLATE_TOP_Y, -2.0),
+            (BACKPLATE_TOP_Y - 2.0, 0)
         ]
         
         baseplate = (
@@ -113,22 +115,8 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
             .translate((-width/2, 0, 0))
         )
         
-        # 1. Fillet the 4 vertical Z-edges (thickness corners)
         try:
-            baseplate = baseplate.edges("|Z").fillet(min(2.5, backplate_thickness / 3.0))
-        except Exception:
-            pass
-            
-        # 2. Chamfer the 4 outer back edges (on the >Z face at Z=0)
-        try:
-            outer_edges = []
-            for e in baseplate.edges(">Z").vals():
-                c = e.Center()
-                if abs(c.x) > (width/2 - 0.1) or c.y > (BACKPLATE_TOP_Y - 0.1) or c.y < (bottom_y + 0.1):
-                    outer_edges.append(e)
-            
-            if outer_edges:
-                baseplate = baseplate.newObject(outer_edges).chamfer(2.0)
+            baseplate = baseplate.edges('>Y and <Z').fillet(min(2.5, backplate_thickness / 3.0))
         except Exception:
             pass
         
@@ -217,6 +205,30 @@ class OuterFaceEdgesSelector(cq.Selector):
         return res
 
 def apply_bed_chamfer(shape, print_orientation, dist=2.0):
+    if shape is None or isinstance(shape, cq.Assembly) or print_orientation in ['none', None] or dist <= 0:
+        return shape
+    try:
+        bb = shape.val().BoundingBox()
+        if print_orientation == 'right_down':
+            sel = OuterFaceEdgesSelector('X', bb.xmin)
+        elif print_orientation == 'left_down':
+            sel = OuterFaceEdgesSelector('X', bb.xmax)
+        elif print_orientation == 'back_down':
+            sel = OuterFaceEdgesSelector('Z', bb.zmax)
+        elif print_orientation == 'face_down':
+            sel = OuterFaceEdgesSelector('Z', bb.zmin)
+        elif print_orientation == 'top_down':
+            sel = OuterFaceEdgesSelector('Y', bb.ymax)
+        elif print_orientation == 'bottom_down':
+            sel = OuterFaceEdgesSelector('Y', bb.ymin)
+        else:
+            return shape
+            
+        edges = shape.edges(sel).vals()
+        if edges:
+            return shape.edges(sel).chamfer(dist)
+    except Exception:
+        pass
     return shape
 
 def export_model(shape, filename, category="", export="both", print_orientation="left_down", rotate_for_printing=None, bed_chamfer=2.0):

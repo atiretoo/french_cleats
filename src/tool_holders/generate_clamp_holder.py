@@ -37,7 +37,7 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
     shelf_bot = top_y - 50.0
     
     brace_pts = [
-        (bottom_y + 2.5, -BACKPLATE_THICKNESS),
+        (bottom_y, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
     ]
@@ -61,7 +61,10 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
         .extrude(width)
         .translate((-width/2, 0, 0))
     )
-    # No pre-union outer fillets for flush holders
+    try:
+        shelf = shelf.edges('>Y and <Z').fillet(2.0)
+    except Exception:
+        pass
     tool_holder = tool_holder.union(shelf)
     
     brace_inner_x = -width/2 + brace_thickness

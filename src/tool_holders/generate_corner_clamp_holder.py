@@ -66,25 +66,6 @@ def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_w
     
     tool_holder = tool_holder.union(shelf)
     
-    # Add robust flush junction fillets
-    shelf_bot = v_outer_bottom
-    class ShelfJuncSel(cq.Selector):
-        def filter(self, ol):
-            res = []
-            for o in ol:
-                if isinstance(o, cq.Edge):
-                    b = o.BoundingBox()
-                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 1e-2 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1e-2:
-                        if abs(b.ymax - b.ymin) < 1e-2:
-                            if abs(b.ymax - shelf_top) < 1e-2 or abs(b.ymax - shelf_bot) < 1e-2:
-                                res.append(o)
-            return res
-
-    try:
-        tool_holder = tool_holder.edges(ShelfJuncSel()).fillet(5.0)
-    except Exception as e:
-        print(f"Warning: Shelf junction fillet failed: {e}")
-        
     # Calculate the points for the curved cutout
     # Make the cutout slightly wider than the shelf (e.g. 30mm for a 28mm half-width)
     cutout_half_width = width/2 + 2.0

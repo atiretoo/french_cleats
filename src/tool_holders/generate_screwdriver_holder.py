@@ -109,7 +109,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
     shelf_top = top_y - 40.0
     shelf_bot = top_y - 45.0
     
-    # Add Shelf (Perfectly Flush)
+    # Add Shelf
     shelf_pts = [
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
@@ -122,7 +122,15 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
         .extrude(width)
         .translate((-width/2, 0, 0))
     )
-    # No pre-union outer fillets! We keep the edges sharp for side printability.
+    try:
+        shelf = shelf.edges('>Y and <Z').fillet(2.0)
+    except Exception:
+        pass
+    try:
+        if not has_right_brace:
+            shelf = shelf.edges('>X and >Y and |Z').fillet(2.0)
+    except Exception:
+        pass
     tool_holder = tool_holder.union(shelf)
     
     hole_pts = []
@@ -135,9 +143,9 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
             x = (x_min + x_max) / 2.0  
         hole_pts.append((x, z))
         
-    # Add Braces (Flush)
+    # Add Braces
     brace_pts = [
-        (bottom_y + 2.5, -BACKPLATE_THICKNESS),
+        (bottom_y, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
     ]
@@ -168,27 +176,22 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
             except Exception as e:
                 pass
         
-    # Structural Junction Fillets
-    # We only select the horizontal junction edges of the shelf (top and bottom where it meets the backplate)
-    # This provides massive cantilever strength without causing topological collisions with the braces or outer edges.
-    class ShelfJuncSel(cq.Selector):
-        def filter(self, ol):
+    class FilletSelector(cq.Selector):
+        def filter(self, objectList):
             res = []
-            for o in ol:
-                if isinstance(o, cq.Edge):
-                    b = o.BoundingBox()
-                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 1e-2 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1e-2:
-                        # Only purely horizontal edges (X direction)
-                        if abs(b.ymax - b.ymin) < 1e-2:
-                            # Only top and bottom of shelf
-                            if abs(b.ymax - shelf_top) < 1e-2 or abs(b.ymax - shelf_bot) < 1e-2:
-                                res.append(o)
+            for o in objectList:
+                if not isinstance(o, cq.Edge): continue
+                b = o.BoundingBox()
+                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
+                    res.append(o)
+                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
+                    res.append(o)
             return res
 
     try:
-        tool_holder = tool_holder.edges(ShelfJuncSel()).fillet(5.0)
-    except Exception as e:
-        print(f"Warning: Shelf junction fillet failed: {e}")
+        tool_holder = tool_holder.edges(FilletSelector()).fillet(5.0)
+    except:
+        pass
     
     # Cut variable holes one by one
     for pt, sz in zip(hole_pts, actual_hole_sizes):

@@ -108,7 +108,7 @@ def create_magnetic_holder(
             (top_y, back_z),
             (top_y, front_z),
             (tip_bottom_y, front_z),
-            (bottom_y + 2.5, back_z),
+            (bottom_y, back_z),
         ]
         
         shelf = (

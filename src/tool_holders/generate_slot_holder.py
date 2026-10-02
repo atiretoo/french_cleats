@@ -45,12 +45,20 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
         .extrude(width)
         .translate((-width/2, 0, 0))
     )
-    # No pre-union outer fillets for flush holders
+    try:
+        shelf = shelf.edges('>Y and <Z').fillet(2.0)
+    except Exception:
+        pass
+    try:
+        if width_units == 1:
+            shelf = shelf.edges('>X and >Y and |Z').fillet(2.0)
+    except Exception:
+        pass
     tool_holder = tool_holder.union(shelf)
     
-    # Braces (Flush)
+    # Braces
     brace_pts = [
-        (bottom_y + 2.5, -BACKPLATE_THICKNESS),
+        (bottom_y, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
     ]
@@ -80,22 +88,22 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
             except Exception as e:
                 pass
         
-    class ShelfJuncSel(cq.Selector):
-        def filter(self, ol):
+    class FilletSelector(cq.Selector):
+        def filter(self, objectList):
             res = []
-            for o in ol:
-                if isinstance(o, cq.Edge):
-                    b = o.BoundingBox()
-                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 1e-2 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1e-2:
-                        if abs(b.ymax - b.ymin) < 1e-2:
-                            if abs(b.ymax - shelf_top) < 1e-2 or abs(b.ymax - shelf_bot) < 1e-2:
-                                res.append(o)
+            for o in objectList:
+                if not isinstance(o, cq.Edge): continue
+                b = o.BoundingBox()
+                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
+                    res.append(o)
+                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
+                    res.append(o)
             return res
 
     try:
-        tool_holder = tool_holder.edges(ShelfJuncSel()).fillet(5.0)
-    except Exception as e:
-        print(f"Warning: Shelf junction fillet failed: {e}")
+        tool_holder = tool_holder.edges(FilletSelector()).fillet(5.0)
+    except:
+        pass
         
     # Cut the slots (1 per unit width)
     slot_length = shelf_depth - back_clearance + 5.0 # extra length to break through front edge safely

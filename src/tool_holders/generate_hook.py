@@ -20,104 +20,7 @@ import math
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model, support_fin
-
-def add_support_fins(holder, width_units, bottom_groove_y):
-    # 1. Rotate to back_down (backplate at Z=0, hook points to +Z)
-    holder = holder.rotate((0,0,0), (1,0,0), 180)
-    
-    # 2. Tilt 45 degrees around Y-axis to the right (stands on right edge +X)
-    holder = holder.rotate((0,0,0), (0,1,0), 45)
-    
-    baseplate_width = width_units * 28.0
-    cos45 = math.cos(math.radians(45))
-    
-    # Right edge is at +W/2 before rotation.
-    X_right = (baseplate_width / 2.0) * cos45
-    Z_right = -(baseplate_width / 2.0) * cos45
-    
-    # Left edge is at -W/2 before rotation.
-    X_left = (-baseplate_width / 2.0) * cos45
-    
-    length_total = X_right - X_left
-    
-    # 3. Shift holder so theoretical sharp right edge is at X=0 and Z=0
-    holder = holder.translate((-X_right, 0, -Z_right))
-    
-    # 4. Generate Back Fins (supporting Z = -X plane)
-    fin_width = 1.6
-    chamfer = 2.0
-    offset = chamfer * cos45 # 1.414
-    
-    # The physical right edge is chamfered, so it sits at X = -1.414, Z = +1.414
-    # The back fin should start here and end before the left chamfer
-    fin_back_len = length_total - 2 * offset
-    
-    # Create a tapered breakaway support rib
-    # We want a right triangle supporting Z = -X, but offset by 0.1mm for easy breakaway
-    z_gap = 0.1
-    fin_back_len = length_total - 2 * offset
-    
-    fin_back = (
-        cq.Workplane("XY")
-        .polyline([(-z_gap, 0), (-fin_back_len, 0), (-fin_back_len, fin_back_len - z_gap)]).close()
-        .extrude(fin_width)
-    )
-    # Rotate to stand up in XZ plane
-    fin_back = fin_back.rotate((0,0,0), (1,0,0), 90) # Now X is X, Y is -Z, Z is Y.
-    # Center its thickness (Y axis) on 0
-    fin_back = fin_back.translate((0, fin_width/2.0, 0))
-    
-    # Chamfer the hypotenuse edges to create a 0.5mm wide breakaway contact point
-    # The hypotenuse edges are in the Y=-0.8 and Y=0.8 planes, and have centers with X < 0 and Z > 0
-    class HypoSel(cq.Selector):
-        def filter(self, ol):
-            return [e for e in ol if e.Center().z > 0.1 and e.Center().x < -0.1 and abs(abs(e.Center().y) - (fin_width/2.0)) < 0.01]
-    fin_back = fin_back.edges(HypoSel()).chamfer(0.55)
-    
-    # Translate fin to match the chamfered face: UP by offset, LEFT by offset
-    fin_back = fin_back.translate((-offset, 0, offset))
-    
-    # 5. Generate Front Fins (supporting Z = X right face) to act as kickstands for the CoG
-    fin_front_len = 6.3 # Matches the length of the right edge to not stick up in the air
-    fin_front = (
-        cq.Workplane("XY")
-        .polyline([(z_gap, 0), (fin_front_len, 0), (fin_front_len, fin_front_len - z_gap)]).close()
-        .extrude(fin_width)
-    )
-    fin_front = fin_front.rotate((0,0,0), (1,0,0), 90)
-    fin_front = fin_front.translate((0, fin_width/2.0, 0))
-    
-    class FrontHypoSel(cq.Selector):
-        def filter(self, ol):
-            return [e for e in ol if e.Center().z > 0.1 and e.Center().x > 0.1 and abs(abs(e.Center().y) - (fin_width/2.0)) < 0.01]
-    fin_front = fin_front.edges(FrontHypoSel()).chamfer(0.55)
-    
-    fin_front = fin_front.translate((offset, 0, offset))
-    
-    # 6. Translate fins to the exact groove edges
-    TOP_GROOVE_Y = 10.0
-    GROOVE_SURFACE_HALF_WIDTH = 3.5
-    
-    # After 180 deg X rotation, Y is inverted
-    flipped_top_edge = -(TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH) # -6.5
-    flipped_bot_edge = -(bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH) # e.g. +59.5
-    
-    # Fin spans from Y - fin_width/2 to Y + fin_width/2.
-    # We want the tip of the taper (center of the fin) to align perfectly with the groove edge.
-    y_target_1 = flipped_top_edge
-    y_target_2 = flipped_bot_edge
-    
-    # Apply Y translations and Union
-    holder = holder.union(fin_back.val().translate((0, y_target_1, 0)))
-    holder = holder.union(fin_back.val().translate((0, y_target_2, 0)))
-    holder = holder.union(fin_front.val().translate((0, y_target_1, 0)))
-    holder = holder.union(fin_front.val().translate((0, y_target_2, 0)))
-    
-    # Drop the entire model by `offset` (1.414) so the physical chamfered bottom touches Z=0!
-    holder = holder.translate((0, 0, -offset))
-    
-    return holder
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
 
 def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rail_height=73.0, fillet_radius=3.0, tip_fillet=3.0):
     """
@@ -175,8 +78,7 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     
     tool_holder = tool_holder.union(hook_rod)
     
-    # 1. Fillet where hook cylinder meets the backplate front face (Z = -BACKPLATE_THICKNESS)
-    # The user rule specifies 5.0 mm fillet for edges joining to the backplate.
+    # Fillet where hook cylinder meets the backplate front face (Z = -BACKPLATE_THICKNESS)
     if fillet_radius > 0:
         class BaseIntersectionSelector(cq.Selector):
             def filter(self, objectList):
@@ -191,27 +93,9 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
                 return res
 
         try:
-            # Change from 3.0 to 5.0 to match the 5mm load-bearing fillet rule
-            tool_holder = tool_holder.edges(BaseIntersectionSelector()).fillet(5.0)
+            tool_holder = tool_holder.edges(BaseIntersectionSelector()).fillet(fillet_radius)
         except Exception as e:
             print(f"Warning: Fillet at hook base could not be applied ({e})")
-            
-    # 2. Fillet the exposed front edges of the backplate (Z = -BACKPLATE_THICKNESS) with 2.5mm
-    class FrontEdgeSel(cq.Selector):
-        def filter(self, ol):
-            res = []
-            for o in ol:
-                if isinstance(o, cq.Edge):
-                    b = o.BoundingBox()
-                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 1e-2 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1e-2:
-                        if abs(b.xmax - width/2) < 1e-2 or abs(b.xmin - -width/2) < 1e-2 or abs(b.ymax - top_y) < 1e-2 or abs(b.ymin - bottom_y) < 1e-2:
-                            res.append(o)
-            return res
-
-    try:
-        tool_holder = tool_holder.edges(FrontEdgeSel()).fillet(2.5)
-    except Exception as e:
-        print(f"Warning: Front edge fillets could not be applied ({e})")
             
     # Cut screw holes
     screws = (
@@ -231,7 +115,7 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     )
     tool_holder = tool_holder.cut(recesses)
     
-    return tool_holder, width_units, length_units, bottom_groove_y
+    return tool_holder, width_units, length_units
 
 def main():
     parser = argparse.ArgumentParser(description="Generate French Cleat Hook")
@@ -241,10 +125,10 @@ def main():
     parser.add_argument("--slope", type=float, default=5.0, help="Upward slope angle in degrees (default: 5.0)")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail (default: 73.0)")
     parser.add_argument("--fillet-radius", type=float, default=3.0, help="Base fillet radius (default: 3.0)")
-    parser.add_argument("--print-orientation", type=str, default="right_down_45", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down", "right_down_45"], help="Print orientation for STL export (default: right_down_45)")
+    parser.add_argument("--print-orientation", type=str, default="back_down", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down"], help="Print orientation for STL export (default: back_down)")
     args = parser.parse_args()
     
-    holder, wu, lu, bottom_groove_y = create_hook(
+    holder, wu, lu = create_hook(
         width_units=args.width_units,
         length_units=args.length_units,
         diameter=args.diameter,
@@ -253,13 +137,8 @@ def main():
         fillet_radius=args.fillet_radius
     )
     
-    if args.print_orientation == "right_down_45":
-        holder = add_support_fins(holder, wu, bottom_groove_y)
-        filename = f"hook_{wu}x{lu}u_D{int(args.diameter)}mm_{int(args.slope)}deg_groove_H{args.rail_height}_45deg.stl"
-        export_model(holder, filename, category='tool_holders', print_orientation="face_down")
-    else:
-        filename = f"hook_{wu}x{lu}u_D{int(args.diameter)}mm_{int(args.slope)}deg_groove_H{args.rail_height}.stl"
-        export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
+    filename = f"hook_{wu}x{lu}u_D{int(args.diameter)}mm_{int(args.slope)}deg_groove_H{args.rail_height}.stl"
+    export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":
