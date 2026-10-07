@@ -32,7 +32,8 @@ def add_support_fins(holder, width_units, depth_units, bottom_groove_y, top_y):
     Z_right = -(baseplate_width / 2.0) * cos45
     X_left = (-baseplate_width / 2.0) * cos45
     length = X_right - X_left
-    holder = holder.translate((-X_right, 0, -Z_right))
+    bb = holder.val().BoundingBox()
+    holder = holder.translate((-X_right, 0, -bb.zmin))
     fin_width = 1.6
     fin1 = support_fin(z_gap=0.10, is_right=False, length=length, height=length, fin_width=fin_width)
     fin2 = support_fin(z_gap=0.10, is_right=False, length=length, height=length, fin_width=fin_width)
