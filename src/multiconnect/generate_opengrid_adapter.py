@@ -16,8 +16,8 @@
 # along with french_cleats.  If not, see <https://www.gnu.org/licenses/>.
 import cadquery as cq
 import argparse
-import os
 import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import (
     UNIT_WIDTH, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR,
     RIDGE_HEIGHT, RIDGE_SURFACE_HALF_WIDTH, RIDGE_PEAK_HALF_WIDTH
