@@ -40,7 +40,7 @@ def add_support_fins(holder, width_units, depth_units, bottom_groove_y, top_y):
     fin2 = fin2.rotate((0,0,0), (0,0,1), -90)
     orig_top_edge = 10.0 - 3.5
     orig_bot_edge = bottom_groove_y + 3.5
-    y_target_1 = -orig_top_edge + fin_width
+    y_target_1 = -orig_top_edge
     y_target_2 = -orig_bot_edge
     fin1 = fin1.translate((0, y_target_1, 0))
     fin2 = fin2.translate((0, y_target_2, 0))
@@ -50,7 +50,7 @@ def add_support_fins(holder, width_units, depth_units, bottom_groove_y, top_y):
     kickstand_length = (shelf_length * cos45) * 0.8
     kickstand_fin = support_fin(z_gap=0.10, is_right=True, length=kickstand_length, height=kickstand_length, fin_width=fin_width)
     kickstand_fin = kickstand_fin.rotate((0,0,0), (0,0,1), -90)
-    shelf_y = -(top_y - 42.5)
+    shelf_y = -(top_y - 45.0)  # Align with the bottom edge of the shelf for a clean breakaway
     kickstand_fin = kickstand_fin.translate((0, shelf_y, 0))
     holder = holder.union(kickstand_fin.val())
     return holder
