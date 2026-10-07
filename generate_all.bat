@@ -24,6 +24,7 @@ python src/tool_holders/generate_chisel_holder.py --tools 4 --spacing 35.0 --she
 
 echo Generating Slot Holders...
 python src/tool_holders/generate_slot_holder.py --width-units 1 --depth-units 2 --slot-width 6.25 --back-clearance 10.0
+python src/tool_holders/generate_slot_holder.py --width-units 1 --depth-units 3 --slot-width 6.25 --back-clearance 9.0
 
 echo Generating V Holders...
 python src/tool_holders/generate_v_holder.py --width-units 2 --depth-units 4
