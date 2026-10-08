@@ -34,9 +34,15 @@ def add_support_fins(holder, width_units, depth_units, bottom_groove_y, top_y):
     length = X_right - X_left
     bb = holder.val().BoundingBox()
     holder = holder.translate((-X_right, 0, -bb.zmin))
+    # Because we lowered the holder by the chamfer depth (2.0 * cos45), the holder physically
+    # penetrates into the support fins by that amount. We must add this drop to the z_gap
+    # to maintain the 0.10mm clearance required for a clean breakaway!
+    drop_offset = 2.0 * cos45
+    adjusted_z_gap = 0.10 + drop_offset
+    
     fin_width = 1.6
-    fin1 = support_fin(z_gap=0.10, is_right=False, length=length, height=length, fin_width=fin_width)
-    fin2 = support_fin(z_gap=0.10, is_right=False, length=length, height=length, fin_width=fin_width)
+    fin1 = support_fin(z_gap=adjusted_z_gap, is_right=False, length=length, height=length, fin_width=fin_width)
+    fin2 = support_fin(z_gap=adjusted_z_gap, is_right=False, length=length, height=length, fin_width=fin_width)
     fin1 = fin1.rotate((0,0,0), (0,0,1), -90)
     fin2 = fin2.rotate((0,0,0), (0,0,1), -90)
     orig_top_edge = 10.0 - 3.5
@@ -49,7 +55,7 @@ def add_support_fins(holder, width_units, depth_units, bottom_groove_y, top_y):
     holder = holder.union(fin2.val())
     shelf_length = depth_units * 28.0
     kickstand_length = (shelf_length * cos45) * 0.8
-    kickstand_fin = support_fin(z_gap=0.10, is_right=True, length=kickstand_length, height=kickstand_length, fin_width=fin_width)
+    kickstand_fin = support_fin(z_gap=adjusted_z_gap, is_right=True, length=kickstand_length, height=kickstand_length, fin_width=fin_width)
     kickstand_fin = kickstand_fin.rotate((0,0,0), (0,0,1), -90)
     shelf_y = -(top_y - 45.0)  # Align with the bottom edge of the shelf for a clean breakaway
     kickstand_fin = kickstand_fin.translate((0, shelf_y, 0))
