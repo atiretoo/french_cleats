@@ -62,6 +62,10 @@ python src/strength_testing/generate_strength_tester.py --mount groove
 echo Generating Corner Clamp Holders...
 python src/tool_holders/generate_corner_clamp_holder.py
 
+echo Generating Mallet Holders...
+python src/tool_holders/generate_mallet_holder.py --units 3 --mount groove
+
+
 echo Generating Corner Clamp Tester...
 python src/strength_testing/generate_corner_clamp_tester.py
 
