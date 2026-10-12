@@ -49,6 +49,12 @@ echo "Generating HSW Cleat Adapters..."
 python src/hsw/generate_hsw_cleat_adapter.py --hsw-orientation standard
 python src/hsw/generate_hsw_cleat_adapter.py --hsw-orientation rotated
 
+echo "Generating Pegboard Adapters..."
+python src/pegboard/generate_pegboard_adapter.py --generate-all
+
+echo "Generating IKEA Skadis Adapters..."
+python src/pegboard/generate_skadis_adapter.py --generate-all
+
 echo "Generating Auxiliary Tools..."
 python src/utilities/generate_nut_pusher.py --screw M3 --handle-length 11.0
 python src/utilities/generate_nut_pusher.py --screw M4 --handle-length 11.0
