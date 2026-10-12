@@ -36,6 +36,7 @@ python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --m
 python src/tool_holders/generate_magnetic_holder.py --units 1 --mount groove --mag-count 2 --mag-dia 19.2 --mag-depth 2.0
 python src/tool_holders/generate_magnetic_holder.py --style perpendicular --units 1 --mag-count 3 --mag-dia 10.2 --mag-depth 2.0 --shelf-depth 70.0
 python src/tool_holders/generate_magnetic_holder.py --style perpendicular --units 1 --mag-count 2 --mag-dia 19.2 --mag-depth 2.0 --shelf-depth 70.0
+python src/tool_holders/generate_sheet_metal_holder.py --units 1 --mount groove --metal-width 25.0
 echo "Generating Multi-Tool Cam Holders..."
 python src/tool_holders/generate_shooo_cam_holder.py --tools 1 --mount groove --tilt-fin
 python src/tool_holders/generate_shooo_cam_holder.py --tools 2 --mount groove --tilt-fin
