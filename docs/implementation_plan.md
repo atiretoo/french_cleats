@@ -1,4 +1,6 @@
-# v2.0-dev: Active Initiatives & Physical Test Print Plan
+# The UNIT System (v2.0-dev): Active Initiatives & Physical Test Print Plan
+**Universal Network of Interchangeable Tool-holders**  
+*(Formerly Modular French Cleat / MFC System)*
 
 ## Executive Summary & Recent Commit Review
 
@@ -26,6 +28,9 @@ Reviewing recent progress on `v2.0-dev` (`cfdf40c` through `dc0ee26`), the v2.0 
    - **Corner Clamp Holder**: Needs thickened spine/gussets (original cracked under load).
    - **Bar / F-Clamp Holder**: Needs wider saddle or anti-rotation wings (clamps currently rotate).
    - **Saw / Thin Tool Cam Holder**: Cam-locking mechanism for thin blades and Japanese saws.
+8. **Ecosystem Rebranding (The UNIT System)**:
+   - Rechristened project as **The UNIT System** (**U**niversal **N**etwork of **I**nterchangeable **T**ool-holders).
+   - Reflects the foundational **`1U = 28.0 mm`** (`UNIT_WIDTH`) codebase grid and cross-system wall interoperability (French cleats, HSW, Multiconnect, Pegboards, Skådis).
 
 ---
 
