@@ -22,7 +22,7 @@ import math
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import create_baseplate, export_model, create_nut_slot, BACKPLATE_THICKNESS
 
-def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
+def create_shooo_cam_holder(num_tools=1):
     # === Shooo's Mechanism Dimensions ===
     block_h = 47.63        # Height protruding from backplate
     block_y = 47.6         # Length along wall
@@ -34,7 +34,7 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
     units = max(1, math.ceil(mech_width / 28.0))
     
     # Baseplate
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(units=units, mount_type=mount_type, num_rows=2)
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units, mount_type="groove", num_rows=2)
     
     # Holes on top face
     reg_hole_dia = 4.508
@@ -154,10 +154,6 @@ def create_shooo_cam_holder(num_tools=1, mount_type="groove"):
         )
         body = body.cut(recesses)
         
-    if mc_solids:
-        for solid in mc_solids:
-            body = body.union(cq.Workplane(solid))
-            
     return body
 
 def add_support_fin(holder, units):
@@ -205,11 +201,10 @@ def add_support_fin(holder, units):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate Shooo cam mechanism holder.")
     parser.add_argument("--tools", type=int, default=1, help="Number of tools to hold")
-    parser.add_argument("--mount", type=str, default="groove", choices=["groove", "multiconnect", "hybrid"], help="Mount type")
     parser.add_argument("--tilt-fin", action="store_true", help="Rotate 45 degrees and model a support fin (avoids horizontal bridge sagging in nut slots)")
     args = parser.parse_args()
 
-    holder = create_shooo_cam_holder(num_tools=args.tools, mount_type=args.mount)
+    holder = create_shooo_cam_holder(num_tools=args.tools)
     
     # mech_width calculation is the same as inside create_shooo_cam_holder
     mech_width = (args.tools + 1) * 12.6 + args.tools * 26.241
@@ -217,8 +212,8 @@ if __name__ == "__main__":
     
     if args.tilt_fin:
         holder = add_support_fin(holder, units)
-        filename = f"shooo_cam_holder_{args.tools}tools_{units}u_{args.mount}_45deg.stl"
+        filename = f"shooo_cam_holder_{args.tools}tools_{units}u_groove_45deg.stl"
         export_model(holder, filename, print_orientation="face_down", category="tool_holders")
     else:
-        filename = f"shooo_cam_holder_{args.tools}tools_{units}u_{args.mount}.stl"
+        filename = f"shooo_cam_holder_{args.tools}tools_{units}u_groove.stl"
         export_model(holder, filename, print_orientation="back_down", category="tool_holders")

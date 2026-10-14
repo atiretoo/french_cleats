@@ -27,7 +27,6 @@ from core_library import (
 
 def create_claw_hammer_holder(
     units=2,
-    mount_type="groove",
     rail_height=DEFAULT_RAIL_HEIGHT,
     head_dia=30.0,
     face_to_handle=48.0,
@@ -37,8 +36,8 @@ def create_claw_hammer_holder(
     shelf_length=None,
     front_claw_lip=15.0,
     claw_elevation=8.0,
-    shelf_thickness=8.0,
-    shelf_drop=60.0,
+    shelf_thickness=5.0,
+    shelf_drop=30.0,
     fillet_radius=4.0,
     fillet_to_dimple=1.0,
     divot_depth=3.0,
@@ -61,11 +60,18 @@ def create_claw_hammer_holder(
        (default: 8.0mm) relative to the rear shelf arm. This compensates for the upward arch
        on the claw side of the hammer head, ensuring the hammer rests completely level
        instead of tilting backward.
-    3. Matching cradles: Both the rear striking shelf and the elevated front claw platform
+    3. Thinned 5mm shelf: Shelf plate thickness is 5.0mm (2.0mm floor at the bottom of the 3.0mm
+       dimple), saving material while retaining full rigidity.
+    4. 30mm shelf drop: Lowering the shelf 30mm from the top places the top of the hammer head
+       flush with the top edge of the holder, clears the top cleat mounting screws by 12mm,
+       and maximizes vertical clearance and brace angle below.
+    5. Matching cradles: Both the rear striking shelf and the elevated front claw platform
        feature 30mm diameter cylindrical cradle dimples to prevent side-to-side wobble.
-    4. Rounded print-friendly edges: Generous 2.5mm fillets round off the top edges of the
+    6. Rounded print-friendly edges: Generous 2.5mm fillets round off the top edges of the
        elevated claw block for printability and smooth tool insertion.
-    5. Support-free printing: Default right_down print orientation rests the flat left side
+    7. Connection-agnostic tool holder: Uses standard groove backplate to mate with cleats
+       and adapters.
+    8. Support-free printing: Default right_down print orientation rests the flat left side
        coplanar on the print bed.
     """
     if divot_radius is None:
@@ -73,9 +79,9 @@ def create_claw_hammer_holder(
         
     width = units * UNIT_WIDTH  # e.g. 2 * 28 = 56mm
     
-    # 1. Baseplate
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(
-        units=units, rail_height=rail_height, mount_type=mount_type, num_rows=2
+    # 1. Baseplate (standard groove interface)
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        units=units, rail_height=rail_height, mount_type="groove", num_rows=2
     )
     
     # Coordinates in Z:
@@ -101,9 +107,9 @@ def create_claw_hammer_holder(
     shelf_extrude_dist = shelf_length - BACKPLATE_THICKNESS
     
     # Coordinates in Y:
-    shelf_top_y = top_y - shelf_drop  # -40.0mm
-    shelf_bot_y = shelf_top_y - shelf_thickness  # -48.0mm
-    elev_top_y = shelf_top_y + claw_elevation  # -32.0mm
+    shelf_top_y = top_y - shelf_drop  # 20.0 - 30.0 = -10.0mm
+    shelf_bot_y = shelf_top_y - shelf_thickness  # -15.0mm
+    elev_top_y = shelf_top_y + claw_elevation  # -2.0mm
     
     # 2. Main Shelf Block
     shelf = (
@@ -253,7 +259,7 @@ def create_claw_hammer_holder(
     )
     body = body.cut(divot_front)
 
-    # 9. Screw Holes (if groove mount)
+    # 9. Screw Holes
     if screw_pts:
         screws = (
             cq.Workplane("XY").workplane(offset=0)
@@ -271,17 +277,11 @@ def create_claw_hammer_holder(
         )
         body = body.cut(recesses)
         
-    # 10. Multiconnect solids (if multiconnect mount)
-    if mc_solids:
-        for solid in mc_solids:
-            body = body.union(cq.Workplane(solid))
-            
     return body
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate French Cleat Claw Hammer Tool Holder")
     parser.add_argument("--units", type=int, default=2, help="Width in units (default: 2, 56mm / ~2.2 in)")
-    parser.add_argument("--mount", type=str, default="groove", choices=["groove", "multiconnect"], help="Mount type")
     parser.add_argument("--rail-height", type=float, default=DEFAULT_RAIL_HEIGHT, help="Rail height in mm")
     parser.add_argument("--head-dia", type=float, default=30.0, help="Hammer striking head diameter in mm (default: 30mm)")
     parser.add_argument("--face-to-handle", type=float, default=48.0, help="Distance from striking face to handle center in mm (default: 48mm)")
@@ -291,7 +291,8 @@ if __name__ == "__main__":
     parser.add_argument("--shelf-length", type=float, default=None, help="Shelf depth from wall in mm (default: auto ~92mm)")
     parser.add_argument("--front-claw-lip", type=float, default=15.0, help="Front claw support platform length in mm (default: 15mm)")
     parser.add_argument("--claw-elevation", type=float, default=8.0, help="Height front claw platform is elevated above rear shelf in mm (default: 8mm)")
-    parser.add_argument("--shelf-drop", type=float, default=60.0, help="Distance shelf is lowered below top of backplate (default: 60mm)")
+    parser.add_argument("--shelf-thickness", type=float, default=5.0, help="Shelf thickness in mm (default: 5.0mm, leaves 2.0mm at dimple floor)")
+    parser.add_argument("--shelf-drop", type=float, default=30.0, help="Distance shelf is lowered below top of backplate (default: 30mm)")
     parser.add_argument("--fillet-radius", type=float, default=4.0, help="Structural fillet radius at backplate in mm (default: 4mm)")
     parser.add_argument("--fillet-to-dimple", type=float, default=1.0, help="Clearance between fillet end and head dimple in mm (default: 1mm)")
     parser.add_argument("--divot-depth", type=float, default=3.0, help="Depth of cylindrical cradle dimple in mm (default: 3.0mm)")
@@ -303,7 +304,6 @@ if __name__ == "__main__":
     
     holder = create_claw_hammer_holder(
         units=args.units,
-        mount_type=args.mount,
         rail_height=args.rail_height,
         head_dia=args.head_dia,
         face_to_handle=args.face_to_handle,
@@ -313,6 +313,7 @@ if __name__ == "__main__":
         shelf_length=args.shelf_length,
         front_claw_lip=args.front_claw_lip,
         claw_elevation=args.claw_elevation,
+        shelf_thickness=args.shelf_thickness,
         shelf_drop=args.shelf_drop,
         fillet_radius=args.fillet_radius,
         fillet_to_dimple=args.fillet_to_dimple,
@@ -320,7 +321,7 @@ if __name__ == "__main__":
         gusset_bottom_offset=args.gusset_bottom_offset
     )
     
-    filename = f"claw_hammer_holder_{args.units}u_{args.mount}.stl"
+    filename = f"claw_hammer_holder_{args.units}u_groove.stl"
     export_model(
         holder,
         filename,

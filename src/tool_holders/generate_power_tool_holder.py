@@ -22,12 +22,12 @@ import math
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
 
-def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length=120.0, mount_type="groove", web_thickness=5.5):
+def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length=120.0, web_thickness=5.5):
     width = units * UNIT_WIDTH
     backplate_thickness = 11.0
     
     # Baseplate
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(units=units, mount_type=mount_type, num_rows=4) # Power tools are heavy, maybe 4 rows for multiconnect
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units, mount_type="groove", num_rows=2)
     
     # Shelf thickness
     shelf_t = 5.0 # Reduced for clearance of screw holes
@@ -185,10 +185,6 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
         )
         body = body.cut(recesses)
         
-    if mc_solids:
-        for solid in mc_solids:
-            body = body.union(cq.Workplane(solid))
-    
     # Finally, rotate it 180 degrees around X so it prints upside down!
     # Baseplate is normally facing Y. If we rotate 180 around X, Y becomes -Y, Z becomes -Z.
     body = body.rotate((0,0,0), (1,0,0), 180)
@@ -201,7 +197,6 @@ if __name__ == "__main__":
     parser.add_argument("--length", type=float, default=140.0)
     parser.add_argument("--slot-width", type=float, default=45.0)
     parser.add_argument("--slot-length", type=float, default=120.0)
-    parser.add_argument("--mount", type=str, default="groove")
     
     args = parser.parse_args()
     
@@ -209,9 +204,8 @@ if __name__ == "__main__":
         units=args.units,
         length=args.length,
         slot_width=args.slot_width,
-        slot_length=args.slot_length,
-        mount_type=args.mount
+        slot_length=args.slot_length
     )
     
-    filename = f"power_tool_holder_{args.units}u_L{args.length}_{args.mount}.stl"
+    filename = f"power_tool_holder_{args.units}u_L{args.length}_groove.stl"
     export_model(holder, filename, print_orientation="top_down", category="tool_holders")

@@ -21,7 +21,7 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
 
-def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groove"):
+def create_clamp_holder(units=3, rail_height=73.0, num_slots=4):
     width = units * UNIT_WIDTH
     
     slot_spacing = 30.0
@@ -31,7 +31,7 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
     
     shelf_depth = num_slots * slot_spacing
     
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(units, rail_height, mount_type=mount_type, num_rows=2)
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units, rail_height, mount_type="groove", num_rows=2)
     
     shelf_top = top_y - 40.0
     shelf_bot = top_y - 50.0
@@ -98,7 +98,7 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
     )
     tool_holder = tool_holder.cut(slots)
     
-    if mount_type == "groove":
+    if screw_pts:
         screws = (
             cq.Workplane("XY").workplane(offset=0)
             .pushPoints(screw_pts)
@@ -114,9 +114,6 @@ def create_clamp_holder(units=3, rail_height=73.0, num_slots=4, mount_type="groo
             .extrude(-200) 
         )
         tool_holder = tool_holder.cut(recesses)
-        
-    for s in slots_to_cut:
-        tool_holder = tool_holder.union(s)
     
     return tool_holder
 
@@ -125,11 +122,10 @@ def main():
     parser.add_argument("--units", type=int, default=3, help="Number of units wide")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
     parser.add_argument("--num-slots", type=int, default=4, help="Number of slots")
-    parser.add_argument("--mount", choices=["groove", "multiconnect"], default="groove", help="Mount type")
     args = parser.parse_args()
     
-    holder = create_clamp_holder(args.units, rail_height=args.rail_height, num_slots=args.num_slots, mount_type=args.mount)
-    filename = f"clamp_holder_{args.units}u_{args.mount}_H{args.rail_height}_{args.num_slots}slots.stl"
+    holder = create_clamp_holder(args.units, rail_height=args.rail_height, num_slots=args.num_slots)
+    filename = f"clamp_holder_{args.units}u_groove_H{args.rail_height}_{args.num_slots}slots.stl"
     export_model(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 
