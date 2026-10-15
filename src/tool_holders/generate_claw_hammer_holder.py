@@ -29,9 +29,9 @@ def create_claw_hammer_holder(
     units=2,
     rail_height=DEFAULT_RAIL_HEIGHT,
     head_dia=30.0,
-    face_to_handle=48.0,
+    face_to_handle=54.5,
     handle_size=25.0,
-    slot_width=26.0,
+    slot_width=29.0,
     slot_entrance_width=42.0,
     shelf_length=None,
     front_claw_lip=15.0,
@@ -284,11 +284,11 @@ if __name__ == "__main__":
     parser.add_argument("--units", type=int, default=2, help="Width in units (default: 2, 56mm / ~2.2 in)")
     parser.add_argument("--rail-height", type=float, default=DEFAULT_RAIL_HEIGHT, help="Rail height in mm")
     parser.add_argument("--head-dia", type=float, default=30.0, help="Hammer striking head diameter in mm (default: 30mm)")
-    parser.add_argument("--face-to-handle", type=float, default=48.0, help="Distance from striking face to handle center in mm (default: 48mm)")
+    parser.add_argument("--face-to-handle", type=float, default=54.5, help="Distance from striking face to handle center in mm (default: 54.5mm)")
     parser.add_argument("--handle-size", type=float, default=25.0, help="Hammer handle neck size in mm")
-    parser.add_argument("--slot-width", type=float, default=26.0, help="Handle slot width in mm (default: 26mm)")
+    parser.add_argument("--slot-width", type=float, default=29.0, help="Handle slot width/depth in mm (default: 29mm)")
     parser.add_argument("--slot-entrance-width", type=float, default=42.0, help="Entrance mouth width in mm (default: 42mm)")
-    parser.add_argument("--shelf-length", type=float, default=None, help="Shelf depth from wall in mm (default: auto ~92mm)")
+    parser.add_argument("--shelf-length", type=float, default=None, help="Shelf depth from wall in mm (default: auto ~100mm)")
     parser.add_argument("--front-claw-lip", type=float, default=15.0, help="Front claw support platform length in mm (default: 15mm)")
     parser.add_argument("--claw-elevation", type=float, default=8.0, help="Height front claw platform is elevated above rear shelf in mm (default: 8mm)")
     parser.add_argument("--shelf-thickness", type=float, default=5.0, help="Shelf thickness in mm (default: 5.0mm, leaves 2.0mm at dimple floor)")
