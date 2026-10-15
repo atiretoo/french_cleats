@@ -34,6 +34,7 @@ from core_library import (
     get_bottom_edge_y,
     create_nut_slot,
     export_model,
+    NUT_SLOT_TOLERANCE,
 )
 
 # Default dimensions for the shelf-edge dovetail pocket
@@ -565,7 +566,7 @@ def create_shelf_edge_adapter(
         with_screws = False
         screw_d, nut_waf, nut_thick = 3.4, 5.5, 2.4
 
-    slot_t = nut_thick + 0.1
+    slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 4.0 + slot_t / 2.0
 
     y_top = BACKPLATE_TOP_Y

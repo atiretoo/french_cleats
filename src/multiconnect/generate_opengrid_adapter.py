@@ -20,7 +20,7 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import (
     UNIT_WIDTH, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR,
-    RIDGE_HEIGHT, RIDGE_SURFACE_HALF_WIDTH, RIDGE_PEAK_HALF_WIDTH
+    RIDGE_HEIGHT, RIDGE_SURFACE_HALF_WIDTH, RIDGE_PEAK_HALF_WIDTH, NUT_SLOT_TOLERANCE
 )
 
 def load_mc_block(filename, opengrid_path=None):
@@ -157,7 +157,7 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     adapter = adapter.union(bot_ridge)
     
     # Nut slots and screw holes
-    slot_t = nut_thick + 0.1
+    slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 2.0 + slot_t / 2.0
     
     import math

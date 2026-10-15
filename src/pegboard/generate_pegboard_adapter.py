@@ -5,7 +5,7 @@ import math
 import cadquery as cq
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_stl, create_nut_slot, create_snap_fit_peg_parameterized
+from core_library import export_stl, create_nut_slot, create_snap_fit_peg_parameterized, NUT_SLOT_TOLERANCE
 
 def create_adapter(units=2, rail_height=73.0, screw_m="M3", top_hook="arc", top_hook_dia=6.5, bot_peg="snap", snap_dia=7.65):
     unit_width = 28.0
@@ -124,7 +124,7 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", top_hook="arc", top_
             adapter = adapter.union(snap_peg).union(cq.Workplane(snap_embed))
         
     # Nut slots and screw holes
-    slot_t = nut_thick + 0.1
+    slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 2.0 + slot_t / 2.0
     
     for i in range(units):

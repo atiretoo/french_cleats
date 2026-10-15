@@ -34,6 +34,7 @@ from core_library import (
     RIDGE_PEAK_HALF_WIDTH,
     DEFAULT_RAIL_HEIGHT,
     RAIL_PLAY,
+    NUT_SLOT_TOLERANCE,
     get_bottom_groove_y,
     get_bottom_edge_y,
     get_backplate_height,
@@ -119,7 +120,7 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
     else:
         raise ValueError(f"Unsupported screw size: {screw_m}")
         
-    slot_t = nut_thick + 0.1
+    slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 4.0 + slot_t / 2.0
     backplate_thickness = max(8.0, 4.0 + slot_t + 1.2)
     

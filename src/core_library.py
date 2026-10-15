@@ -49,6 +49,9 @@ RIDGE_HEIGHT = GROOVE_DEPTH - RIDGE_DEPTH_CLEARANCE                   # 2.20mm
 RIDGE_SURFACE_HALF_WIDTH = GROOVE_SURFACE_HALF_WIDTH - RIDGE_SIDE_CLEARANCE  # 3.30mm (6.60mm base width)
 RIDGE_PEAK_HALF_WIDTH = RIDGE_SURFACE_HALF_WIDTH - RIDGE_HEIGHT       # 1.10mm (2.20mm flat crest at 45 deg)
 
+# Metric Captive Nut Slot Tolerances
+NUT_SLOT_TOLERANCE = 0.3                # +0.3mm tolerance along both axes (5.80mm x 2.70mm for M3)
+
 # Backward compatibility aliases
 RIDGE_DEPTH = RIDGE_HEIGHT
 RIDGE_CLEARANCE = RIDGE_DEPTH_CLEARANCE
@@ -302,8 +305,8 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
     else:
         raise ValueError(f"Unsupported screw size: {screw_m}")
         
-    slot_w = nut_waf + 0.1
-    slot_t = nut_thick + 0.1
+    slot_w = nut_waf + NUT_SLOT_TOLERANCE
+    slot_t = nut_thick + NUT_SLOT_TOLERANCE
     
     # Distance from center to point of hexagon
     nut_point_dist = (nut_waf / 2.0) / math.cos(math.radians(30))

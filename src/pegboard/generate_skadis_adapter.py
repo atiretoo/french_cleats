@@ -5,7 +5,7 @@ import math
 import cadquery as cq
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_stl, create_nut_slot
+from core_library import export_stl, create_nut_slot, NUT_SLOT_TOLERANCE
 
 # Print orientation constants:
 # Modeled flat: back face at Z = plate_thickness, hooks pointing into +Z.
@@ -200,7 +200,7 @@ def create_skadis_adapter(units=2, rail_height=73.0, screw_m="M3", hook_dia=4.8,
         adapter = adapter.union(top_hook).union(bot_peg_full)
 
     # Nut slots and screw holes
-    slot_t = nut_thick + 0.1
+    slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 2.0 + slot_t / 2.0
 
     for i in range(units):
