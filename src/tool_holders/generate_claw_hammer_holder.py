@@ -29,10 +29,10 @@ def create_claw_hammer_holder(
     units=2,
     rail_height=DEFAULT_RAIL_HEIGHT,
     head_dia=30.0,
-    face_to_handle=54.5,
+    face_to_handle=60.0,
     handle_size=25.0,
-    slot_width=29.0,
-    slot_entrance_width=42.0,
+    slot_width=40.0,
+    slot_entrance_width=50.0,
     shelf_length=None,
     front_claw_lip=15.0,
     claw_elevation=8.0,
@@ -204,9 +204,10 @@ def create_claw_hammer_holder(
     body = body.cut(gusset_cutout)
 
     # 7. Handle Slot Cutter (cuts through both elevated block and shelf)
-    x_seat = -6.0
+    x_dimple = -6.0
+    x_slot_back = -20.0  # Stops 3mm before left brace web (at X = -23.0)
     x_mouth = width / 2.0 + 5.0
-    x_taper_start = 10.0
+    x_taper_start = 12.0
     
     w_half_mouth = slot_entrance_width / 2.0
     w_half_slot = slot_width / 2.0
@@ -214,8 +215,8 @@ def create_claw_hammer_holder(
     slot_poly_pts = [
         (z_handle - w_half_mouth, x_mouth),
         (z_handle - w_half_slot, x_taper_start),
-        (z_handle - w_half_slot, x_seat),
-        (z_handle + w_half_slot, x_seat),
+        (z_handle - w_half_slot, x_slot_back),
+        (z_handle + w_half_slot, x_slot_back),
         (z_handle + w_half_slot, x_taper_start),
         (z_handle + w_half_mouth, x_mouth),
     ]
@@ -226,13 +227,13 @@ def create_claw_hammer_holder(
         .polyline(slot_poly_pts).close()
         .extrude(-slot_cutter_height)
     )
-    seat_cutter = (
-        cq.Workplane("ZX", origin=(0, elev_top_y + 2.0, 0))
-        .moveTo(z_handle, x_seat)
-        .circle(w_half_slot)
-        .extrude(-slot_cutter_height)
-    )
-    body = body.cut(slot_cutter).cut(seat_cutter)
+    back_edges = [e for e in slot_cutter.edges("|Y").vals() if abs(e.BoundingBox().xmin - x_slot_back) < 0.1]
+    if back_edges:
+        try:
+            slot_cutter = slot_cutter.newObject(back_edges).fillet(5.0)
+        except Exception:
+            pass
+    body = body.cut(slot_cutter)
     
     # 8. Cylindrical Cradle Dimples
     # Rear dimple for striking face neck: starts at dimple_start_z, extends to slot
@@ -241,7 +242,7 @@ def create_claw_hammer_holder(
     divot_rear = (
         cq.Workplane("XY")
         .workplane(offset=dimple_start_z)
-        .moveTo(x_seat, divot_rear_y)
+        .moveTo(x_dimple, divot_rear_y)
         .circle(divot_radius)
         .extrude(-divot_rear_len)
     )
@@ -253,7 +254,7 @@ def create_claw_hammer_holder(
     divot_front = (
         cq.Workplane("XY")
         .workplane(offset=z_slot_front + 2.0)
-        .moveTo(x_seat, divot_front_y)
+        .moveTo(x_dimple, divot_front_y)
         .circle(divot_radius)
         .extrude(-divot_front_len)
     )
@@ -284,11 +285,11 @@ if __name__ == "__main__":
     parser.add_argument("--units", type=int, default=2, help="Width in units (default: 2, 56mm / ~2.2 in)")
     parser.add_argument("--rail-height", type=float, default=DEFAULT_RAIL_HEIGHT, help="Rail height in mm")
     parser.add_argument("--head-dia", type=float, default=30.0, help="Hammer striking head diameter in mm (default: 30mm)")
-    parser.add_argument("--face-to-handle", type=float, default=54.5, help="Distance from striking face to handle center in mm (default: 54.5mm)")
+    parser.add_argument("--face-to-handle", type=float, default=60.0, help="Distance from striking face to handle center in mm (default: 60.0mm)")
     parser.add_argument("--handle-size", type=float, default=25.0, help="Hammer handle neck size in mm")
-    parser.add_argument("--slot-width", type=float, default=29.0, help="Handle slot width/depth in mm (default: 29mm)")
-    parser.add_argument("--slot-entrance-width", type=float, default=42.0, help="Entrance mouth width in mm (default: 42mm)")
-    parser.add_argument("--shelf-length", type=float, default=None, help="Shelf depth from wall in mm (default: auto ~100mm)")
+    parser.add_argument("--slot-width", type=float, default=40.0, help="Handle slot width/depth in mm (default: 40mm)")
+    parser.add_argument("--slot-entrance-width", type=float, default=50.0, help="Entrance mouth width in mm (default: 50mm)")
+    parser.add_argument("--shelf-length", type=float, default=None, help="Shelf depth from wall in mm (default: auto ~111mm)")
     parser.add_argument("--front-claw-lip", type=float, default=15.0, help="Front claw support platform length in mm (default: 15mm)")
     parser.add_argument("--claw-elevation", type=float, default=8.0, help="Height front claw platform is elevated above rear shelf in mm (default: 8mm)")
     parser.add_argument("--shelf-thickness", type=float, default=5.0, help="Shelf thickness in mm (default: 5.0mm, leaves 2.0mm at dimple floor)")
