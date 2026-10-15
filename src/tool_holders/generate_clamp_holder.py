@@ -26,9 +26,10 @@ def create_clamp_holder(
     rail_height=73.0,
     num_slots=4,
     slot_width=8.0,
+    slot_depth=45.0,
     slot_spacing=30.0,
     bump_height=10.0,
-    bump_width=14.0,
+    bump_flat_width=14.0,
     brace_thickness=5.0,
     mount_type="groove",
 ):
@@ -71,24 +72,28 @@ def create_clamp_holder(
     )
     tool_holder = tool_holder.union(shelf)
 
-    # Bump along the left edge of the shelf to support the back of the clamp head
-    bump_pts = [
-        (shelf_top, -BACKPLATE_THICKNESS),
-        (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
-        (shelf_top + bump_height, -BACKPLATE_THICKNESS - shelf_depth),
-        (shelf_top + bump_height, -BACKPLATE_THICKNESS),
+    # Bump along the right edge of the shelf where the slots open.
+    # The side facing towards the left side angles up at 45 degrees so no supports are needed when printed left_down.
+    x_right = width / 2.0
+    x_flat_start = x_right - bump_flat_width
+    x_slope_start = x_flat_start - bump_height  # 45-degree angle: rise == run
+
+    bump_profile = [
+        (x_slope_start, shelf_top),
+        (x_flat_start, shelf_top + bump_height),
+        (x_right, shelf_top + bump_height),
+        (x_right, shelf_top),
     ]
+
     bump = (
-        cq.Workplane("YZ")
-        .polyline(bump_pts)
+        cq.Workplane("XY", origin=(0, 0, -BACKPLATE_THICKNESS))
+        .polyline(bump_profile)
         .close()
-        .extrude(bump_width)
-        .translate((-width / 2, 0, 0))
+        .extrude(-shelf_depth)
     )
     tool_holder = tool_holder.union(bump)
 
     brace_inner_x = -width / 2 + brace_thickness
-    bump_inner_x = -width / 2 + bump_width
 
     class FilletSelector(cq.Selector):
         def filter(self, objectList):
@@ -112,18 +117,18 @@ def create_clamp_holder(
     except Exception:
         pass
 
-    # Cut the slots: from bump_inner_x through the right edge (plus 5mm extra overhang)
-    cut_length = (width / 2 + 5.0) - bump_inner_x
-    slot_x = bump_inner_x + cut_length / 2.0
+    # Cut the slots on the right side where the bump and slot openings are located
+    cut_length = slot_depth + 5.0
+    slot_x = (x_right - slot_depth) + cut_length / 2.0
 
     slot_centers_z = [-BACKPLATE_THICKNESS - 15 - i * slot_spacing for i in range(num_slots)]
     slot_pts = [(z, slot_x) for z in slot_centers_z]
 
     slots = (
-        cq.Workplane("ZX", origin=(0, shelf_top + 1, 0))
+        cq.Workplane("ZX", origin=(0, shelf_top + bump_height + 2.0, 0))
         .pushPoints(slot_pts)
         .rect(slot_width, cut_length)
-        .extrude(-20)
+        .extrude(-35.0)
     )
     tool_holder = tool_holder.cut(slots)
 
@@ -157,9 +162,10 @@ def main():
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
     parser.add_argument("--num-slots", type=int, default=4, help="Number of slots")
     parser.add_argument("--slot-width", type=float, default=8.0, help="Width of slots for clamp bars in mm (default: 8.0)")
+    parser.add_argument("--slot-depth", type=float, default=45.0, help="Depth of slots from open edge in mm (default: 45.0)")
     parser.add_argument("--slot-spacing", type=float, default=30.0, help="Center-to-center spacing of slots in mm (default: 30.0)")
     parser.add_argument("--bump-height", type=float, default=10.0, help="Height of bump above shelf in mm (default: 10.0)")
-    parser.add_argument("--bump-width", type=float, default=14.0, help="Width of bump along left shelf edge in mm (default: 14.0)")
+    parser.add_argument("--bump-flat-width", type=float, default=14.0, help="Width of flat top of bump in mm (default: 14.0)")
     parser.add_argument("--mount", choices=["groove", "multiconnect"], default="groove", help="Mount type")
     parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format")
     parser.add_argument("--print-orientation", type=str, default="left_down", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down", "none"], help="Print orientation for STL export")
@@ -170,9 +176,10 @@ def main():
         rail_height=args.rail_height,
         num_slots=args.num_slots,
         slot_width=args.slot_width,
+        slot_depth=args.slot_depth,
         slot_spacing=args.slot_spacing,
         bump_height=args.bump_height,
-        bump_width=args.bump_width,
+        bump_flat_width=args.bump_flat_width,
         mount_type=args.mount,
     )
     filename = f"clamp_holder_{args.units}u_{args.mount}_H{args.rail_height}_{args.num_slots}slots.stl"
