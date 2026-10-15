@@ -17,6 +17,8 @@
 import cadquery as cq
 import os
 
+NUT_SLOT_TOLERANCE = 0.3  # +0.3mm tolerance along both axes (5.80mm x 2.70mm for M3)
+
 def load_mc_block(filename):
     path = os.path.join(os.path.dirname(__file__), '../../opengrid/Multiconnect Modeling Files', filename)
     model = cq.importers.importStep(path).val()
@@ -207,8 +209,8 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
     else:
         raise ValueError(f"Unsupported screw size: {screw_m}")
         
-    slot_w = nut_waf + 0.1
-    slot_t = nut_thick + 0.1
+    slot_w = nut_waf + NUT_SLOT_TOLERANCE
+    slot_t = nut_thick + NUT_SLOT_TOLERANCE
     
     # Distance from center to point of hexagon
     nut_point_dist = (nut_waf / 2.0) / math.cos(math.radians(30))
