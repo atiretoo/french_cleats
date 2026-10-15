@@ -281,7 +281,7 @@ def export_model(shape, filename, category="", export="both", print_orientation=
         print(f"Exported {out_path_stl}")
 
 
-def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.0):
+def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.0, push_hole_dia=2.0):
     """
     Creates a nut capture slot (and optional push hole) centered at (0,0,0).
     - The bolt passes through the Z-axis.
@@ -313,15 +313,21 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
     result = cq.Workplane(slot)
     
     if push_hole:
-        # Create a 1.5mm cylinder starting at Y = -nut_point_dist and extending downwards (negative Y)
+        # Create a cylinder starting at Y = -nut_point_dist and extending downwards (negative Y)
         # We will make it 100mm long to ensure it pierces the outer wall.
-        cyl = cq.Solid.makeCylinder(0.75, 100.0, cq.Vector(0, 0, 0), cq.Vector(0, -1, 0))
+        cyl_r = push_hole_dia / 2.0
+        cyl = cq.Solid.makeCylinder(cyl_r, 100.0, cq.Vector(0, 0, 0), cq.Vector(0, -1, 0))
         cyl = cyl.translate((0, -nut_point_dist, 0))
         
         if push_hole_angle != 0.0:
-            # Rotate around X axis. 
-            # If angle > 0, it rotates towards +Z.
-            cyl = cyl.rotate(cq.Vector(0, -nut_point_dist, 0), cq.Vector(1, 0, 0), push_hole_angle)
+            # Rotate around X-axis passing through (0, -nut_point_dist, 0).
+            # Note: cq.Shape.rotate takes (startVector, endVector). To define an axis along +X,
+            # endVector must be startVector + (1, 0, 0).
+            cyl = cyl.rotate(
+                cq.Vector(0, -nut_point_dist, 0),
+                cq.Vector(1, -nut_point_dist, 0),
+                push_hole_angle,
+            )
             
         result = result.union(cq.Workplane(cyl))
         
