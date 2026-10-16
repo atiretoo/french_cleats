@@ -23,7 +23,6 @@ from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, expo
 
 def create_sheet_metal_holder(
     units=1,
-    mount_type="groove",
     shelf_thickness=4.0,
     shelf_side="right",
     metal_width=25.0,
@@ -67,8 +66,8 @@ def create_sheet_metal_holder(
         v_width = pocket_depth - vert_depth
 
     # 1. Baseplate
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(
-        units=units, mount_type=mount_type, num_rows=2
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        units=units, mount_type="groove", num_rows=2
     )
 
     back_z = -BACKPLATE_THICKNESS # -11.0
@@ -236,11 +235,6 @@ def create_sheet_metal_holder(
         )
         body = body.cut(recesses)
 
-    # 9. Multiconnect solids
-    if mc_solids:
-        for solid in mc_solids:
-            body = body.union(cq.Workplane(solid))
-
     return body
 
 if __name__ == "__main__":
@@ -248,7 +242,6 @@ if __name__ == "__main__":
         description="Generate French Cleat tool holder with top slide-in 45-degree V-grooves for 26 gauge sheet metal."
     )
     parser.add_argument("--units", type=int, default=1, help="Number of units wide (default: 1)")
-    parser.add_argument("--mount", type=str, default="groove", choices=["groove", "multiconnect", "hybrid"], help="Mount type")
     parser.add_argument("--shelf-thickness", type=float, default=4.0, help="Thickness of perpendicular shelf plate in mm (default: 4.0)")
     parser.add_argument("--shelf-side", type=str, default="right", choices=["right", "left"], help="Side of tool holder for shelf projection (default: right)")
     parser.add_argument("--metal-width", type=float, default=25.0, help="Nominal width of sheet metal strip in mm (default: 25.0)")
@@ -276,7 +269,6 @@ if __name__ == "__main__":
 
     holder = create_sheet_metal_holder(
         units=args.units,
-        mount_type=args.mount,
         shelf_thickness=args.shelf_thickness,
         shelf_side=args.shelf_side,
         metal_width=args.metal_width,
@@ -299,7 +291,7 @@ if __name__ == "__main__":
     filename = (
         f"sheet_metal_tool_holder_{args.units}u_"
         f"{int(args.metal_width)}mm_top_insert_"
-        f"D{args.pocket_depth:.2f}xV{v_w:.1f}{side_suffix}_{args.mount}.stl"
+        f"D{args.pocket_depth:.2f}xV{v_w:.1f}{side_suffix}_groove.stl"
     )
 
     # In default right_down print orientation, the outer face of the projection rests flat on the print bed

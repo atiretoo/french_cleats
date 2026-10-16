@@ -23,7 +23,6 @@ from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, expo
 
 def create_magnetic_holder(
     units=1,
-    mount_type="groove",
     mag_count=2,
     mag_dia=10.2,
     mag_depth=2.0,
@@ -50,7 +49,7 @@ def create_magnetic_holder(
     width = units * UNIT_WIDTH
     
     # Baseplate
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(units=units, mount_type=mount_type, num_rows=2)
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units, mount_type="groove", num_rows=2)
     
     if style == "flat":
         # Calculate magnet positions on baseplate front face
@@ -176,17 +175,12 @@ def create_magnetic_holder(
             .extrude(-20) 
         )
         body = body.cut(recesses)
-        
-    if mc_solids:
-        for solid in mc_solids:
-            body = body.union(cq.Workplane(solid))
             
     return body
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate magnetic tool holder.")
     parser.add_argument("--units", type=int, default=1, help="Number of units wide")
-    parser.add_argument("--mount", type=str, default="groove", choices=["groove", "multiconnect", "hybrid"], help="Mount type")
     parser.add_argument("--mag-count", type=int, default=2, help="Number of magnets")
     parser.add_argument("--mag-dia", type=float, default=10.2, help="Diameter of magnet hole (including tolerance)")
     parser.add_argument("--mag-depth", type=float, default=2.0, help="Depth of magnet hole")
@@ -210,7 +204,6 @@ if __name__ == "__main__":
 
     holder = create_magnetic_holder(
         units=args.units, 
-        mount_type=args.mount,
         mag_count=args.mag_count,
         mag_dia=args.mag_dia,
         mag_depth=args.mag_depth,
@@ -224,10 +217,10 @@ if __name__ == "__main__":
     )
     
     if args.style == "perpendicular":
-        filename = f"magnetic_saw_holder_perp_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}_{int(args.shelf_depth)}mm_{args.mount}.stl"
+        filename = f"magnetic_saw_holder_perp_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}_{int(args.shelf_depth)}mm_groove.stl"
         default_orient = "right_down" if args.shelf_side == "right" else "left_down"
     else:
-        filename = f"magnetic_saw_holder_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}_{args.mount}.stl"
+        filename = f"magnetic_saw_holder_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}_groove.stl"
         default_orient = "left_down"
         
     orient = args.print_orientation if args.print_orientation is not None else default_orient

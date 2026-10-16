@@ -31,15 +31,13 @@ def create_clamp_holder(
     bump_height=10.0,
     bump_flat_width=24.0,
     brace_thickness=5.0,
-    mount_type="groove",
 ):
     width = units * UNIT_WIDTH
     shelf_depth = num_slots * slot_spacing
 
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(
-        units, rail_height, mount_type=mount_type, num_rows=2
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        units, rail_height, mount_type="groove", num_rows=2
     )
-
     shelf_top = top_y - 40.0
     shelf_bot = top_y - 50.0
 
@@ -131,8 +129,7 @@ def create_clamp_holder(
         .extrude(-35.0)
     )
     tool_holder = tool_holder.cut(slots)
-
-    if mount_type == "groove":
+    if screw_pts:
         screws = (
             cq.Workplane("XY")
             .workplane(offset=0)
@@ -151,9 +148,6 @@ def create_clamp_holder(
         )
         tool_holder = tool_holder.cut(recesses)
 
-    for s in slots_to_cut:
-        tool_holder = tool_holder.union(s)
-
     return tool_holder
 
 def main():
@@ -166,7 +160,6 @@ def main():
     parser.add_argument("--slot-spacing", type=float, default=30.0, help="Center-to-center spacing of slots in mm (default: 30.0)")
     parser.add_argument("--bump-height", type=float, default=10.0, help="Height of bump above shelf in mm (default: 10.0)")
     parser.add_argument("--bump-flat-width", type=float, default=24.0, help="Width of flat top of bump in mm (default: 24.0)")
-    parser.add_argument("--mount", choices=["groove", "multiconnect"], default="groove", help="Mount type")
     parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format")
     parser.add_argument("--print-orientation", type=str, default="left_down", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down", "none"], help="Print orientation for STL export")
     args = parser.parse_args()
@@ -180,9 +173,8 @@ def main():
         slot_spacing=args.slot_spacing,
         bump_height=args.bump_height,
         bump_flat_width=args.bump_flat_width,
-        mount_type=args.mount,
     )
-    filename = f"clamp_holder_{args.units}u_{args.mount}_H{args.rail_height}_{args.num_slots}slots.stl"
+    filename = f"clamp_holder_{args.units}u_groove_H{args.rail_height}_{args.num_slots}slots.stl"
     export_model(holder, filename, category="tool_holders", print_orientation=args.print_orientation, export=args.export)
     print(f"Exported {filename}")
 

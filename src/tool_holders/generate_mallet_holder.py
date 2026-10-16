@@ -27,7 +27,6 @@ from core_library import (
 
 def create_mallet_holder(
     units=3,
-    mount_type="groove",
     rail_height=DEFAULT_RAIL_HEIGHT,
     head_length=95.0,
     head_dia=60.0,
@@ -64,8 +63,8 @@ def create_mallet_holder(
     width = units * UNIT_WIDTH  # e.g. 3 * 28 = 84mm (~3.3 inches)
     
     # 1. Baseplate
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(
-        units=units, rail_height=rail_height, mount_type=mount_type, num_rows=2
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        units=units, rail_height=rail_height, mount_type="groove", num_rows=2
     )
     
     # Coordinates in Z:
@@ -217,17 +216,11 @@ def create_mallet_holder(
         )
         body = body.cut(recesses)
         
-    # 9. Multiconnect solids (if multiconnect mount)
-    if mc_solids:
-        for solid in mc_solids:
-            body = body.union(cq.Workplane(solid))
-            
     return body
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate French Cleat Mallet Tool Holder")
     parser.add_argument("--units", type=int, default=3, help="Width in units (default: 3, 84mm / ~3.3 in)")
-    parser.add_argument("--mount", type=str, default="groove", choices=["groove", "multiconnect"], help="Mount type")
     parser.add_argument("--rail-height", type=float, default=DEFAULT_RAIL_HEIGHT, help="Rail height in mm")
     parser.add_argument("--head-length", type=float, default=95.0, help="Mallet head length in mm")
     parser.add_argument("--head-dia", type=float, default=60.0, help="Mallet head diameter in mm")
@@ -244,7 +237,6 @@ if __name__ == "__main__":
     
     holder = create_mallet_holder(
         units=args.units,
-        mount_type=args.mount,
         rail_height=args.rail_height,
         head_length=args.head_length,
         head_dia=args.head_dia,
@@ -256,8 +248,7 @@ if __name__ == "__main__":
         gusset_bottom_offset=args.gusset_bottom_offset
     )
 
-    
-    filename = f"mallet_holder_{args.units}u_{args.mount}.stl"
+    filename = f"mallet_holder_{args.units}u_groove.stl"
     export_model(
         holder,
         filename,
