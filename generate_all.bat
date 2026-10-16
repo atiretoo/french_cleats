@@ -17,7 +17,7 @@ python src/tool_holders/generate_screwdriver_holder.py --width-units 1 --depth-u
 python src/tool_holders/generate_screwdriver_holder.py --width-units 1 --depth-units 6 --hole-spacing 26 --hole-sizes 20,18,15.5,15,14,10 --recess-size 23 --recess-depth 1
 
 echo Generating Clamp Holders...
-python src/tool_holders/generate_clamp_holder.py --units 3 --num-slots 4 --mount groove
+python src/tool_holders/generate_clamp_holder.py --units 4 --num-slots 4 --mount groove
 
 echo Generating Chisel Holders...
 python src/tool_holders/generate_chisel_holder.py --tools 4 --spacing 35.0 --shelf-pos mid
