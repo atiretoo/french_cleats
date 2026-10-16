@@ -26,10 +26,10 @@ def create_clamp_holder(
     rail_height=73.0,
     num_slots=4,
     slot_width=8.0,
-    slot_depth=45.0,
+    slot_depth=55.0,
     slot_spacing=30.0,
     bump_height=10.0,
-    bump_flat_width=14.0,
+    bump_flat_width=24.0,
     brace_thickness=5.0,
     mount_type="groove",
 ):
@@ -162,10 +162,10 @@ def main():
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
     parser.add_argument("--num-slots", type=int, default=4, help="Number of slots")
     parser.add_argument("--slot-width", type=float, default=8.0, help="Width of slots for clamp bars in mm (default: 8.0)")
-    parser.add_argument("--slot-depth", type=float, default=45.0, help="Depth of slots from open edge in mm (default: 45.0)")
+    parser.add_argument("--slot-depth", type=float, default=55.0, help="Depth of slots from open edge in mm (default: 55.0)")
     parser.add_argument("--slot-spacing", type=float, default=30.0, help="Center-to-center spacing of slots in mm (default: 30.0)")
     parser.add_argument("--bump-height", type=float, default=10.0, help="Height of bump above shelf in mm (default: 10.0)")
-    parser.add_argument("--bump-flat-width", type=float, default=14.0, help="Width of flat top of bump in mm (default: 14.0)")
+    parser.add_argument("--bump-flat-width", type=float, default=24.0, help="Width of flat top of bump in mm (default: 24.0)")
     parser.add_argument("--mount", choices=["groove", "multiconnect"], default="groove", help="Mount type")
     parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format")
     parser.add_argument("--print-orientation", type=str, default="left_down", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down", "none"], help="Print orientation for STL export")
