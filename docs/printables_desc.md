@@ -33,7 +33,17 @@ This system solves both issues by utilizing a **two-part modular design**:
 
 ---
 
-## Included Components (Release v1.2.1)
+## What's New in v1.2.2
+
+* **Improved Nut Slot & Hole Tolerances:** Captive nut slots across all cleats and holders have been widened to **5.80 mm × 2.70 mm** (+0.3 mm tolerance on both axes for standard M3 hex nuts) and screw clearance holes set to **∅3.4 mm**. This resolves overly tight fits or layer splitting during nut insertion while still maintaining solid friction retention under mild force.
+* **Pre-Oriented Slicing Defaults:** Audited and fixed default orientations for all exported models. `screwdriver_holder`, `slot_holder`, and `hook` now default to printing flat on their sides (`right_down`), enabling 100% support-free prints with continuous filament lines along the gusset. `opengrid_adapter` now defaults to `top_down`.
+* **Power Tool Holder Geometry Fix:** Fixed a coordinate bug on the ZX workplane slot cutter that previously caused the U-cradle cutout to cut backwards into the shelf.
+* **Magnetic Tool Holder Renaming:** Output files renamed from `_M` to `_Mags` to avoid confusion with metric screw sizes.
+* **Cleanup:** Removed fragile 2.5 mm clamp holders from batch export pending reinforced v2.0 redesign.
+
+---
+
+## Included Components (Release v1.2.2)
 
 ### 1. Modular Cleat Mounts
 * **Top Cleats (1U, 2U, 3U, 4U):** Sit on the wall rail's 45° top bevel. Incorporates the self-aligning trapezoidal ridge and rear slots for standard M3 hex nuts.

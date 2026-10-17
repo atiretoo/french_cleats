@@ -1,5 +1,5 @@
 # Modular French Cleat (MFC) System
-**Version 1.2.1**
+**Version 1.2.2**
 
 A fully parametric, modular 3D printed French Cleat organization system.
 
