@@ -17,7 +17,7 @@
 import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl, create_nut_slot
+from core_library import create_baseplate, export_stl, create_nut_slot, NUT_SLOT_TOLERANCE
 import argparse
 import os
 
@@ -69,7 +69,7 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
         elif screw_m == "M5":
             screw_d, nut_waf, nut_thick = 5.5, 8.0, 4.0
             
-        slot_t = nut_thick + 0.1
+        slot_t = nut_thick + NUT_SLOT_TOLERANCE
         slot_z_center = 4.0 + slot_t / 2.0
         
         for i in range(units):
@@ -126,7 +126,7 @@ def create_bottom_cleat(units=2, rail_thickness=19.0, screw_m="M3"):
         .translate((-width/2, 0, 0))
     )
     
-    slot_t = nut_thick + 0.1
+    slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 4.0 + slot_t / 2.0
     
     for i in range(units):
