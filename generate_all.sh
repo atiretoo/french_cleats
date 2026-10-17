@@ -46,6 +46,9 @@ python src/tool_holders/generate_shooo_cam_holder.py --tools 4 --mount groove --
 echo "Generating Hook Holders..."
 python src/tool_holders/generate_hook.py --width-units 1 --length-units 4 --diameter 10.0 --slope 5.0
 
+echo "Generating Hose and Extension Cord Holders..."
+python src/tool_holders/generate_hose_holder.py --units 7 --depth 150.0
+
 echo "Generating HSW Cleat Adapters..."
 python src/hsw/generate_hsw_cleat_adapter.py --hsw-orientation standard
 python src/hsw/generate_hsw_cleat_adapter.py --hsw-orientation rotated
