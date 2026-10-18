@@ -63,112 +63,115 @@ def add_support_fins(holder, width_units, depth_units, bottom_groove_y, top_y):
     return holder
 def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clearance=10.0, rail_height=73.0):
     brace_thickness = 2.5
-    
+
     width = width_units * UNIT_WIDTH
     shelf_depth = depth_units * UNIT_WIDTH
-    
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(width_units, rail_height, mount_type="groove", num_rows=2)
-    
+
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        width_units, rail_height, mount_type="groove", num_rows=2
+    )
+
     shelf_top = top_y - 40.0
     shelf_bot = top_y - 45.0
-    
+
     shelf_pts = [
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
         (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
-        (shelf_top, -BACKPLATE_THICKNESS)
+        (shelf_top, -BACKPLATE_THICKNESS),
     ]
-    shelf = (
-        cq.Workplane("YZ")
-        .polyline(shelf_pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
-    )
-    
-    tool_holder = tool_holder.union(shelf)
-    
-    # Braces
     brace_pts = [
         (bottom_y, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS),
-        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
     ]
-    brace_x_positions = [-width/2 + brace_thickness/2]
+
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .polyline(shelf_pts)
+        .close()
+        .extrude(-width)
+    )
+
+    brace_offsets = [(-width, brace_thickness)]
     if width_units > 1:
-        brace_x_positions.append(width/2 - brace_thickness/2)
-                    
-    for x_pos in brace_x_positions:
-        brace = (
-            cq.Workplane("YZ")
-            .polyline(brace_pts).close()
-            .extrude(brace_thickness)
-            .translate((x_pos - brace_thickness/2.0, 0, 0))
+        brace_offsets.append((0.0, -brace_thickness))
+
+    cutout_sketch = None
+    if depth_units > 2:
+        try:
+            cutout_sketch = (
+                cq.Sketch()
+                .polygon(brace_pts)
+                .wires()
+                .offset(-15.0, mode="r")
+                .reset()
+                .vertices()
+                .fillet(8.0)
+            )
+        except Exception:
+            cutout_sketch = None
+
+    for wp_offset, extrude_dist in brace_offsets:
+        tool_holder = (
+            tool_holder
+            .faces(">X")
+            .workplane(offset=wp_offset, centerOption="ProjectedOrigin")
+            .polyline(brace_pts)
+            .close()
+            .extrude(extrude_dist)
         )
-        tool_holder = tool_holder.union(brace)
-        if depth_units > 2:
-            try:
-                cutout = (
-                    cq.Workplane("YZ")
-                    .polyline(brace_pts).close()
-                    .offset2D(-15.0)
-                    .extrude(brace_thickness + 2.0)
-                    .translate((x_pos - brace_thickness/2.0 - 1.0, 0, 0))
-                )
-                cutout = cutout.edges('|X').fillet(8.0)
-                tool_holder = tool_holder.cut(cutout)
-            except Exception as e:
-                pass
-        
-    class FilletSelector(cq.Selector):
-        def filter(self, objectList):
-            res = []
-            for o in objectList:
-                if not isinstance(o, cq.Edge): continue
-                b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-            return res
+        if cutout_sketch is not None:
+            tool_holder = (
+                tool_holder
+                .faces(">X")
+                .workplane(offset=wp_offset, centerOption="ProjectedOrigin")
+                .placeSketch(cutout_sketch)
+                .cutBlind(extrude_dist)
+            )
 
     try:
-        tool_holder = tool_holder.edges(FilletSelector()).fillet(5.0)
-    except:
+        tool_holder = (
+            tool_holder
+            .faces("-Z")
+            .faces("not <Z")
+            .edges("|X")
+            .edges("not >Y")
+            .edges("not <Y")
+            .fillet(5.0)
+        )
+    except Exception:
         pass
-        
+
     # Cut the slots (1 per unit width)
-    slot_length = shelf_depth - back_clearance + 5.0 # extra length to break through front edge safely
+    slot_length = shelf_depth - back_clearance + 5.0
     z_center = -BACKPLATE_THICKNESS - back_clearance - slot_length / 2.0
-    
-    slot_pts = []
-    for i in range(width_units):
-        x = -width/2 + UNIT_WIDTH/2.0 + i * UNIT_WIDTH
-        slot_pts.append((z_center, x))
-        
-    slots = (
-        cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
+    slot_pts = [
+        (z_center, -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH)
+        for i in range(width_units)
+    ]
+
+    tool_holder = (
+        tool_holder
+        .copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top + 10.0, 0)))
         .pushPoints(slot_pts)
         .rect(slot_length, slot_width)
-        .extrude(40.0)
-    )
-    tool_holder = tool_holder.cut(slots)
-    
-    screws = (
-        cq.Workplane("XY").workplane(offset=0)
+        .cutBlind(-30.0)
+        .workplaneFromTagged("back_wp")
         .pushPoints(screw_pts)
-        .circle(3.6/2.0)
-        .extrude(-20) 
-    )
-    tool_holder = tool_holder.cut(screws)
-    
-    recesses = (
-        cq.Workplane("XY").workplane(offset=-8)
+        .hole(3.6, 20.0)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=-8.0)
         .pushPoints(screw_pts)
-        .circle(8.0/2.0) 
-        .extrude(-200) 
+        .hole(8.0, 200.0)
     )
-    tool_holder = tool_holder.cut(recesses)
-    
+
     return tool_holder, width_units, depth_units, bottom_groove_y, top_y
 
 def main():

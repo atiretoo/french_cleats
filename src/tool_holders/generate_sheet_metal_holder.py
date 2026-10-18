@@ -75,13 +75,13 @@ def create_sheet_metal_holder(
     # 2. Position the vertical projection
     # Default right side (-width / 2.0) matches standard tool holder orientation
     if shelf_side == "right":
-        shelf_origin_x = -width / 2.0
+        shelf_offset_x = -width
         shelf_thickness_extrude = shelf_thickness
         cut_dir = -1
-        face_x = -width / 2.0 + shelf_thickness # Inner side face
+        face_x = -width / 2.0 + shelf_thickness  # Inner side face
     else:
-        shelf_origin_x = width / 2.0 - shelf_thickness
-        shelf_thickness_extrude = shelf_thickness
+        shelf_offset_x = 0.0
+        shelf_thickness_extrude = -shelf_thickness
         cut_dir = 1
         face_x = width / 2.0 - shelf_thickness  # Inner side face
 
@@ -119,32 +119,39 @@ def create_sheet_metal_holder(
         (brace_bottom_back, back_z),
     ]
 
-    shelf = (
-        cq.Workplane("YZ", origin=(shelf_origin_x, 0, 0))
-        .polyline(shelf_pts).close()
+    body = (
+        body
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("right_wp")
+        .end(2)
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=shelf_offset_x)
+        .polyline(shelf_pts)
+        .close()
         .extrude(shelf_thickness_extrude)
     )
-    body = body.union(shelf)
 
     # 5. Add structural fillet between backplate and projection
     if fillet_radius and fillet_radius > 0:
-        class CornerFilletSelector(cq.Selector):
-            def filter(self, objectList):
-                res = []
-                for o in objectList:
-                    if o.ShapeType() == 'Edge':
-                        b = o.BoundingBox()
-                        if abs(b.ymax - b.ymin) > 10.0 and abs(b.xmax - b.xmin) < 0.1 and abs(b.zmax - b.zmin) < 0.1:
-                            if abs(b.zmin - back_z) < 0.1 and abs(b.xmin - face_x) < 0.1:
-                                res.append(o)
-                return res
-
-        body = body.edges(CornerFilletSelector()).fillet(fillet_radius)
+        body = (
+            body
+            .faces("+X or -X")
+            .faces("not >X")
+            .faces("not <X")
+            .edges(">Z")
+            .fillet(fillet_radius)
+        )
 
     # 6. Cut Sheet Metal Pocket with 0.25 mm vertical section and 45-degree V-groove lips
     y_top_open = top_y + 2.0
     y_leadin_end = top_y - 2.0
     x_floor = face_x + cut_dir * pocket_depth
+    floor_offset_x = x_floor - width / 2.0
 
     pts_floor = [
         (y_top_open, z_front - lead_in),
@@ -172,18 +179,23 @@ def create_sheet_metal_holder(
     offset_vert_to_face = -cut_dir * (pocket_depth - vert_depth)
     offset_face_to_out = -cut_dir * 1.0
 
-    cutter = (
-        cq.Workplane("YZ", origin=(x_floor, 0, 0))
-        .polyline(pts_floor).close()
+    body = (
+        body
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=floor_offset_x)
+        .polyline(pts_floor)
+        .close()
         .workplane(offset=offset_floor_to_vert)
-        .polyline(pts_floor).close()
+        .polyline(pts_floor)
+        .close()
         .workplane(offset=offset_vert_to_face)
-        .polyline(pts_face).close()
+        .polyline(pts_face)
+        .close()
         .workplane(offset=offset_face_to_out)
-        .polyline(pts_face).close()
-        .loft(ruled=True)
+        .polyline(pts_face)
+        .close()
+        .loft(ruled=True, combine="cut")
     )
-    body = body.cut(cutter)
 
     # 7. Cutout of the bottom retaining lip
     # Leaves bottom_retention (1.0 mm) at each corner along the 45-degree edge
@@ -210,30 +222,27 @@ def create_sheet_metal_holder(
             (y_cut_start_top - 25.0, z_cut_start),
         ]
 
-        cutout_solid = (
-            cq.Workplane("YZ", origin=(x_floor, 0, 0))
-            .polyline(cutout_poly).close()
-            .extrude(-cut_dir * (pocket_depth + 2.0))
+        body = (
+            body
+            .workplaneFromTagged("right_wp")
+            .workplane(offset=floor_offset_x)
+            .polyline(cutout_poly)
+            .close()
+            .cutBlind(-cut_dir * (pocket_depth + 2.0))
         )
-        body = body.cut(cutout_solid)
 
     # 8. Screw holes and recesses
     if screw_pts:
-        screws = (
-            cq.Workplane("XY").workplane(offset=0)
+        body = (
+            body
+            .workplaneFromTagged("back_wp")
             .pushPoints(screw_pts)
-            .circle(3.6 / 2.0)
-            .extrude(-20)
-        )
-        body = body.cut(screws)
-
-        recesses = (
-            cq.Workplane("XY").workplane(offset=-8)
+            .hole(3.6, 20.0)
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=-8.0)
             .pushPoints(screw_pts)
-            .circle(8.0 / 2.0)
-            .extrude(-20)
+            .hole(8.0, 20.0)
         )
-        body = body.cut(recesses)
 
     return body
 

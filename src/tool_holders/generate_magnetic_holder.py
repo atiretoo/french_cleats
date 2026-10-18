@@ -50,6 +50,17 @@ def create_magnetic_holder(
     
     # Baseplate
     body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units, mount_type="groove", num_rows=2)
+    body = (
+        body
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("right_wp")
+        .end(2)
+    )
     
     if style == "flat":
         # Calculate magnet positions on baseplate front face
@@ -64,22 +75,19 @@ def create_magnetic_holder(
                 mag_pts.append((0, start_y + i * step))
         
         if mag_count > 0:
-            mags = (
-                cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS) # Front face of baseplate
+            body = (
+                body
+                .workplaneFromTagged("back_wp")
+                .workplane(offset=-BACKPLATE_THICKNESS)
                 .pushPoints(mag_pts)
                 .circle(mag_dia / 2.0)
-                .extrude(mag_depth) # Cut into the block (+Z)
-            )
-            body = body.cut(mags)
-            
-            # Push holes: 2mm diameter, all the way through to the back
-            push_holes = (
-                cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS)
+                .cutBlind(mag_depth)
+                .workplaneFromTagged("back_wp")
+                .workplane(offset=-BACKPLATE_THICKNESS)
                 .pushPoints(mag_pts)
                 .circle(2.0 / 2.0)
-                .extrude(20.0) # All the way to +Z
+                .cutBlind(20.0)
             )
-            body = body.cut(push_holes)
             
     elif style == "perpendicular":
         if shelf_thickness is None:
@@ -91,18 +99,18 @@ def create_magnetic_holder(
         
         # Position the vertical shelf plate (default right side matching other 1u holders at -X)
         if shelf_side == "right":
-            shelf_origin_x = -width / 2.0
+            shelf_offset_x = -width
             shelf_thickness_extrude = shelf_thickness
             cut_dir = -1
             face_x = -width / 2.0 + shelf_thickness  # Inner side face
         else:
-            shelf_origin_x = width / 2.0 - shelf_thickness
-            shelf_thickness_extrude = shelf_thickness
+            shelf_offset_x = 0.0
+            shelf_thickness_extrude = -shelf_thickness
             cut_dir = 1
             face_x = width / 2.0 - shelf_thickness  # Inner side face
             
-        # Draw the vertical projection + triangular brace on the YZ plane
-        # In cq.Workplane("YZ"): Local X = Global Y, Local Y = Global Z, Normal = +Global X.
+        # Draw the vertical projection + triangular brace on the YZ workplane
+        # In right_wp: Local X = Global Y, Local Y = Global Z, Normal = +Global X.
         shelf_pts = [
             (top_y, back_z),
             (top_y, front_z),
@@ -110,18 +118,19 @@ def create_magnetic_holder(
             (bottom_y, back_z),
         ]
         
-        shelf = (
-            cq.Workplane("YZ", origin=(shelf_origin_x, 0, 0))
-            .polyline(shelf_pts).close()
+        body = (
+            body
+            .workplaneFromTagged("right_wp")
+            .workplane(offset=shelf_offset_x)
+            .polyline(shelf_pts)
+            .close()
             .extrude(shelf_thickness_extrude)
         )
-        body = body.union(shelf)
         
         # Center the column of magnets on the projection along the Z-axis
         z_center = (back_z + front_z) / 2.0
         
         # Center magnets along the Y-axis according to how deep (top to bottom) the brace is at z_center
-        # At z_center (halfway along depth), the brace bottom edge is at:
         y_brace_at_z = (bottom_y + tip_bottom_y) / 2.0
         y_mid = (top_y + y_brace_at_z) / 2.0
         
@@ -136,45 +145,44 @@ def create_magnetic_holder(
                 mag_pts.append((y_pos, z_center))
                 
         if mag_count > 0:
-            extrude_depth = cut_dir * mag_depth
-            push_extrude = cut_dir * (shelf_thickness + 5.0)
-            
-            mags = (
-                cq.Workplane("YZ", origin=(face_x, 0, 0))
-                .pushPoints(mag_pts)
-                .circle(mag_dia / 2.0)
-                .extrude(extrude_depth)
-            )
-            body = body.cut(mags)
-            
-            # Push holes: 2mm diameter, all the way through to the opposite face
-            push_holes = (
-                cq.Workplane("YZ", origin=(face_x, 0, 0))
-                .pushPoints(mag_pts)
-                .circle(2.0 / 2.0)
-                .extrude(push_extrude)
-            )
-            body = body.cut(push_holes)
+            face_offset_x = face_x - width / 2.0
+            if cut_dir == -1:
+                body = (
+                    body
+                    .workplaneFromTagged("right_wp")
+                    .workplane(offset=face_offset_x)
+                    .pushPoints(mag_pts)
+                    .cboreHole(2.0, mag_dia, mag_depth, depth=shelf_thickness + 5.0)
+                )
+            else:
+                body = (
+                    body
+                    .workplaneFromTagged("right_wp")
+                    .workplane(offset=face_offset_x)
+                    .pushPoints(mag_pts)
+                    .circle(mag_dia / 2.0)
+                    .cutBlind(cut_dir * mag_depth)
+                    .workplaneFromTagged("right_wp")
+                    .workplane(offset=face_offset_x)
+                    .pushPoints(mag_pts)
+                    .circle(2.0 / 2.0)
+                    .cutBlind(cut_dir * (shelf_thickness + 5.0))
+                )
     else:
         raise ValueError(f"Unsupported style: {style}. Must be 'flat' or 'perpendicular'.")
     
     # Cut screws
     if screw_pts:
-        screws = (
-            cq.Workplane("XY").workplane(offset=0)
+        body = (
+            body
+            .workplaneFromTagged("back_wp")
             .pushPoints(screw_pts)
-            .circle(3.6 / 2.0)
-            .extrude(-20) 
-        )
-        body = body.cut(screws)
-        
-        recesses = (
-            cq.Workplane("XY").workplane(offset=-8)
+            .hole(3.6, 20.0)
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=-8.0)
             .pushPoints(screw_pts)
-            .circle(8.0 / 2.0) 
-            .extrude(-20) 
+            .hole(8.0, 20.0)
         )
-        body = body.cut(recesses)
             
     return body
 

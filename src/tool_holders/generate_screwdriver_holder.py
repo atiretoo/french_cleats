@@ -104,124 +104,123 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
         sys.exit(1)
 
     # Create Baseplate
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(width_units, rail_height, mount_type="groove", num_rows=2)
-    
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        width_units, rail_height, mount_type="groove", num_rows=2
+    )
+
     shelf_top = top_y - 40.0
     shelf_bot = top_y - 45.0
-    
-    # Add Shelf
+
     shelf_pts = [
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
         (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
-        (shelf_top, -BACKPLATE_THICKNESS)
+        (shelf_top, -BACKPLATE_THICKNESS),
     ]
-    shelf = (
-        cq.Workplane("YZ")
-        .polyline(shelf_pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
+    brace_pts = [
+        (bottom_y, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
+    ]
+
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .polyline(shelf_pts)
+        .close()
+        .extrude(-width)
     )
-    
-    tool_holder = tool_holder.union(shelf)
-    
-    hole_pts = []
-    
+
+    brace_offsets = [(-width, brace_thickness)]
+    if has_right_brace:
+        brace_offsets.append((0.0, -brace_thickness))
+
+    cutout_sketch = None
+    if depth_units > 2:
+        try:
+            cutout_sketch = (
+                cq.Sketch()
+                .polygon(brace_pts)
+                .wires()
+                .offset(-15.0, mode="r")
+                .reset()
+                .vertices()
+                .fillet(8.0)
+            )
+        except Exception:
+            cutout_sketch = None
+
+    for wp_offset, extrude_dist in brace_offsets:
+        tool_holder = (
+            tool_holder
+            .faces(">X")
+            .workplane(offset=wp_offset, centerOption="ProjectedOrigin")
+            .polyline(brace_pts)
+            .close()
+            .extrude(extrude_dist)
+        )
+        if cutout_sketch is not None:
+            tool_holder = (
+                tool_holder
+                .faces(">X")
+                .workplane(offset=wp_offset, centerOption="ProjectedOrigin")
+                .placeSketch(cutout_sketch)
+                .cutBlind(extrude_dist)
+            )
+
+    try:
+        tool_holder = (
+            tool_holder
+            .faces("-Z")
+            .faces("not <Z")
+            .edges("|X")
+            .edges("not >Y")
+            .edges("not <Y")
+            .fillet(5.0)
+        )
+    except Exception:
+        pass
+
+    # Coordinates in ZX plane: (z, x)
+    hole_zx_pts = []
     for i in range(num_holes):
         z = Z_start - i * dz
         if layout == "staggered":
             x = x_min if i % 2 == 0 else x_max
         else:
-            x = (x_min + x_max) / 2.0  
-        hole_pts.append((x, z))
-        
-    # Add Braces
-    brace_pts = [
-        (bottom_y, -BACKPLATE_THICKNESS),
-        (shelf_bot, -BACKPLATE_THICKNESS),
-        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
-    ]
-    
-    brace_x_positions = [-width/2 + brace_thickness/2]
-    if has_right_brace:
-        brace_x_positions.append(width/2 - brace_thickness/2)
-                    
-    for x_pos in brace_x_positions:
-        brace = (
-            cq.Workplane("YZ")
-            .polyline(brace_pts).close()
-            .extrude(brace_thickness)
-            .translate((x_pos - brace_thickness/2.0, 0, 0))
-        )
-        tool_holder = tool_holder.union(brace)
-        if depth_units > 2:
-            try:
-                cutout = (
-                    cq.Workplane("YZ")
-                    .polyline(brace_pts).close()
-                    .offset2D(-15.0)
-                    .extrude(brace_thickness + 2.0)
-                    .translate((x_pos - brace_thickness/2.0 - 1.0, 0, 0))
-                )
-                cutout = cutout.edges('|X').fillet(8.0)
-                tool_holder = tool_holder.cut(cutout)
-            except Exception as e:
-                pass
-        
-    class FilletSelector(cq.Selector):
-        def filter(self, objectList):
-            res = []
-            for o in objectList:
-                if not isinstance(o, cq.Edge): continue
-                b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-            return res
+            x = (x_min + x_max) / 2.0
+        hole_zx_pts.append((z, x))
 
-    try:
-        tool_holder = tool_holder.edges(FilletSelector()).fillet(5.0)
-    except:
-        pass
-    
-    # Cut variable holes one by one
-    for pt, sz in zip(hole_pts, actual_hole_sizes):
-        hole = (
-            cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
-            .center(pt[1], pt[0])
-            .circle(sz/2.0)
-            .extrude(40.0) 
-        )
-        tool_holder = tool_holder.cut(hole)
-        
-    # Cut recesses
-    if recess_size > 0 and recess_depth > 0:
-        for pt in hole_pts:
-            recess = (
-                cq.Workplane("ZX", origin=(0, shelf_top, 0))
-                .center(pt[1], pt[0])
-                .circle(recess_size/2.0)
-                .extrude(-recess_depth)
-            )
-            tool_holder = tool_holder.cut(recess)
-    
-    screws = (
-        cq.Workplane("XY").workplane(offset=0)
+    if not hole_sizes:
+        wp = tool_holder.copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top, 0))).pushPoints(hole_zx_pts)
+        if recess_size > 0 and recess_depth > 0:
+            tool_holder = wp.cboreHole(hole_size, recess_size, recess_depth, depth=20.0)
+        else:
+            tool_holder = wp.hole(hole_size, 20.0)
+    else:
+        for zx_pt, sz in zip(hole_zx_pts, actual_hole_sizes):
+            wp = tool_holder.copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top, 0))).pushPoints([zx_pt])
+            if recess_size > 0 and recess_depth > 0:
+                tool_holder = wp.cboreHole(sz, recess_size, recess_depth, depth=20.0)
+            else:
+                tool_holder = wp.hole(sz, 20.0)
+
+    tool_holder = (
+        tool_holder
+        .workplaneFromTagged("back_wp")
         .pushPoints(screw_pts)
-        .circle(3.6/2.0)
-        .extrude(-20) 
-    )
-    tool_holder = tool_holder.cut(screws)
-    
-    recesses = (
-        cq.Workplane("XY").workplane(offset=-8)
+        .hole(3.6, 20.0)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=-8.0)
         .pushPoints(screw_pts)
-        .circle(8.0/2.0) 
-        .extrude(-200) 
+        .hole(8.0, 200.0)
     )
-    tool_holder = tool_holder.cut(recesses)
-    
+
     return tool_holder, width_units, depth_units
 
 def main():

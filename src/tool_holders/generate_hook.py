@@ -33,88 +33,63 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     - fillet_radius: Radius of fillet connecting the hook rod to the backplate (default: 3.0mm)
     - tip_fillet: Radius of fillet on the tip of the hook (default: 3.0mm)
     """
-    width = width_units * UNIT_WIDTH
     length = length_units * UNIT_WIDTH
     radius = diameter / 2.0
-    
+
     # Create the standard groove-mount baseplate
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
         width_units, rail_height, mount_type="groove", num_rows=2
     )
-    
+
     # Position hook at 1/3 of the distance from bottom_y to top_y
     total_height = top_y - bottom_y
     hook_y = bottom_y + total_height / 3.0
-    
-    # The front face of the backplate is at Z = -BACKPLATE_THICKNESS, facing in -Z direction.
-    # We extrude a cylinder along +Z, fillet its tip, then rotate and translate.
+
     # To slope upwards (+Y) by slope_deg while projecting outwards into -Z,
-    # we rotate around X-axis by -(180 - slope_deg) = -(180 - 5) = -175 deg.
+    # rotate the workplane around local X-axis by -(180 - slope_deg).
     rot_angle = -(180.0 - slope_deg)
-    
-    # Embed the cylinder slightly inside the backplate so the intersection with
-    # the front face (Z = -BACKPLATE_THICKNESS) is a single, clean planar closed loop edge
-    # which CadQuery's OpenCASCADE BRepFillet engine can easily and reliably fillet.
+
+    # Start the hook cylinder slightly inside the backplate so the intersection with
+    # the front face (Z = -BACKPLATE_THICKNESS) forms a clean elliptical loop edge.
     embed_depth = 4.0
     total_rod_len = length + embed_depth
-    
-    hook_rod = (
-        cq.Workplane("XY")
+
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .transformed(
+            offset=(0.0, hook_y, -BACKPLATE_THICKNESS + embed_depth),
+            rotate=(rot_angle, 0.0, 0.0),
+        )
         .circle(radius)
         .extrude(total_rod_len)
     )
-    
+
     if tip_fillet > 0:
         try:
-            hook_rod = hook_rod.faces(">Z").fillet(tip_fillet)
+            tool_holder = tool_holder.faces("<Z").edges().fillet(tip_fillet)
         except Exception:
             pass
-            
-    hook_rod = (
-        hook_rod
-        .rotate((0, 0, 0), (1, 0, 0), rot_angle)
-        .translate((0, hook_y, -BACKPLATE_THICKNESS + embed_depth))
-    )
-    
-    tool_holder = tool_holder.union(hook_rod)
-    
-    # Fillet where hook cylinder meets the backplate front face (Z = -BACKPLATE_THICKNESS)
-    if fillet_radius > 0:
-        class BaseIntersectionSelector(cq.Selector):
-            def filter(self, objectList):
-                res = []
-                for o in objectList:
-                    if not isinstance(o, cq.Edge):
-                        continue
-                    b = o.BoundingBox()
-                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 1e-3 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1e-3:
-                        if abs(b.ymin - hook_y) < (diameter + 2.0) and (b.xmax - b.xmin) > (radius):
-                            res.append(o)
-                return res
 
+    if fillet_radius > 0:
         try:
-            tool_holder = tool_holder.edges(BaseIntersectionSelector()).fillet(fillet_radius)
+            tool_holder = tool_holder.faces("-Z").edges("not %Line").fillet(fillet_radius)
         except Exception as e:
             print(f"Warning: Fillet at hook base could not be applied ({e})")
-            
-    # Cut screw holes
-    screws = (
-        cq.Workplane("XY").workplane(offset=0)
+
+    tool_holder = (
+        tool_holder
+        .workplaneFromTagged("back_wp")
         .pushPoints(screw_pts)
-        .circle(3.6 / 2.0)
-        .extrude(-20)
-    )
-    tool_holder = tool_holder.cut(screws)
-    
-    # Cut screw head recesses / counterbores
-    recesses = (
-        cq.Workplane("XY").workplane(offset=-8)
+        .hole(3.6, 20.0)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=-8.0)
         .pushPoints(screw_pts)
-        .circle(8.0 / 2.0)
-        .extrude(-200)
+        .hole(8.0, 200.0)
     )
-    tool_holder = tool_holder.cut(recesses)
-    
+
     return tool_holder, width_units, length_units
 
 def main():

@@ -80,76 +80,32 @@ def create_mallet_holder(
     shelf_top_y = top_y - shelf_drop  # 20.0 - 60.0 = -40.0mm
     shelf_bot_y = shelf_top_y - shelf_thickness  # -48.0mm
     
-    # 2. Main Shelf Block
-    # ZX plane normal is +Y. Local X = Z, Local Y = X.
-    # Note: no fillets on the Z edges to ensure solid, gap-free fusion with the backplate.
-    shelf = (
-        cq.Workplane("ZX", origin=(0, shelf_bot_y, 0))
-        .moveTo(back_z - shelf_extrude_dist / 2.0, 0)
-        .rect(shelf_extrude_dist, width)
-        .extrude(shelf_thickness)
-    )
-    body = body.union(shelf)
+    shelf_pts = [
+        (shelf_bot_y, back_z),
+        (shelf_bot_y, front_z),
+        (shelf_top_y, front_z),
+        (shelf_top_y, back_z),
+    ]
     
-    # 3. Big Structural Fillets on Top and Bottom Edges where Shelf Meets Backplate
-    fillet_edges = []
-    for e in body.edges().vals():
-        b = e.BoundingBox()
-        if abs(b.zmin - back_z) < 0.1 and abs(b.zmax - back_z) < 0.1:
-            if abs(b.ymin - shelf_top_y) < 0.1 or abs(b.ymin - shelf_bot_y) < 0.1:
-                if (b.xmax - b.xmin) > 10.0:
-                    fillet_edges.append(e)
-    if fillet_edges:
-        body = body.newObject(fillet_edges).fillet(5.0)
-        
-    # 4. Slim 5mm Triangular Support Brace
-    # Comes all the way down to the bottom of the backplate (bottom_y)
+    # 4. Slim 5mm Triangular Support Brace & Parallel Triangular Cutout
     gusset_y_bottom = bottom_y + gusset_bottom_offset
     brace_pts = [
         (shelf_bot_y, back_z),
         (shelf_bot_y, front_z),
         (gusset_y_bottom, back_z),
     ]
-    
-    brace = (
-        cq.Workplane("YZ", origin=(-width / 2.0, 0, 0))
-        .polyline(brace_pts).close()
-        .extrude(web_thickness)
+    cutout_sketch = (
+        cq.Sketch()
+        .polygon(brace_pts)
+        .wires()
+        .offset(-10.0, mode="r")
+        .reset()
+        .vertices()
+        .fillet(5.0)
     )
-    body = body.union(brace)
     
-    # 5. Exactly Parallel Triangular Cutout
-    # The bottom edge of the cutout is exactly parallel with the diagonal hypotenuse of the brace.
-    dy = gusset_y_bottom - shelf_bot_y
-    dz = back_z - front_z
-    m = dy / dz
-    b0 = gusset_y_bottom - m * back_z
-
-    W_top = 10.0   # 10mm wall below shelf
-    W_back = 10.0  # 10mm wall in front of backplate
-    W_diag = 10.0  # 10mm uniform perpendicular wall thickness along diagonal
-
-    b = b0 + W_diag * math.sqrt(1 + m**2)
-
-    v1 = (shelf_bot_y - W_top, back_z - W_back)
-    v2 = (shelf_bot_y - W_top, (shelf_bot_y - W_top - b) / m)
-    v3 = (m * (back_z - W_back) + b, back_z - W_back)
-
-    cutout_pts = [v1, v2, v3]
-    gusset_cutout = (
-        cq.Workplane("YZ", origin=(-width / 2.0 - 2.0, 0, 0))
-        .polyline(cutout_pts).close()
-        .extrude(web_thickness + 4.0)
-    )
-    gusset_cutout = gusset_cutout.edges("|X").fillet(5.0)
-    body = body.cut(gusset_cutout)
-
-    
-    # 6. Handle Slot Cutter
-    # Mallet head position:
-    # Moved towards user in Z (head_clearance = 18.0) so rear of head (Z = -29.0) clears backplate & 5mm fillet
+    # 6. Handle Slot & Cradle Divot Parameters
     z_handle = back_z - head_clearance - (head_length / 2.0)
-    # Moved across X so mallet head (60mm dia) is entirely within holder bounds (X = -42 to +42)
     x_seat = -width / 2.0 + (head_dia / 2.0) + 2.0  # -10.0mm (spans X = -40 to +20)
     x_mouth = width / 2.0 + 5.0  # Opens at +X
     x_taper_start = 15.0
@@ -167,54 +123,71 @@ def create_mallet_holder(
         (z_handle + w_half_mouth, x_mouth),
     ]
     
-    slot_cutter = (
-        cq.Workplane("ZX", origin=(0, shelf_top_y + 2.0, 0))
-        .polyline(slot_poly_pts).close()
-        .extrude(-(shelf_thickness + 4.0))
-    )
-    seat_cutter = (
-        cq.Workplane("ZX", origin=(0, shelf_top_y + 2.0, 0))
-        .moveTo(z_handle, x_seat)
-        .circle(w_half_slot)
-        .extrude(-(shelf_thickness + 4.0))
-    )
-    body = body.cut(slot_cutter).cut(seat_cutter)
-    
-    # 7. 30mm Radius Divots for the Mallet Head (Cylindrical Cradle)
     divot_center_y = (shelf_top_y - divot_depth) + divot_radius
-    
-    # Start the cradle divot clear of the 5mm backplate fillet
-    # (back_z is -11.0, 5mm fillet ends at -16.0; starting at -22.0 leaves 6mm flat clearance)
     divot_start_z = back_z - 11.0
     divot_extrude_len = abs(front_z - divot_start_z) + 4.0
-    
-    divot_cylinder = (
-        cq.Workplane("XY")
+
+    body = (
+        body
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("right_wp")
+        .end(2)
+        # Main shelf block
+        .workplaneFromTagged("right_wp")
+        .polyline(shelf_pts)
+        .close()
+        .extrude(-width)
+        # Structural fillets where shelf meets backplate
+        .faces("-Z")
+        .faces(">Z")
+        .edges("|X")
+        .edges("not >Y")
+        .edges("not <Y")
+        .fillet(5.0)
+        # Triangular support brace and filleted lightening cutout
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=-width)
+        .polyline(brace_pts)
+        .close()
+        .extrude(web_thickness)
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=-width)
+        .placeSketch(cutout_sketch)
+        .cutBlind(web_thickness)
+        # Handle slot and circular seat
+        .copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top_y + 2.0, 0)))
+        .polyline(slot_poly_pts)
+        .close()
+        .cutBlind(-(shelf_thickness + 4.0))
+        .copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top_y + 2.0, 0)))
+        .moveTo(z_handle, x_seat)
+        .circle(w_half_slot)
+        .cutBlind(-(shelf_thickness + 4.0))
+        # Cylindrical cradle divots for mallet head
+        .workplaneFromTagged("back_wp")
         .workplane(offset=divot_start_z)
         .moveTo(x_seat, divot_center_y)
         .circle(divot_radius)
-        .extrude(-divot_extrude_len)
+        .cutBlind(-divot_extrude_len)
     )
-    body = body.cut(divot_cylinder)
-
     
     # 8. Screw Holes (if groove mount)
     if screw_pts:
-        screws = (
-            cq.Workplane("XY").workplane(offset=0)
+        body = (
+            body
+            .workplaneFromTagged("back_wp")
             .pushPoints(screw_pts)
-            .circle(3.6 / 2.0)
-            .extrude(-20)
-        )
-        body = body.cut(screws)
-        
-        recesses = (
-            cq.Workplane("XY").workplane(offset=-8)
+            .hole(3.6, 20.0)
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=-8.0)
             .pushPoints(screw_pts)
-            .circle(8.0 / 2.0)
-            .extrude(-20)
+            .hole(8.0, 20.0)
         )
-        body = body.cut(recesses)
         
     return body
 

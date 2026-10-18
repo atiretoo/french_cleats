@@ -27,49 +27,54 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
     flange_thickness = 10.0
     
     if web_side == "left":
-        web_x = -width/2
-        joint_x = web_x + brace_width
-        slot_x_dir = 1  # Slot breaks out to the right (+X)
+        web_offset_x = -width
+        web_extrude = brace_width
+        slot_x_dir = 1   # Slot breaks out to the right (+X)
     else:
-        web_x = width/2 - brace_width
-        joint_x = web_x
-        slot_x_dir = -1 # Slot breaks out to the left (-X)
+        web_offset_x = 0.0
+        web_extrude = -brace_width
+        slot_x_dir = -1  # Slot breaks out to the left (-X)
         
     # Generate the cleat mounting interface
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(units, rail_height, mount_type="groove", num_rows=2)
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units, rail_height, mount_type="groove", num_rows=2)
     
     drop = hypotenuse / math.sqrt(2)
     bracket_bottom = top_y - drop
     
+    body = (
+        body
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("right_wp")
+        .end(2)
+    )
+    
     # Extend the backplate downwards
     if bracket_bottom < bottom_y:
-        extra_drop = bottom_y - bracket_bottom
-        extension_block = (
-            cq.Workplane("XY")
-            .box(width, extra_drop, 11.0)
-            .translate((0, bottom_y - extra_drop/2.0, -BACKPLATE_THICKNESS/2.0))
+        ext_pts = [
+            (bracket_bottom, 0.0),
+            (bracket_bottom, -BACKPLATE_THICKNESS),
+            (bottom_y, -BACKPLATE_THICKNESS),
+            (bottom_y, 0.0),
+        ]
+        body = (
+            body
+            .workplaneFromTagged("right_wp")
+            .polyline(ext_pts)
+            .close()
+            .extrude(-width)
         )
-        tool_holder = tool_holder.union(extension_block)
         
     # Create the 10mm thick triangular web
     web_pts = [
-        (top_y, 0),
-        (bracket_bottom, 0),
-        (bracket_bottom, -drop)
-    ]
-    # Actually wait! Earlier we found the backplate front is Z=-BACKPLATE_THICKNESS!
-    web_pts = [
         (top_y, -BACKPLATE_THICKNESS),
         (bracket_bottom, -BACKPLATE_THICKNESS),
-        (bracket_bottom, -BACKPLATE_THICKNESS - drop)
+        (bracket_bottom, -BACKPLATE_THICKNESS - drop),
     ]
-    
-    web = (
-        cq.Workplane("YZ")
-        .polyline(web_pts).close()
-        .extrude(brace_width)
-        .translate((web_x, 0, 0))
-    )
     
     # Create the 28mm wide hypotenuse flange
     dir_inward = cq.Vector(0, -1, 1).normalized()
@@ -83,72 +88,59 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         (p1.y, p1.z),
         (p2.y, p2.z),
         (p2_in.y, p2_in.z),
-        (p1_in.y, p1_in.z)
+        (p1_in.y, p1_in.z),
     ]
     
-    flange = (
-        cq.Workplane("YZ")
-        .polyline(flange_pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
+    # Triangular lightening cutout with filleted corners (15mm clearance)
+    c1_y = bracket_bottom + 15.0
+    c1_z = -26.0
+    c2_y = top_y - 15.0 - 25.0 * math.sqrt(2)
+    c2_z = -26.0
+    c3_y = bracket_bottom + 15.0
+    c3_z = (bracket_bottom + 15.0) - top_y - 11.0 + 25.0 * math.sqrt(2)
+    
+    cutout_sketch = (
+        cq.Sketch()
+        .polygon([(c1_y, c1_z), (c2_y, c2_z), (c3_y, c3_z)])
+        .reset()
+        .vertices()
+        .fillet(4.99)
     )
     
-    body = tool_holder.union(web).union(flange)
-    
-    # Cut the triangular hole (15mm clearance)
-    c1_y = bracket_bottom + 15
-    c1_z = -26
-    c2_y = top_y - 15 - 25*math.sqrt(2)
-    c2_z = -26
-    c3_y = bracket_bottom + 15
-    c3_z = (bracket_bottom + 15) - top_y - 11 + 25*math.sqrt(2)
-    
-    cutout_pts = [
-        (c1_y, c1_z),
-        (c2_y, c2_z),
-        (c3_y, c3_z)
-    ]
-    
-    cutout = (
-        cq.Workplane("YZ")
-        .polyline(cutout_pts).close()
-        .extrude(brace_width + 2.0)
-        .translate((web_x - 1.0, 0, 0))
+    body = (
+        body
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=web_offset_x)
+        .polyline(web_pts)
+        .close()
+        .extrude(web_extrude)
+        .workplaneFromTagged("right_wp")
+        .polyline(flange_pts)
+        .close()
+        .extrude(-width)
     )
     
-    body = body.cut(cutout)
-    
-    class InnerFilletSelector(cq.Selector):
-        def filter(self, objectList):
-            res = []
-            for o in objectList:
-                if not isinstance(o, cq.Edge): continue
-                b = o.BoundingBox()
-                # 1. Triangle cutout corners (parallel to X)
-                if abs(b.xmax - b.xmin) > 5.0 and abs(b.ymax - b.ymin) < 0.1 and abs(b.zmax - b.zmin) < 0.1:
-                    if (abs(b.ymin - c1_y) < 1 and abs(b.zmin - c1_z) < 1) or \
-                       (abs(b.ymin - c2_y) < 1 and abs(b.zmin - c2_z) < 1) or \
-                       (abs(b.ymin - c3_y) < 1 and abs(b.zmin - c3_z) < 1):
-                        res.append(o)
-                
-                # 2. Joint edges are exactly at joint_x
-                if abs(b.xmax - b.xmin) < 0.1 and abs(b.xmin - joint_x) < 0.1:
-                    # Backplate-web joint (vertical at Z = -BACKPLATE_THICKNESS)
-                    if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 0.1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 0.1:
-                        if o.Length() > 20:
-                            res.append(o)
-                    # Flange-web joint (diagonal, touches Z = -BACKPLATE_THICKNESS)
-                    elif abs(b.ymax - b.ymin) > 10 and abs(b.zmax - b.zmin) > 10:
-                        if abs(b.zmax - (-BACKPLATE_THICKNESS)) < 0.1:
-                            res.append(o)
-            return res
-
     try:
-        body = body.edges(InnerFilletSelector()).fillet(4.99)
+        body = (
+            body
+            .faces("+X or -X")
+            .faces("not >X")
+            .faces("not <X")
+            .edges("not <Y")
+            .fillet(4.99)
+        )
     except Exception as e:
         print(f"Warning: Could not apply all fillets: {e}")
 
-    # Add captive nut slots
+    body = (
+        body
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=web_offset_x)
+        .placeSketch(cutout_sketch)
+        .cutBlind(web_extrude)
+    )
+
+    # Add M3 clearance holes and captive nut slots along the hypotenuse flange
     normal_dir = cq.Vector(0, 1, -1).normalized()
     
     for i in [0.2, 0.5, 0.8]:
@@ -156,10 +148,12 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         z = -BACKPLATE_THICKNESS - drop * i
         pt = cq.Vector(0, y, z)
         
-        # M3 clearance hole
-        hole_wp = cq.Workplane(cq.Plane(origin=pt, xDir=(1,0,0), normal=normal_dir))
-        cutter = hole_wp.circle(1.7).extrude(-15.0)
-        body = body.cut(cutter)
+        # M3 clearance hole (3.4mm dia, 15mm deep)
+        body = (
+            body
+            .copyWorkplane(cq.Workplane(cq.Plane(origin=pt, xDir=(1, 0, 0), normal=normal_dir)))
+            .hole(3.4, 15.0)
+        )
         
         # Nut slot 
         nut_center = pt + normal_dir * (-5.0)
@@ -169,42 +163,35 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         x_dir = cq.Vector(0, slot_x_dir, slot_x_dir).normalized()
         plane = cq.Plane(origin=nut_center, xDir=x_dir, normal=normal_dir)
         
-        slot_solid = slot_solid.moved(cq.Location(plane))
-        body = body.cut(slot_solid)
+        body = body.cut(slot_solid.moved(cq.Location(plane)))
 
     # Cut cleat mounting screws
-    screws = (
-        cq.Workplane("XY").workplane(offset=0)
-        .pushPoints(screw_pts)
-        .circle(3.6/2.0)
-        .extrude(-20) 
-    )
-    body = body.cut(screws)
-    
-    recesses = (
-        cq.Workplane("XY").workplane(offset=-8)
-        .pushPoints(screw_pts)
-        .circle(8.0/2.0) 
-        .extrude(-200) 
-    )
-    body = body.cut(recesses)
+    if screw_pts:
+        body = (
+            body
+            .workplaneFromTagged("back_wp")
+            .pushPoints(screw_pts)
+            .hole(3.6, 20.0)
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=-8.0)
+            .pushPoints(screw_pts)
+            .hole(8.0, 200.0)
+        )
     
     return body
 
 def create_drilling_template(hypotenuse=300.0, width=28.0, thickness=0.3):
-    hole_pts = []
-    for i in [0.2, 0.5, 0.8]:
-        y_pos = hypotenuse * i
-        hole_pts.append((0, y_pos))
+    hole_pts = [(0, hypotenuse * i) for i in [0.2, 0.5, 0.8]]
         
     template = (
         cq.Workplane("XY")
-        .box(width, hypotenuse, thickness)
-        .translate((0, hypotenuse/2, thickness/2))
-        .faces(">Z").workplane()
+        .moveTo(0, hypotenuse / 2.0)
+        .rect(width, hypotenuse)
+        .extrude(thickness)
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
         .pushPoints(hole_pts)
-        .circle(4.0 / 2.0)
-        .cutThruAll()
+        .hole(4.0)
     )
     return template
 

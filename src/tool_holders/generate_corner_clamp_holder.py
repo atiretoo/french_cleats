@@ -58,17 +58,22 @@ def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_w
     ]
     
     # Baseplate face is at Z = -BACKPLATE_THICKNESS
-    shelf = (
-        cq.Workplane("XY", origin=(0, 0, -BACKPLATE_THICKNESS))
-        .polyline(v_pts).close()
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=-BACKPLATE_THICKNESS)
+        .polyline(v_pts)
+        .close()
         .extrude(-shelf_depth)
     )
     
-    tool_holder = tool_holder.union(shelf)
-    
     # Calculate the points for the curved cutout
     # Make the cutout slightly wider than the shelf (e.g. 30mm for a 28mm half-width)
-    cutout_half_width = width/2 + 2.0
+    cutout_half_width = width / 2.0 + 2.0
     
     # Circle equation to find the rise at the edges
     rise = arc_radius - math.sqrt(arc_radius**2 - cutout_half_width**2)
@@ -79,39 +84,35 @@ def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_w
     p4 = (cutout_half_width, shelf_top + 10.0)
     p5 = (-cutout_half_width, shelf_top + 10.0)
     
-    # Cut the slots
+    # Cut the slots using BRep cutBlind on offset workplanes
     start_z = -BACKPLATE_THICKNESS - start_clearance
     
     for i in range(num_slots):
         z_center = start_z - i * slot_spacing
-        
-        slot_cut = (
-            cq.Workplane("XY", origin=(0, 0, z_center))
+        tool_holder = (
+            tool_holder
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=z_center + slot_width / 2.0)
             .moveTo(p1[0], p1[1])
             .threePointArc(p2, p3)
             .lineTo(p4[0], p4[1])
             .lineTo(p5[0], p5[1])
             .close()
-            .extrude(slot_width / 2.0, both=True)
+            .cutBlind(-slot_width)
         )
-        tool_holder = tool_holder.cut(slot_cut)
     
     # Cut mounting holes
-    screws = (
-        cq.Workplane("XY").workplane(offset=0)
-        .pushPoints(screw_pts)
-        .circle(3.6/2.0)
-        .extrude(-20) 
-    )
-    tool_holder = tool_holder.cut(screws)
-    
-    recesses = (
-        cq.Workplane("XY").workplane(offset=-8)
-        .pushPoints(screw_pts)
-        .circle(8.0/2.0) 
-        .extrude(-200) 
-    )
-    tool_holder = tool_holder.cut(recesses)
+    if screw_pts:
+        tool_holder = (
+            tool_holder
+            .workplaneFromTagged("back_wp")
+            .pushPoints(screw_pts)
+            .hole(3.6, 20.0)
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=-8.0)
+            .pushPoints(screw_pts)
+            .hole(8.0, 200.0)
+        )
     
     return tool_holder, width_units, depth_units
 

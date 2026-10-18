@@ -19,8 +19,6 @@ import argparse
 import math
 import sys
 import os
-from OCP.BRepPrimAPI import BRepPrimAPI_MakeRevol
-from OCP.gp import gp_Ax1, gp_Pnt, gp_Dir
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import (
@@ -82,9 +80,33 @@ def create_hose_holder(
     r_saddle_bot = r_saddle - wall_thickness  # 126.0 mm
     r_lip_top = r_saddle + lip_height        # 185.0 mm (rises UPWARDS to retain hose!)
 
-    # 2. Draw smooth 2D cross-section profile on YZ plane at X=0
-    # Trace clockwise with blended fillet transitions
-    sk = (
+    bottom_groove_y = get_bottom_groove_y(rail_height)
+
+    top_groove_pts = [
+        (TOP_GROOVE_Y + GROOVE_SURFACE_HALF_WIDTH, 1.0),
+        (TOP_GROOVE_Y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+        (TOP_GROOVE_Y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+        (TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH, 1.0),
+    ]
+    bot_groove_pts = [
+        (bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH, 1.0),
+        (bottom_groove_y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+        (bottom_groove_y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+        (bottom_groove_y - GROOVE_SURFACE_HALF_WIDTH, 1.0),
+    ]
+
+    screw_pts = [
+        (-width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH, y)
+        for i in range(units)
+        for y in (TOP_GROOVE_Y, bottom_groove_y)
+    ]
+
+    lip_mid_r = (r_saddle + r_lip_top) / 2.0
+    effective_slot_w = min(handle_slot_width, width - 40.0)
+
+    # 2. Draw smooth 2D cross-section profile on YZ plane, revolve 60 degrees,
+    #    center symmetrically, cut grooves, drill mounting screws, and cut handle slot.
+    body = (
         cq.Workplane("YZ")
         .moveTo(Y0 + R_inner, z_back)
         .lineTo(Y0 + R_outer, z_back)
@@ -126,92 +148,27 @@ def create_hose_holder(
         # Down lower back flange:
         .lineTo(Y0 + R_inner, z_flange)
         .close()
-    )
-
-    profile_wire = sk.val()
-    profile_face = cq.Face.makeFromWires(profile_wire)
-
-    # 3. Revolve profile 60 degrees around Z axis through (0, Y0, 0)
-    axis_dir = gp_Dir(0, 0, 1)
-    axis_pnt = gp_Pnt(0, Y0, 0)
-    ax1 = gp_Ax1(axis_pnt, axis_dir)
-
-    revol = BRepPrimAPI_MakeRevol(profile_face.wrapped, ax1, math.radians(sweep_angle_deg))
-    revol.Build()
-    cradle_solid = cq.Solid(revol.Shape())
-
-    # Rotate by -30 degrees to center symmetrically around X=0
-    cradle_solid = cradle_solid.rotate((0, Y0, 0), (0, Y0, 1), -30.0)
-    body = cq.Workplane(cradle_solid)
-
-    # 4. Cut standard UNIT shallow 45-degree grooves into the flat back at Z = 0
-    bottom_groove_y = get_bottom_groove_y(rail_height)
-
-    top_groove_pts = [
-        (TOP_GROOVE_Y + GROOVE_SURFACE_HALF_WIDTH, 1.0),
-        (TOP_GROOVE_Y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-        (TOP_GROOVE_Y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-        (TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH, 1.0),
-    ]
-    top_cutter = (
-        cq.Workplane("YZ")
+        .revolve(sweep_angle_deg, (Y0, 0), (Y0, 1))
+        .rotate((0, Y0, 0), (0, Y0, 1), -30.0)
+        # Cut standard UNIT shallow 45-degree grooves into the flat back at Z = 0
+        .copyWorkplane(cq.Workplane("YZ", origin=(width / 2.0 + 10.0, 0, 0)))
         .polyline(top_groove_pts)
         .close()
-        .extrude(width + 20.0)
-        .translate((-(width + 20.0) / 2.0, 0, 0))
-    )
-
-    bot_groove_pts = [
-        (bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH, 1.0),
-        (bottom_groove_y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-        (bottom_groove_y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-        (bottom_groove_y - GROOVE_SURFACE_HALF_WIDTH, 1.0),
-    ]
-    bot_cutter = (
-        cq.Workplane("YZ")
         .polyline(bot_groove_pts)
         .close()
-        .extrude(width + 20.0)
-        .translate((-(width + 20.0) / 2.0, 0, 0))
-    )
-
-    body = body.cut(top_cutter).cut(bot_cutter)
-
-    # 5. Drill standard UNIT screw holes and counterbores
-    for i in range(units):
-        x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
-        # Top screws along TOP_GROOVE_Y (10.0 mm)
-        body = body.cut(
-            cq.Workplane("XY", origin=(x, TOP_GROOVE_Y, 1.0))
-            .circle(3.6 / 2.0)
-            .extrude(-(backplate_thickness + 2.0))
-        )
-        body = body.cut(
-            cq.Workplane("XY", origin=(x, TOP_GROOVE_Y, -backplate_thickness + 4.0))
-            .circle(8.0 / 2.0)
-            .extrude(-10.0)
-        )
-        # Bottom screws along bottom_groove_y (-84.0 mm)
-        body = body.cut(
-            cq.Workplane("XY", origin=(x, bottom_groove_y, 1.0))
-            .circle(3.6 / 2.0)
-            .extrude(-(backplate_thickness + 2.0))
-        )
-        body = body.cut(
-            cq.Workplane("XY", origin=(x, bottom_groove_y, -backplate_thickness + 4.0))
-            .circle(8.0 / 2.0)
-            .extrude(-10.0)
-        )
-
-    # 6. Central handle slot in the front lip
-    lip_mid_r = (r_saddle + r_lip_top) / 2.0
-    effective_slot_w = min(handle_slot_width, width - 40.0)
-    slot_cutter = (
-        cq.Workplane("XY", origin=(0, Y0 + lip_mid_r, z_lip_front - 5))
+        .cutBlind(-(width + 20.0))
+        # Drill standard UNIT screw holes and counterbores
+        .copyWorkplane(cq.Workplane("XY", origin=(0, 0, 1.0)))
+        .pushPoints(screw_pts)
+        .hole(3.6, backplate_thickness + 2.0)
+        .copyWorkplane(cq.Workplane("XY", origin=(0, 0, -backplate_thickness + 4.0)))
+        .pushPoints(screw_pts)
+        .hole(8.0, 10.0)
+        # Central handle slot in the front lip
+        .copyWorkplane(cq.Workplane("XY", origin=(0, Y0 + lip_mid_r, z_lip_front - 5.0)))
         .slot2D(effective_slot_w, handle_slot_height)
-        .extrude(wall_thickness + 10.0)
+        .cutBlind(wall_thickness + 10.0)
     )
-    body = body.cut(slot_cutter)
 
     return body
 

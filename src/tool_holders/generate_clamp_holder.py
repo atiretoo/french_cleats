@@ -46,29 +46,12 @@ def create_clamp_holder(
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
     ]
-    brace = (
-        cq.Workplane("YZ")
-        .polyline(brace_pts)
-        .close()
-        .extrude(brace_thickness)
-        .translate((-width / 2, 0, 0))
-    )
-    tool_holder = tool_holder.union(brace)
-
     shelf_pts = [
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
         (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
         (shelf_top, -BACKPLATE_THICKNESS),
     ]
-    shelf = (
-        cq.Workplane("YZ")
-        .polyline(shelf_pts)
-        .close()
-        .extrude(width)
-        .translate((-width / 2, 0, 0))
-    )
-    tool_holder = tool_holder.union(shelf)
 
     # Bump along the right edge of the shelf where the slots open.
     # The side facing towards the left side angles up at 45 degrees so no supports are needed when printed left_down.
@@ -83,35 +66,48 @@ def create_clamp_holder(
         (x_right, shelf_top),
     ]
 
-    bump = (
-        cq.Workplane("XY", origin=(0, 0, -BACKPLATE_THICKNESS))
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("right_wp")
+        .end(2)
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=-width)
+        .polyline(brace_pts)
+        .close()
+        .extrude(brace_thickness)
+        .workplaneFromTagged("right_wp")
+        .polyline(shelf_pts)
+        .close()
+        .extrude(-width)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=-BACKPLATE_THICKNESS)
         .polyline(bump_profile)
         .close()
         .extrude(-shelf_depth)
     )
-    tool_holder = tool_holder.union(bump)
-
-    brace_inner_x = -width / 2 + brace_thickness
-
-    class FilletSelector(cq.Selector):
-        def filter(self, objectList):
-            res = []
-            for o in objectList:
-                if not isinstance(o, cq.Edge):
-                    continue
-                b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-                elif abs(b.xmin - brace_inner_x) < 1 and abs(b.ymin - shelf_bot) < 1 and b.zmax - b.zmin > 10:
-                    res.append(o)
-                elif abs(b.xmin - brace_inner_x) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.ymax - b.ymin > 10:
-                    res.append(o)
-            return res
 
     try:
-        tool_holder = tool_holder.edges(FilletSelector()).fillet(5.0)
+        tool_holder = (
+            tool_holder
+            .faces("+X or -Y")
+            .faces("not >X")
+            .faces("not <Y")
+            .edges("not <Z")
+            .edges("not >X")
+            .edges("|X or |Y or |Z")
+            .fillet(5.0)
+            .faces("+Y")
+            .faces("not >Y")
+            .faces("<Y")
+            .edges(">Z")
+            .fillet(5.0)
+        )
     except Exception:
         pass
 
@@ -122,31 +118,25 @@ def create_clamp_holder(
     slot_centers_z = [-BACKPLATE_THICKNESS - 15 - i * slot_spacing for i in range(num_slots)]
     slot_pts = [(z, slot_x) for z in slot_centers_z]
 
-    slots = (
-        cq.Workplane("ZX", origin=(0, shelf_top + bump_height + 2.0, 0))
+    tool_holder = (
+        tool_holder
+        .copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top + bump_height + 2.0, 0)))
         .pushPoints(slot_pts)
         .rect(slot_width, cut_length)
-        .extrude(-35.0)
+        .cutBlind(-35.0)
     )
-    tool_holder = tool_holder.cut(slots)
-    if screw_pts:
-        screws = (
-            cq.Workplane("XY")
-            .workplane(offset=0)
-            .pushPoints(screw_pts)
-            .circle(3.6 / 2)
-            .extrude(-20)
-        )
-        tool_holder = tool_holder.cut(screws)
 
-        recesses = (
-            cq.Workplane("XY")
-            .workplane(offset=-8)
+    if screw_pts:
+        tool_holder = (
+            tool_holder
+            .workplaneFromTagged("back_wp")
             .pushPoints(screw_pts)
-            .circle(8.0 / 2)
-            .extrude(-200)
+            .hole(3.6, 20.0)
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=-8.0)
+            .pushPoints(screw_pts)
+            .hole(8.0, 200.0)
         )
-        tool_holder = tool_holder.cut(recesses)
 
     return tool_holder
 

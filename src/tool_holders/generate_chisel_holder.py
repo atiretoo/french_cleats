@@ -53,89 +53,76 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
         (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
         (shelf_top, -BACKPLATE_THICKNESS)
     ]
-    shelf = (
-        cq.Workplane("YZ")
-        .polyline(shelf_pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .polyline(shelf_pts)
+        .close()
+        .extrude(-width)
     )
     
-    tool_holder = tool_holder.union(shelf)
-    
     # Fillet only the top and bottom edges of the shelf where it meets the backplate
-    class FilletSelector(cq.Selector):
-        def filter(self, objectList):
-            res = []
-            for o in objectList:
-                if not isinstance(o, cq.Edge): continue
-                b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-            return res
-
     try:
-        tool_holder = tool_holder.edges(FilletSelector()).fillet(5.0)
-    except:
-        pass # fallback if filleting fails
+        tool_holder = (
+            tool_holder
+            .faces("-Z")
+            .faces(">Z")
+            .edges("|X")
+            .edges("not >Y")
+            .edges("not <Y")
+            .fillet(5.0)
+        )
+    except Exception:
+        pass
     
-    # Cut holes and slots independently to avoid self-intersection boolean bugs
+    # Cut holes (with optional countersink chamfers) and slots on the shelf top plane
     z_center = -BACKPLATE_THICKNESS - shelf_depth / 2.0
-    start_x = - (mech_width / 2.0) + (spacing / 2.0)
+    start_x = -(mech_width / 2.0) + (spacing / 2.0)
     
+    tool_holder = tool_holder.copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top, 0)))
     for i in range(num_tools):
         x = start_x + i * spacing
-        
-        hole = (
-            cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
-            .center(z_center, x)
-            .circle(hole_sizes[i] / 2.0)
-            .extrude(40.0)
-        )
-        tool_holder = tool_holder.cut(hole)
-        
-        slot = (
-            cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
+        d = hole_sizes[i]
+        if chamfer_depth > 0:
+            csk_d = d + 2.0 * chamfer_depth * math.tan(math.radians(chamfer_angle / 2.0))
+            tool_holder = (
+                tool_holder
+                .center(z_center, x)
+                .cskHole(d, csk_d, chamfer_angle, depth=20.0)
+                .center(-z_center, -x)
+            )
+        else:
+            tool_holder = (
+                tool_holder
+                .center(z_center, x)
+                .hole(d, 20.0)
+                .center(-z_center, -x)
+            )
+        tool_holder = (
+            tool_holder
             .center(z_center, x)
             .rect(slot_depths[i], slot_widths[i])
-            .extrude(40.0)
+            .cutBlind(-20.0)
+            .center(-z_center, -x)
         )
-        tool_holder = tool_holder.cut(slot)
-        
-        if chamfer_depth > 0:
-            extra = 1.0
-            r_bot = hole_sizes[i] / 2.0
-            half_angle = chamfer_angle / 2.0
-            r_top = r_bot + chamfer_depth * math.tan(math.radians(half_angle))
-            r_extra = r_top + extra * math.tan(math.radians(half_angle))
-            
-            chamfer_cone = cq.Solid.makeCone(
-                radius1=r_bot,
-                radius2=r_extra,
-                height=chamfer_depth + extra,
-                pnt=(x, shelf_top - chamfer_depth, z_center),
-                dir=(0, 1, 0)
-            )
-            tool_holder = tool_holder.cut(chamfer_cone)
     
     # Cut screws
     if screw_pts:
-        screws = (
-            cq.Workplane("XY").workplane(offset=0)
+        tool_holder = (
+            tool_holder
+            .workplaneFromTagged("back_wp")
             .pushPoints(screw_pts)
-            .circle(3.6/2.0)
-            .extrude(-20) 
-        )
-        tool_holder = tool_holder.cut(screws)
-        
-        recesses = (
-            cq.Workplane("XY").workplane(offset=-8)
+            .hole(3.6, 20.0)
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=-8.0)
             .pushPoints(screw_pts)
-            .circle(8.0/2.0) 
-            .extrude(-200) 
+            .hole(8.0, 200.0)
         )
-        tool_holder = tool_holder.cut(recesses)
         
     if mc_solids:
         for solid in mc_solids:

@@ -68,91 +68,76 @@ def create_shooo_cam_holder(num_tools=1):
     reg_hole_2_y = block_y_bot + reg_hole_2_y_offset
     post_y = block_y_bot + post_y_offset
     
-    start_x = - (mech_width / 2.0)
-    
+    start_x = -(mech_width / 2.0)
     top_z = -BACKPLATE_THICKNESS - block_h
-    
-    for i in range(num_tools + 1):
-        x_pos = start_x + (block_x / 2.0) + i * (block_x + gap)
-        
-        # Block
-        block = (
-            cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS)
-            .center(x_pos, block_y_bot + block_y/2.0)
-            .rect(block_x, block_y)
-            .extrude(-block_h)
-            .edges("|Z").fillet(block_r)
-        )
-        body = body.union(block)
-        
-        # Registration holes
-        for y_pos in [reg_hole_1_y, reg_hole_2_y]:
-            reg_hole = (
-                cq.Workplane("XY").workplane(offset=top_z)
-                .center(x_pos, y_pos)
-                .circle(reg_hole_dia / 2.0)
-                .extrude(reg_hole_depth)
-            )
-            body = body.cut(reg_hole)
-            
-        # M3 Bolt hole (clearance for the bolt threads to pass through)
-        m3_hole = (
-            cq.Workplane("XY").workplane(offset=top_z)
-            .center(x_pos, m3_hole_y)
-            .circle(m3_hole_dia / 2.0)
-            .extrude(35.0) # Extended deep into the block for long bolts
-        )
-        body = body.cut(m3_hole)
-        
-        # M3 Captive Nut Slot (moved to 5mm from the front face)
-        slot_z = top_z + 5.0
-        
+
+    block_xs = [start_x + (block_x / 2.0) + i * (block_x + gap) for i in range(num_tools + 1)]
+    block_pts = [(x, block_y_bot + block_y / 2.0) for x in block_xs]
+    reg_pts = [(x, y) for x in block_xs for y in (reg_hole_1_y, reg_hole_2_y)]
+    m3_pts = [(x, m3_hole_y) for x in block_xs]
+    post_pts = [(block_xs[i] + (block_x / 2.0) + post_x_from_left, post_y) for i in range(num_tools)]
+
+    block_sketch = (
+        cq.Sketch()
+        .push(block_pts)
+        .rect(block_x, block_y)
+        .reset()
+        .vertices()
+        .fillet(block_r)
+    )
+
+    body = (
+        body
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=-BACKPLATE_THICKNESS)
+        .placeSketch(block_sketch)
+        .extrude(-block_h)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=top_z)
+        .pushPoints(reg_pts)
+        .circle(reg_hole_dia / 2.0)
+        .cutBlind(reg_hole_depth)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=top_z)
+        .pushPoints(m3_pts)
+        .circle(m3_hole_dia / 2.0)
+        .cutBlind(35.0)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=-BACKPLATE_THICKNESS)
+        .pushPoints(post_pts)
+        .circle(boss_r)
+        .extrude(-boss_h)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=-BACKPLATE_THICKNESS - boss_h)
+        .pushPoints(post_pts)
+        .circle(post_r)
+        .extrude(-(post_h - boss_h))
+    )
+
+    # M3 Captive Nut Slots (5mm from the front face)
+    slot_z = top_z + 5.0
+    for i, x_pos in enumerate(block_xs):
         slide_dir = -1.0 if i == num_tools else 1.0
-        
         slot_solid = create_nut_slot("M3", depth=(block_x / 2.0) + 0.5, push_hole=True)
         plane = cq.Plane(origin=(x_pos, m3_hole_y, slot_z), xDir=(0, -slide_dir, 0), normal=(0, 0, 1))
-        slot_solid = slot_solid.moved(cq.Location(plane))
-        body = body.cut(slot_solid)
-        
-        # Add the post (except for the last iteration)
-        if i < num_tools:
-            post_center_x = x_pos + (block_x / 2.0) + post_x_from_left
-            
-            # Boss (base)
-            boss = (
-                cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS)
-                .center(post_center_x, post_y)
-                .circle(boss_r)
-                .extrude(-boss_h)
-            )
-            body = body.union(boss)
-            
-            # Main pin
-            pin = (
-                cq.Workplane("XY").workplane(offset=-BACKPLATE_THICKNESS - boss_h)
-                .center(post_center_x, post_y)
-                .circle(post_r)
-                .extrude(-(post_h - boss_h))
-            )
-            body = body.union(pin)
+        body = body.cut(slot_solid.moved(cq.Location(plane)))
 
     # Cut cleat mounting screws
     if screw_pts:
-        screws = (
-            cq.Workplane("XY").workplane(offset=0)
+        body = (
+            body
+            .workplaneFromTagged("back_wp")
             .pushPoints(screw_pts)
-            .circle(3.6/2.0)
-            .extrude(-20) 
-        )
-        body = body.cut(screws)
-        
-        recesses = (
-            cq.Workplane("XY").workplane(offset=-8)
+            .hole(3.6, 20.0)
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=-8.0)
             .pushPoints(screw_pts)
-            .circle(8.0/2.0) 
-            .extrude(-20) 
+            .hole(8.0, 20.0)
         )
-        body = body.cut(recesses)
         
     return body
 

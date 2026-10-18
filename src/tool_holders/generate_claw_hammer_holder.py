@@ -111,98 +111,100 @@ def create_claw_hammer_holder(
     shelf_bot_y = shelf_top_y - shelf_thickness  # -15.0mm
     elev_top_y = shelf_top_y + claw_elevation  # -2.0mm
     
-    # 2. Main Shelf Block
-    shelf = (
-        cq.Workplane("ZX", origin=(0, shelf_bot_y, 0))
-        .moveTo(back_z - shelf_extrude_dist / 2.0, 0)
-        .rect(shelf_extrude_dist, width)
-        .extrude(shelf_thickness)
+    shelf_pts = [
+        (shelf_bot_y, back_z),
+        (shelf_bot_y, front_z),
+        (shelf_top_y, front_z),
+        (shelf_top_y, back_z),
+    ]
+    elev_pts = [
+        (shelf_top_y, z_slot_front),
+        (shelf_top_y, front_z),
+        (elev_top_y, front_z),
+        (elev_top_y, z_slot_front),
+    ]
+    
+    body = (
+        body
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("right_wp")
+        .end(2)
+        # 2. Main Shelf Block
+        .workplaneFromTagged("right_wp")
+        .polyline(shelf_pts)
+        .close()
+        .extrude(-width)
     )
-    body = body.union(shelf)
     
     # 3. Structural Fillet at Backplate Junction
-    fillet_edges = []
-    for e in body.edges().vals():
-        b = e.BoundingBox()
-        if abs(b.zmin - back_z) < 0.1 and abs(b.zmax - back_z) < 0.1:
-            if abs(b.ymin - shelf_top_y) < 0.1 or abs(b.ymin - shelf_bot_y) < 0.1:
-                if (b.xmax - b.xmin) > 10.0:
-                    fillet_edges.append(e)
-    if fillet_edges:
+    try:
+        body = (
+            body
+            .faces("-Z")
+            .faces(">Z")
+            .edges("|X")
+            .edges("not >Y")
+            .edges("not <Y")
+            .fillet(fillet_radius)
+        )
+    except Exception:
         try:
-            body = body.newObject(fillet_edges).fillet(fillet_radius)
-        except Exception:
-            try:
-                body = body.newObject(fillet_edges).fillet(2.0)
-            except Exception:
-                pass
-
-    # 4. Elevated Claw Support Block (in front of handle slot)
-    elev_len = abs(front_z - z_slot_front)
-    elev_center_z = (z_slot_front + front_z) / 2.0
-    
-    elev_block = (
-        cq.Workplane("ZX", origin=(0, shelf_top_y, 0))
-        .moveTo(elev_center_z, 0)
-        .rect(elev_len, width)
-        .extrude(claw_elevation)
-    )
-    body = body.union(elev_block)
-    
-    # Round off top edges of elevated block (top-front and top-back) for printability & smooth seating
-    top_edges = []
-    for e in body.edges().vals():
-        b = e.BoundingBox()
-        if abs(b.ymin - elev_top_y) < 0.1 and abs(b.ymax - elev_top_y) < 0.1:
-            if abs(b.zmin - front_z) < 0.1 or abs(b.zmin - z_slot_front) < 0.1:
-                if (b.xmax - b.xmin) > 10.0:
-                    top_edges.append(e)
-    if top_edges:
-        try:
-            body = body.newObject(top_edges).fillet(2.5)
+            body = (
+                body
+                .faces("-Z")
+                .faces(">Z")
+                .edges("|X")
+                .edges("not >Y")
+                .edges("not <Y")
+                .fillet(2.0)
+            )
         except Exception:
             pass
+
+    # 4. Elevated Claw Support Block (in front of handle slot)
+    body = (
+        body
+        .workplaneFromTagged("right_wp")
+        .polyline(elev_pts)
+        .close()
+        .extrude(-width)
+    )
+    
+    # Round off top edges of elevated block (top-front and top-back) for printability & smooth seating
+    try:
+        body = (
+            body
+            .faces("+Y")
+            .faces("not >Y")
+            .faces(">Y")
+            .edges("|X")
+            .fillet(2.5)
+        )
+    except Exception:
+        pass
         
-    # 5. Slim 5mm Triangular Support Brace
+    # 5. Slim 5mm Triangular Support Brace & 6. Parallel Triangular Cutout
     gusset_y_bottom = bottom_y + gusset_bottom_offset
     brace_pts = [
         (shelf_bot_y, back_z),
         (shelf_bot_y, front_z),
         (gusset_y_bottom, back_z),
     ]
-    
-    brace = (
-        cq.Workplane("YZ", origin=(-width / 2.0, 0, 0))
-        .polyline(brace_pts).close()
-        .extrude(web_thickness)
+    cutout_sketch = (
+        cq.Sketch()
+        .polygon(brace_pts)
+        .wires()
+        .offset(-10.0, mode="r")
+        .reset()
+        .vertices()
+        .fillet(5.0)
     )
-    body = body.union(brace)
     
-    # 6. Parallel Triangular Cutout
-    dy = gusset_y_bottom - shelf_bot_y
-    dz = back_z - front_z
-    m = dy / dz
-    b0 = gusset_y_bottom - m * back_z
-
-    W_top = 10.0
-    W_back = 10.0
-    W_diag = 10.0
-
-    b = b0 + W_diag * math.sqrt(1 + m**2)
-
-    v1 = (shelf_bot_y - W_top, back_z - W_back)
-    v2 = (shelf_bot_y - W_top, (shelf_bot_y - W_top - b) / m)
-    v3 = (m * (back_z - W_back) + b, back_z - W_back)
-
-    cutout_pts = [v1, v2, v3]
-    gusset_cutout = (
-        cq.Workplane("YZ", origin=(-width / 2.0 - 2.0, 0, 0))
-        .polyline(cutout_pts).close()
-        .extrude(web_thickness + 4.0)
-    )
-    gusset_cutout = gusset_cutout.edges("|X").fillet(5.0)
-    body = body.cut(gusset_cutout)
-
     # 7. Handle Slot Cutter (cuts through both elevated block and shelf)
     x_dimple = -6.0
     x_slot_back = -20.0  # Stops 3mm before left brace web (at X = -23.0)
@@ -220,63 +222,53 @@ def create_claw_hammer_holder(
         (z_handle + w_half_slot, x_taper_start),
         (z_handle + w_half_mouth, x_mouth),
     ]
-    
+    slot_sketch = cq.Sketch().polygon(slot_poly_pts).reset().vertices("<Y").fillet(5.0)
     slot_cutter_height = claw_elevation + shelf_thickness + 4.0
-    slot_cutter = (
-        cq.Workplane("ZX", origin=(0, elev_top_y + 2.0, 0))
-        .polyline(slot_poly_pts).close()
-        .extrude(-slot_cutter_height)
-    )
-    back_edges = [e for e in slot_cutter.edges("|Y").vals() if abs(e.BoundingBox().xmin - x_slot_back) < 0.1]
-    if back_edges:
-        try:
-            slot_cutter = slot_cutter.newObject(back_edges).fillet(5.0)
-        except Exception:
-            pass
-    body = body.cut(slot_cutter)
-    
+
     # 8. Cylindrical Cradle Dimples
-    # Rear dimple for striking face neck: starts at dimple_start_z, extends to slot
     divot_rear_y = (shelf_top_y - divot_depth) + divot_radius
     divot_rear_len = abs(z_handle - dimple_start_z) + 5.0
-    divot_rear = (
-        cq.Workplane("XY")
+    divot_front_y = (elev_top_y - divot_depth) + divot_radius
+    divot_front_len = abs(front_z - z_slot_front) + 4.0
+
+    body = (
+        body
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=-width)
+        .polyline(brace_pts)
+        .close()
+        .extrude(web_thickness)
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=-width)
+        .placeSketch(cutout_sketch)
+        .cutBlind(web_thickness)
+        .copyWorkplane(cq.Workplane("ZX", origin=(0, elev_top_y + 2.0, 0)))
+        .placeSketch(slot_sketch)
+        .cutBlind(-slot_cutter_height)
+        .workplaneFromTagged("back_wp")
         .workplane(offset=dimple_start_z)
         .moveTo(x_dimple, divot_rear_y)
         .circle(divot_radius)
-        .extrude(-divot_rear_len)
-    )
-    body = body.cut(divot_rear)
-
-    # Front dimple on top of elevated claw platform:
-    divot_front_y = (elev_top_y - divot_depth) + divot_radius
-    divot_front_len = abs(front_z - z_slot_front) + 4.0
-    divot_front = (
-        cq.Workplane("XY")
+        .cutBlind(-divot_rear_len)
+        .workplaneFromTagged("back_wp")
         .workplane(offset=z_slot_front + 2.0)
         .moveTo(x_dimple, divot_front_y)
         .circle(divot_radius)
-        .extrude(-divot_front_len)
+        .cutBlind(-divot_front_len)
     )
-    body = body.cut(divot_front)
 
     # 9. Screw Holes
     if screw_pts:
-        screws = (
-            cq.Workplane("XY").workplane(offset=0)
+        body = (
+            body
+            .workplaneFromTagged("back_wp")
             .pushPoints(screw_pts)
-            .circle(3.6 / 2.0)
-            .extrude(-20)
-        )
-        body = body.cut(screws)
-        
-        recesses = (
-            cq.Workplane("XY").workplane(offset=-8)
+            .hole(3.6, 20.0)
+            .workplaneFromTagged("back_wp")
+            .workplane(offset=-8.0)
             .pushPoints(screw_pts)
-            .circle(8.0 / 2.0)
-            .extrude(-20)
+            .hole(8.0, 20.0)
         )
-        body = body.cut(recesses)
         
     return body
 
