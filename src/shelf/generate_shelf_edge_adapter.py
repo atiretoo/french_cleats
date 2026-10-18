@@ -31,6 +31,7 @@ from core_library import (
     get_bottom_groove_y,
     get_bottom_edge_y,
     get_ridge_points,
+    get_screw_points,
     create_nut_slot,
     export_model,
     NUT_SLOT_TOLERANCE,
@@ -677,11 +678,7 @@ def create_shelf_edge_adapter(
 
     # 4. Screw clearance holes and captive nut slots (if enabled)
     if with_screws and screw_m.lower() != "none":
-        screw_pts = [
-            (-width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH, sy)
-            for i in range(units)
-            for sy in [top_screw_y, bottom_screw_y]
-        ]
+        screw_pts = get_screw_points(units, rail_height)
 
         plane = cq.Plane(origin=(0, 0, -RIDGE_HEIGHT - 5.0), normal=(0, 0, -1))
         adapter = (

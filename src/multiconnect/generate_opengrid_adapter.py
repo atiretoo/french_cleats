@@ -20,7 +20,7 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import (
     UNIT_WIDTH, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR,
-    get_ridge_points, NUT_SLOT_TOLERANCE
+    get_ridge_points, get_screw_points, NUT_SLOT_TOLERANCE
 )
 
 def load_mc_block(filename, opengrid_path=None):
@@ -131,7 +131,7 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     adapter = adapter.union(top_ridge).union(bot_ridge)
     
     # Drill clearance screw holes through the adapter
-    screw_pts = [(-width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH, y) for i in range(units) for y in [top_screw_y, bottom_screw_y]]
+    screw_pts = get_screw_points(units, rail_height)
     adapter = adapter.faces(">Z").workplane(centerOption="ProjectedOrigin").pushPoints(screw_pts).hole(screw_d)
     
     # Nut slots

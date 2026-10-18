@@ -83,6 +83,21 @@ def get_ridge_points(center_y):
 def get_bottom_groove_y(rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
     return -rail_height - play - 10.0
 
+get_bottom_ridge_y = get_bottom_groove_y
+
+def get_screw_points(units, rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
+    """
+    Returns the list of (x, y) coordinates for standard mounting screws
+    centered in each unit column and located at the top and bottom ridges/grooves.
+    """
+    width = units * UNIT_WIDTH
+    bot_y = get_bottom_groove_y(rail_height, play)
+    pts = []
+    for i in range(units):
+        x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
+        pts.extend([(x, TOP_RIDGE_Y), (x, bot_y)])
+    return pts
+
 def get_bottom_edge_y(rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
     return get_bottom_groove_y(rail_height, play) - 10.0
 
@@ -138,10 +153,7 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
         except Exception:
             pass
         
-        screw_pts = []
-        for i in range(units):
-            x = -width / 2.0 + unit_width / 2.0 + i * unit_width
-            screw_pts.extend([(x, TOP_GROOVE_Y), (x, bottom_groove_y)])
+        screw_pts = get_screw_points(units, rail_height, play)
             
         return baseplate, BACKPLATE_TOP_Y, bottom_y, bottom_groove_y, screw_pts, []
         
