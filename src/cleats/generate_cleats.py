@@ -18,8 +18,8 @@ import cadquery as cq
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import (
-    UNIT_WIDTH, create_baseplate, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR,
-    RIDGE_HEIGHT, RIDGE_SURFACE_HALF_WIDTH, RIDGE_PEAK_HALF_WIDTH, NUT_SLOT_TOLERANCE
+    UNIT_WIDTH, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR,
+    get_ridge_points, NUT_SLOT_TOLERANCE
 )
 import argparse
 import os
@@ -30,12 +30,11 @@ def load_round_button(path=None):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Multiconnect round button asset not found: {path}")
     model = cq.importers.importStep(path)
-    model = model.rotate((0,0,0), (1,0,0), 180)
+    model = model.rotate((0, 0, 0), (1, 0, 0), 180)
     return model
 
 def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m="M3"):
     width = units * UNIT_WIDTH
-    
     tip_clearance = 2.0
     
     if mount_type == "groove":
@@ -50,20 +49,15 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
     p2b = (-rail_thickness + tip_clearance, rail_thickness)
     p3 = (top_y, rail_thickness)
     p4 = (top_y, 0)
-    p5 = (screw_y + RIDGE_SURFACE_HALF_WIDTH, 0)
-    p6 = (screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT)
-    p7 = (screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT)
-    p8 = (screw_y - RIDGE_SURFACE_HALF_WIDTH, 0)
     
     pts = [p1, p2a, p2b, p3, p4]
     if mount_type == "groove":
-        pts.extend([p5, p6, p7, p8])
+        pts.extend(get_ridge_points(screw_y))
     
     cleat = (
         cq.Workplane("YZ")
         .polyline(pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
+        .extrude(width / 2.0, both=True)
     )
     
     if mount_type == "groove":
@@ -73,24 +67,25 @@ def create_top_cleat(units=2, rail_thickness=19.0, mount_type="groove", screw_m=
             screw_d, nut_waf, nut_thick = 4.5, 7.0, 3.2
         elif screw_m == "M5":
             screw_d, nut_waf, nut_thick = 5.5, 8.0, 4.0
+        else:
+            raise ValueError(f"Unsupported screw size: {screw_m}")
             
         slot_t = nut_thick + NUT_SLOT_TOLERANCE
         slot_z_center = 4.0 + slot_t / 2.0
         
-        for i in range(units):
-            x = -width/2 + UNIT_WIDTH/2 + i*UNIT_WIDTH
-            hole = cq.Workplane("XY").workplane(offset=-10).center(x, screw_y).circle(screw_d/2).extrude(50)
-            cleat = cleat.cut(hole)
-            
-            # Nut slot slides from top down to screw_y
-            depth = top_y - screw_y
-            slot_solid = create_nut_slot(screw_m, depth=depth, push_hole=True)
-            slot_solid = slot_solid.translate(cq.Vector(x, screw_y, slot_z_center))
-            cleat = cleat.cut(cq.Workplane(slot_solid))
+        screw_pts = [(-width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH, screw_y) for i in range(units)]
+        cleat = cleat.faces(">Z").workplane().pushPoints(screw_pts).hole(screw_d)
+        
+        # Nut slot slides from top down to screw_y
+        depth = top_y - screw_y
+        slot_solid = create_nut_slot(screw_m, depth=depth, push_hole=True)
+        for x, y in screw_pts:
+            s_inst = cq.Workplane(slot_solid).translate((x, y, slot_z_center))
+            cleat = cleat.cut(s_inst)
     else:
         button = load_round_button()
         for i in range(units):
-            x = -width/2 + UNIT_WIDTH/2 + i*UNIT_WIDTH
+            x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
             btn_inst = button.translate((x, screw_y, rail_thickness + 4.0))
             cleat = cleat.union(btn_inst)
             
@@ -106,44 +101,38 @@ def create_bottom_cleat(units=2, rail_thickness=19.0, screw_m="M3"):
         screw_d, nut_waf, nut_thick = 4.5, 7.0, 3.2
     elif screw_m == "M5":
         screw_d, nut_waf, nut_thick = 5.5, 8.0, 4.0
+    else:
+        raise ValueError(f"Unsupported screw size: {screw_m}")
         
     height = 20.0
     screw_y = 0.0
     
-    p1 = (-height/2, 0)
-    p2 = (-height/2, rail_thickness)
-    p3 = (-5.0, rail_thickness) 
-    p3b = (height/2, 4.0) 
-    p4 = (height/2, 0)
-    p5 = (screw_y + RIDGE_SURFACE_HALF_WIDTH, 0)
-    p6 = (screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT)
-    p7 = (screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT)
-    p8 = (screw_y - RIDGE_SURFACE_HALF_WIDTH, 0)
-    
-    pts = [p1, p2, p3, p3b, p4, p5, p6, p7, p8]
+    pts = [
+        (-height / 2.0, 0),
+        (-height / 2.0, rail_thickness),
+        (-5.0, rail_thickness),
+        (height / 2.0, 4.0),
+        (height / 2.0, 0),
+    ] + get_ridge_points(screw_y)
     
     cleat = (
         cq.Workplane("YZ")
         .polyline(pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
+        .extrude(width / 2.0, both=True)
     )
     
     slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 4.0 + slot_t / 2.0
     
-    for i in range(units):
-        x = -width/2 + UNIT_WIDTH/2 + i*UNIT_WIDTH
-        hole = cq.Workplane("XY").workplane(offset=-10).center(x, screw_y).circle(screw_d/2).extrude(50)
-        cleat = cleat.cut(hole)
-        
-        # Nut slot slides from bottom UP to screw_y
-        depth = screw_y - (-height/2)
-        slot_solid = create_nut_slot(screw_m, depth=depth, push_hole=True)
-        # Rotate 180 degrees around Z axis so it slides from bottom up
-        slot_solid = cq.Workplane(slot_solid).rotate(cq.Vector(0,0,0), cq.Vector(0,0,1), 180).val()
-        slot_solid = slot_solid.translate(cq.Vector(x, screw_y, slot_z_center))
-        cleat = cleat.cut(cq.Workplane(slot_solid))
+    screw_pts = [(-width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH, screw_y) for i in range(units)]
+    cleat = cleat.faces(">Z").workplane().pushPoints(screw_pts).hole(screw_d)
+    
+    depth = screw_y - (-height / 2.0)
+    slot_solid = create_nut_slot(screw_m, depth=depth, push_hole=True)
+    slot_solid_rot = cq.Workplane(slot_solid).rotate((0, 0, 0), (0, 0, 1), 180).val()
+    for x, y in screw_pts:
+        s_inst = cq.Workplane(slot_solid_rot).translate((x, y, slot_z_center))
+        cleat = cleat.cut(s_inst)
         
     return cleat
 
