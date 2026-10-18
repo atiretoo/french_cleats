@@ -64,7 +64,7 @@ def create_mallet_holder(
     
     # 1. Baseplate
     body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
-        units=units, rail_height=rail_height, mount_type="groove", num_rows=2
+        units=units, rail_height=rail_height
     )
     
     # Coordinates in Z:
@@ -221,7 +221,7 @@ if __name__ == "__main__":
         gusset_bottom_offset=args.gusset_bottom_offset
     )
 
-    filename = f"mallet_holder_{args.units}u_groove.stl"
+    filename = f"mallet_holder_{args.units}u.stl"
     export_model(
         holder,
         filename,

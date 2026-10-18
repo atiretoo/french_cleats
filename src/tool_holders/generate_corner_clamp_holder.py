@@ -32,8 +32,8 @@ def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_w
     # Calculate arc radius from measured chord and height
     arc_radius = (chord**2 / (8 * arc_height)) + (arc_height / 2)
     
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(
-        width_units, rail_height, mount_type="groove", num_rows=2
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        width_units, rail_height
     )
     
     shelf_top = top_y - 40.0
@@ -143,7 +143,7 @@ def main():
         rail_height=args.rail_height
     )
     
-    filename = f"corner_clamp_holder_{fw}x{fd}u_groove_H{args.rail_height}.stl"
+    filename = f"corner_clamp_holder_{fw}x{fd}u_H{args.rail_height}.stl"
     export_model(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 

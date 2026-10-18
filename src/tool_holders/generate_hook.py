@@ -36,9 +36,9 @@ def create_hook(width_units=1, length_units=4, diameter=10.0, slope_deg=5.0, rai
     length = length_units * UNIT_WIDTH
     radius = diameter / 2.0
 
-    # Create the standard groove-mount baseplate
+    # Create the standard baseplate
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
-        width_units, rail_height, mount_type="groove", num_rows=2
+        width_units, rail_height
     )
 
     # Position hook at 1/3 of the distance from bottom_y to top_y
@@ -112,7 +112,7 @@ def main():
         fillet_radius=args.fillet_radius
     )
     
-    filename = f"hook_{wu}x{lu}u_D{int(args.diameter)}mm_{int(args.slope)}deg_groove_H{args.rail_height}.stl"
+    filename = f"hook_{wu}x{lu}u_D{int(args.diameter)}mm_{int(args.slope)}deg_H{args.rail_height}.stl"
     export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
     print(f"Exported {filename}")
 

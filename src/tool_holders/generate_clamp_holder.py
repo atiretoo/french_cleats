@@ -36,7 +36,7 @@ def create_clamp_holder(
     shelf_depth = num_slots * slot_spacing
 
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
-        units, rail_height, mount_type="groove", num_rows=2
+        units, rail_height
     )
     shelf_top = top_y - 40.0
     shelf_bot = top_y - 50.0
@@ -164,7 +164,7 @@ def main():
         bump_height=args.bump_height,
         bump_flat_width=args.bump_flat_width,
     )
-    filename = f"clamp_holder_{args.units}u_groove_H{args.rail_height}_{args.num_slots}slots.stl"
+    filename = f"clamp_holder_{args.units}u_H{args.rail_height}_{args.num_slots}slots.stl"
     export_model(holder, filename, category="tool_holders", print_orientation=args.print_orientation, export=args.export)
     print(f"Exported {filename}")
 

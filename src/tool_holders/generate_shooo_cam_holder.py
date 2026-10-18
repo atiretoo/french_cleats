@@ -34,7 +34,7 @@ def create_shooo_cam_holder(num_tools=1):
     units = max(1, math.ceil(mech_width / 28.0))
     
     # Baseplate
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units, mount_type="groove", num_rows=2)
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units)
     
     # Holes on top face
     reg_hole_dia = 4.508
@@ -197,8 +197,8 @@ if __name__ == "__main__":
     
     if args.tilt_fin:
         holder = add_support_fin(holder, units)
-        filename = f"shooo_cam_holder_{args.tools}tools_{units}u_groove_45deg.stl"
+        filename = f"shooo_cam_holder_{args.tools}tools_{units}u_45deg.stl"
         export_model(holder, filename, print_orientation="face_down", category="tool_holders")
     else:
-        filename = f"shooo_cam_holder_{args.tools}tools_{units}u_groove.stl"
+        filename = f"shooo_cam_holder_{args.tools}tools_{units}u.stl"
         export_model(holder, filename, print_orientation="back_down", category="tool_holders")

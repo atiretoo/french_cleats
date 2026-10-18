@@ -49,7 +49,7 @@ def create_magnetic_holder(
     width = units * UNIT_WIDTH
     
     # Baseplate
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units, mount_type="groove", num_rows=2)
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units)
     body = (
         body
         .faces(">Z")
@@ -225,10 +225,10 @@ if __name__ == "__main__":
     )
     
     if args.style == "perpendicular":
-        filename = f"magnetic_saw_holder_perp_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}_{int(args.shelf_depth)}mm_groove.stl"
+        filename = f"magnetic_saw_holder_perp_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}_{int(args.shelf_depth)}mm.stl"
         default_orient = "right_down" if args.shelf_side == "right" else "left_down"
     else:
-        filename = f"magnetic_saw_holder_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}_groove.stl"
+        filename = f"magnetic_saw_holder_{args.units}u_{args.mag_count}Mags_D{args.mag_dia}x{args.mag_depth}.stl"
         default_orient = "left_down"
         
     orient = args.print_orientation if args.print_orientation is not None else default_orient

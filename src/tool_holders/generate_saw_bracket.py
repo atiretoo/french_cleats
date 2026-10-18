@@ -36,7 +36,7 @@ def create_saw_bracket(units=1, rail_height=73.0, hypotenuse=300.0, web_side="le
         slot_x_dir = -1  # Slot breaks out to the left (-X)
         
     # Generate the cleat mounting interface
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units, rail_height, mount_type="groove", num_rows=2)
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units, rail_height)
     
     drop = hypotenuse / math.sqrt(2)
     bracket_bottom = top_y - drop

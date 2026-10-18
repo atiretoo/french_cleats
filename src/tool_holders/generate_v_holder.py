@@ -30,7 +30,7 @@ def create_v_holder(width_units=2, depth_units=4, rail_height=73.0):
     shelf_depth = depth_units * UNIT_WIDTH
 
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
-        width_units, rail_height, mount_type="groove", num_rows=2
+        width_units, rail_height
     )
 
     y_drop = width / 2.0
@@ -80,7 +80,7 @@ def main():
         rail_height=args.rail_height
     )
     
-    filename = f"v_holder_{fw}x{fd}u_groove_H{args.rail_height}.stl"
+    filename = f"v_holder_{fw}x{fd}u_H{args.rail_height}.stl"
     export_model(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 

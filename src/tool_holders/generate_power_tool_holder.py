@@ -27,7 +27,7 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
     backplate_thickness = 11.0
     
     # Baseplate
-    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units, mount_type="groove", num_rows=2)
+    body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units)
     
     # Shelf thickness
     shelf_t = 5.0  # Reduced for clearance of screw holes
@@ -149,5 +149,5 @@ if __name__ == "__main__":
         slot_length=args.slot_length
     )
     
-    filename = f"power_tool_holder_{args.units}u_L{args.length}_groove.stl"
+    filename = f"power_tool_holder_{args.units}u_L{args.length}.stl"
     export_model(holder, filename, print_orientation="top_down", category="tool_holders")

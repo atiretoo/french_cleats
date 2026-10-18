@@ -37,7 +37,7 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
     while len(slot_depths) < num_tools: slot_depths.append(slot_depths[-1])
     
     # Create Baseplate
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids = create_baseplate(units, rail_height, mount_type="groove", num_rows=2)
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units, rail_height)
     
     if shelf_pos == "top":
         shelf_top = top_y
@@ -124,10 +124,6 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
             .hole(8.0, 200.0)
         )
         
-    if mc_solids:
-        for solid in mc_solids:
-            tool_holder = tool_holder.union(cq.Workplane(solid))
-            
     return tool_holder
 
 def parse_list(s):
@@ -175,7 +171,7 @@ def main():
     mech_width = args.tools * args.spacing
     units = max(1, math.ceil(mech_width / 28.0))
     
-    filename = f"chisel_holder_{args.tools}tools_{units}u_{args.shelf_pos}_groove_H{args.rail_height}{sd_str}{sw_str}{hs_str}.stl"
+    filename = f"chisel_holder_{args.tools}tools_{units}u_{args.shelf_pos}_H{args.rail_height}{sd_str}{sw_str}{hs_str}.stl"
     export_model(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 

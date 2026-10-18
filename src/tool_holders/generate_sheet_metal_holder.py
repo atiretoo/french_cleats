@@ -67,7 +67,7 @@ def create_sheet_metal_holder(
 
     # 1. Baseplate
     body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
-        units=units, mount_type="groove", num_rows=2
+        units=units
     )
 
     back_z = -BACKPLATE_THICKNESS # -11.0
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     filename = (
         f"sheet_metal_tool_holder_{args.units}u_"
         f"{int(args.metal_width)}mm_top_insert_"
-        f"D{args.pocket_depth:.2f}xV{v_w:.1f}{side_suffix}_groove.stl"
+        f"D{args.pocket_depth:.2f}xV{v_w:.1f}{side_suffix}.stl"
     )
 
     # In default right_down print orientation, the outer face of the projection rests flat on the print bed

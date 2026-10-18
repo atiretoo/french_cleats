@@ -105,7 +105,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
 
     # Create Baseplate
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
-        width_units, rail_height, mount_type="groove", num_rows=2
+        width_units, rail_height
     )
 
     shelf_top = top_y - 40.0
@@ -254,10 +254,10 @@ def main():
     )
     
     if hole_sizes_list:
-        filename = f"screwdriver_holder_{fw}x{fd}u_groove_H{args.rail_height}_VAR_S{args.hole_spacing}.stl"
+        filename = f"screwdriver_holder_{fw}x{fd}u_H{args.rail_height}_VAR_S{args.hole_spacing}.stl"
     else:
         layout_str = f"_N{args.num_holes}" if args.num_holes is not None else ""
-        filename = f"screwdriver_holder_{fw}x{fd}u_groove_H{args.rail_height}_D{args.hole_size}_S{args.hole_spacing}{layout_str}.stl"
+        filename = f"screwdriver_holder_{fw}x{fd}u_H{args.rail_height}_D{args.hole_size}_S{args.hole_spacing}{layout_str}.stl"
         
     export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
     print(f"Exported {filename}")

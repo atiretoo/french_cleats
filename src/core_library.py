@@ -56,6 +56,30 @@ NUT_SLOT_TOLERANCE = 0.3                # +0.3mm tolerance along both axes (5.80
 RIDGE_DEPTH = RIDGE_HEIGHT
 RIDGE_CLEARANCE = RIDGE_DEPTH_CLEARANCE
 
+def get_groove_points(center_y):
+    """
+    Returns the 4 2D (Y, Z) points defining the standard shallow 45-degree groove cut into the backplate.
+    Profile runs along +Y to -Y at Z=0, dipping to -GROOVE_DEPTH.
+    """
+    return [
+        (center_y + GROOVE_SURFACE_HALF_WIDTH, 0.0),
+        (center_y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+        (center_y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
+        (center_y - GROOVE_SURFACE_HALF_WIDTH, 0.0),
+    ]
+
+def get_ridge_points(center_y):
+    """
+    Returns the 4 2D (Y, Z) points defining the standard shallow 45-degree locking ridge on cleats/adapters.
+    Profile runs along +Y to -Y at Z=0, protruding to -RIDGE_HEIGHT into the groove.
+    """
+    return [
+        (center_y + RIDGE_SURFACE_HALF_WIDTH, 0.0),
+        (center_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
+        (center_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
+        (center_y - RIDGE_SURFACE_HALF_WIDTH, 0.0),
+    ]
+
 def get_bottom_groove_y(rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
     return -rail_height - play - 10.0
 
@@ -85,29 +109,22 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
     width = units * unit_width
     
     if mount_type == "groove":
-        t = 0.1
-        ridge_depth = RIDGE_DEPTH
-        ridge_clearance = RIDGE_CLEARANCE
         play = RAIL_PLAY
         
         bottom_groove_y = get_bottom_groove_y(rail_height, play)
         bottom_y = get_bottom_edge_y(rail_height, play)
         
-        pts = [
-            (BACKPLATE_TOP_Y, 0),
-            (TOP_GROOVE_Y + GROOVE_SURFACE_HALF_WIDTH, 0),
-            (TOP_GROOVE_Y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-            (TOP_GROOVE_Y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-            (TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH, 0),
-            (bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH, 0),
-            (bottom_groove_y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-            (bottom_groove_y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-            (bottom_groove_y - GROOVE_SURFACE_HALF_WIDTH, 0),
-            (bottom_y, 0),
-            (bottom_y, -backplate_thickness),
-            (BACKPLATE_TOP_Y, -backplate_thickness),
-            (BACKPLATE_TOP_Y, 0)
-        ]
+        pts = (
+            [(BACKPLATE_TOP_Y, 0.0)]
+            + get_groove_points(TOP_GROOVE_Y)
+            + get_groove_points(bottom_groove_y)
+            + [
+                (bottom_y, 0.0),
+                (bottom_y, -backplate_thickness),
+                (BACKPLATE_TOP_Y, -backplate_thickness),
+                (BACKPLATE_TOP_Y, 0.0),
+            ]
+        )
         
         baseplate = (
             cq.Workplane("YZ")

@@ -38,7 +38,6 @@ def create_hose_holder(
     units=7,
     depth=150.0,
     rail_height=DEFAULT_RAIL_HEIGHT,
-    mount_type="groove",
     wall_thickness=9.0,
     lip_height=50.0,
     handle_slot_height=20.0,
@@ -48,7 +47,6 @@ def create_hose_holder(
     Creates a pure 60-degree swept UNIT system hose and extension cord holder (Option A).
     - units: Width in 28mm UNITs (default: 7U = 196mm)
     - depth: Usable cradle projection depth in mm (default: 150mm for pneumatic air hose)
-    - mount_type: 'groove' standard UNIT mounting interface
     - wall_thickness: Structural wall thickness in mm (default: 9.0mm)
     - lip_height: Height of the front retaining lip pointing UPWARDS to retain coils (default: 50.0mm)
     - handle_slot_height: Height of the central handle cutout slot (default: 20.0mm)
@@ -210,7 +208,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate UNIT Hose / Extension Cord Holder (Option A)")
     parser.add_argument("--units", type=int, default=7, help="Width in 28mm UNITs (default: 7)")
     parser.add_argument("--depth", type=float, default=150.0, help="Usable cradle depth in mm (default: 150.0)")
-    parser.add_argument("--mount", type=str, default="groove", choices=["groove"], help="Mount type (default: groove)")
     parser.add_argument("--rail-height", type=float, default=DEFAULT_RAIL_HEIGHT, help="Cleat rail height in mm (default: 73.0)")
     parser.add_argument("--lip-height", type=float, default=50.0, help="Front retaining lip height in mm (default: 50.0)")
     parser.add_argument("--export", type=str, default="both", choices=["both", "stl", "step"], help="Export format (default: both)")
@@ -228,7 +225,6 @@ if __name__ == "__main__":
         units=args.units,
         depth=args.depth,
         rail_height=args.rail_height,
-        mount_type=args.mount,
         lip_height=args.lip_height,
     )
 
@@ -243,7 +239,7 @@ if __name__ == "__main__":
     os.makedirs(export_dir_stl, exist_ok=True)
     os.makedirs(export_dir_step, exist_ok=True)
 
-    filename_base = f"hose_holder_{args.units}u_D{int(args.depth)}_{args.mount}"
+    filename_base = f"hose_holder_{args.units}u_D{int(args.depth)}"
     out_stl = os.path.join(export_dir_stl, f"{filename_base}.stl")
     out_step = os.path.join(export_dir_step, f"{filename_base}.step")
 

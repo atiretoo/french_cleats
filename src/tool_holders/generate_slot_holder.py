@@ -68,7 +68,7 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
     shelf_depth = depth_units * UNIT_WIDTH
 
     tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
-        width_units, rail_height, mount_type="groove", num_rows=2
+        width_units, rail_height
     )
 
     shelf_top = top_y - 40.0
@@ -194,10 +194,10 @@ def main():
     
     if args.print_orientation == "right_down_45":
         holder = add_support_fins(holder, fw, fd, bottom_groove_y, top_y)
-        filename = f"slot_holder_{fw}x{fd}u_groove_H{args.rail_height}_W{args.slot_width}_45deg.stl"
+        filename = f"slot_holder_{fw}x{fd}u_H{args.rail_height}_W{args.slot_width}_45deg.stl"
         export_model(holder, filename, category='tool_holders', print_orientation="face_down")
     else:
-        filename = f"slot_holder_{fw}x{fd}u_groove_H{args.rail_height}_W{args.slot_width}.stl"
+        filename = f"slot_holder_{fw}x{fd}u_H{args.rail_height}_W{args.slot_width}.stl"
         export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
     print(f"Exported {filename}")
 
