@@ -112,26 +112,18 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
         baseplate = (
             cq.Workplane("YZ")
             .polyline(pts).close()
-            .extrude(width)
-            .translate((-width/2, 0, 0))
+            .extrude(width / 2.0, both=True)
         )
         
         # Chamfer the 4 outer back edges (on the >Z face at Z=0)
         try:
-            outer_edges = []
-            for e in baseplate.edges(">Z").vals():
-                c = e.Center()
-                if abs(c.x) > (width/2 - 0.1) or c.y > (BACKPLATE_TOP_Y - 0.1) or c.y < (bottom_y + 0.1):
-                    outer_edges.append(e)
-            
-            if outer_edges:
-                baseplate = baseplate.newObject(outer_edges).chamfer(2.0)
+            baseplate = baseplate.faces(">Z").edges(">X or <X or >Y or <Y").chamfer(2.0)
         except Exception:
             pass
         
         screw_pts = []
         for i in range(units):
-            x = -width/2 + unit_width/2 + i*unit_width
+            x = -width / 2.0 + unit_width / 2.0 + i * unit_width
             screw_pts.extend([(x, TOP_GROOVE_Y), (x, bottom_groove_y)])
             
         return baseplate, BACKPLATE_TOP_Y, bottom_y, bottom_groove_y, screw_pts, []
@@ -146,9 +138,8 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
         
         # solid box goes from Z=-6.4 down to Z=-backplate_thickness
         baseplate = (
-            cq.Workplane("XY")
+            cq.Workplane("XY", origin=(0, top_y - height / 2.0, -6.4 - solid_thickness / 2.0))
             .box(width, height, solid_thickness)
-            .translate((0, top_y - height/2, -6.4 - solid_thickness/2))
         )
         
         top_block = load_mc_block('top-back.step')
@@ -157,18 +148,18 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
         
         mc_solids = []
         for c in range(units):
-            x_center = -width/2 + 14.0 + c*28.0
+            x_center = -width / 2.0 + 14.0 + c * 28.0
             
             y_top = 28.0 - 14.0
             inst = top_block.translate((x_center, y_top, 0))
             mc_solids.append(inst)
             
             for r in range(1, num_rows):
-                y_mid = 28.0 - 14.0 - r*28.0
+                y_mid = 28.0 - 14.0 - r * 28.0
                 inst = mid_block.translate((x_center, y_mid, 0))
                 mc_solids.append(inst)
                 
-            y_bot = 28.0 - num_rows*28.0 - 7.0
+            y_bot = 28.0 - num_rows * 28.0 - 7.0
             inst = bot_block.translate((x_center, y_bot, 0))
             mc_solids.append(inst)
                 
@@ -291,7 +282,7 @@ def export_stl(shape, filename, rotate_for_printing=None, category="", export_st
 
 def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.0, push_hole_dia=2.0):
     """
-    Creates a nut capture slot (and optional push hole) centered at (0,0,0).
+    Creates a nut capture slot (and optional push hole) centered at (0,0,0) using BRep modeling.
     - The bolt passes through the Z-axis.
     - The nut slides in from the +Y direction.
     - The slot width spans the X-axis.
@@ -314,120 +305,58 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
     slot_length = depth + nut_point_dist
     center_y = (depth - nut_point_dist) / 2.0
     
-    slot = cq.Solid.makeBox(slot_w, slot_length, slot_t)
-    slot = slot.translate((-slot_w/2.0, -slot_length/2.0, -slot_t/2.0))
-    slot = slot.translate((0, center_y, 0))
-    
-    result = cq.Workplane(slot)
+    b = (
+        cq.Workplane("XY")
+        .workplane(offset=-slot_t / 2.0)
+        .center(0, center_y)
+        .rect(slot_w, slot_length)
+        .extrude(slot_t)
+    )
     
     if push_hole:
-        # Create a cylinder starting at Y = -nut_point_dist and extending downwards (negative Y)
-        # We will make it 100mm long to ensure it pierces the outer wall.
-        cyl_r = push_hole_dia / 2.0
-        cyl = cq.Solid.makeCylinder(cyl_r, 100.0, cq.Vector(0, 0, 0), cq.Vector(0, -1, 0))
-        cyl = cyl.translate((0, -nut_point_dist, 0))
-        
+        push_wp = b.faces("<Y").workplane(centerOption="CenterOfMass")
         if push_hole_angle != 0.0:
-            # Rotate around X-axis passing through (0, -nut_point_dist, 0).
-            # Note: cq.Shape.rotate takes (startVector, endVector). To define an axis along +X,
-            # endVector must be startVector + (1, 0, 0).
-            cyl = cyl.rotate(
-                cq.Vector(0, -nut_point_dist, 0),
-                cq.Vector(1, -nut_point_dist, 0),
-                push_hole_angle,
-            )
-            
-        result = result.union(cq.Workplane(cyl))
+            push_wp = push_wp.transformed(rotate=(push_hole_angle, 0, 0))
+        b = push_wp.circle(push_hole_dia / 2.0).extrude(100.0)
         
-    return result.val()
+    return b.val()
 
 def support_fin(z_gap=0.01, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0, cutoff_top=True):
     """
-    Generates a 45-degree support fin.
+    Generates a 45-degree support fin using BRep modeling.
     Note: For the cleanest breakaway, use z_gap=0.0 mm if the fin tip is perfectly aligned 
     flush with an outer corner of the part. If placing the fin in the middle of a face, 
     default to z_gap=0.01 mm to ensure it lightly fuses with the perimeter.
     """
-    import cadquery as cq
-    Z_gap = z_gap
-    
-    start_y = max(0, Z_gap)
-    end_y = length + min(0, Z_gap)
-    
-    start_z = start_y - Z_gap
-    end_z = end_y - Z_gap
-    
-    if is_right:
-        pts = [(start_y, 0), (start_y, start_z), (end_y, end_z), (end_y, 0)]
-    else:
-        pts = [(-start_y, 0), (-start_y, start_z), (-end_y, end_z), (-end_y, 0)]
-        
-    unique_pts = [pts[0]]
-    for p in pts[1:]:
-        if p != unique_pts[-1]:
-            unique_pts.append(p)
-    if len(unique_pts) > 1 and unique_pts[-1] == unique_pts[0]:
-        unique_pts.pop()
-        
-    wedge = (
-        cq.Workplane("YZ")
-        .polyline(unique_pts).close()
-        .extrude(fin_width)
-        .translate((-fin_width/2.0, 0, 0))
-    )
-    
+    y_sign = 1.0 if is_right else -1.0
+    start_y = max(0, z_gap)
+    end_y = length + min(0, z_gap)
+    start_z = start_y - z_gap
+    cutoff_z = height - taper_z_drop if cutoff_top else height
+    cutoff_y = cutoff_z + z_gap
+
+    raw_pts = [
+        (y_sign * start_y, 0),
+        (y_sign * start_y, start_z),
+        (y_sign * cutoff_y, cutoff_z),
+        (y_sign * end_y, cutoff_z),
+        (y_sign * end_y, 0),
+    ]
+    pts = []
+    for p in raw_pts:
+        if not pts or (abs(p[0] - pts[-1][0]) > 1e-5 or abs(p[1] - pts[-1][1]) > 1e-5):
+            pts.append(p)
+
+    wedge = cq.Workplane("YZ", origin=(-fin_width / 2.0, 0, 0)).polyline(pts).close().extrude(fin_width)
+    path = cq.Workplane("YZ").moveTo(0, -z_gap).lineTo(y_sign * (height + 10.0), height + 10.0 - z_gap)
+
     prof_x1 = tip_width / 2.0
     prof_x2 = fin_width / 2.0
-    
-    prof_p = [(fin_width, 1.0), (prof_x1, 1.0), (prof_x1, 0.0), (prof_x2, -taper_z_drop), (fin_width, -taper_z_drop)]
-    prof_n = [(-fin_width, 1.0), (-prof_x1, 1.0), (-prof_x1, 0.0), (-prof_x2, -taper_z_drop), (-fin_width, -taper_z_drop)]
-    
-    # We use XZ to map Local X = Global X, Local Y = Global Z
-    if is_right:
-        cut_p = (
-            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
-            .polyline(prof_p).close()
-            .transformed(offset=(0, height+10, -(height+10)))
-            .polyline(prof_p).close()
-            .loft()
-        )
-        cut_n = (
-            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
-            .polyline(prof_n).close()
-            .transformed(offset=(0, height+10, -(height+10)))
-            .polyline(prof_n).close()
-            .loft()
-        )
-    else:
-        cut_p = (
-            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
-            .polyline(prof_p).close()
-            .transformed(offset=(0, height+10, height+10))
-            .polyline(prof_p).close()
-            .loft()
-        )
-        cut_n = (
-            cq.Workplane("XZ", origin=(0, 0, -Z_gap))
-            .polyline(prof_n).close()
-            .transformed(offset=(0, height+10, height+10))
-            .polyline(prof_n).close()
-            .loft()
-        )
-        
-    # Prevent cutting below the print bed (Z < 0)
-    box_size = max(500.0, height * 4, length * 4)
-    bbox = cq.Workplane("XY").box(box_size, box_size, box_size).translate((0, 0, box_size / 2.0))
-    cut_p = cut_p.intersect(bbox)
-    cut_n = cut_n.intersect(bbox)
-        
-    fin = wedge.cut(cut_p).cut(cut_n)
-    
-    # Chop off the top of the fin where it gets too narrow in Y (prevents tiny tip blobs)
-    if cutoff_top:
-        cutoff_z = height - taper_z_drop
-        fin = fin.cut(cq.Workplane("XY").box(box_size, box_size, box_size).translate((0, 0, cutoff_z + box_size / 2.0)))
-        
-    return fin
+    prof_p = [(1.0, fin_width), (1.0, prof_x1), (0.0, prof_x1), (-taper_z_drop, prof_x2), (-taper_z_drop, fin_width)]
+    prof_n = [(1.0, -fin_width), (1.0, -prof_x1), (0.0, -prof_x1), (-taper_z_drop, -prof_x2), (-taper_z_drop, -fin_width)]
+
+    cutter = cq.Workplane("ZX", origin=(0, 0, -z_gap)).polyline(prof_p).close().polyline(prof_n).close().sweep(path)
+    return wedge.cut(cutter)
 
 def create_snap_fit_peg_parameterized(bot_p0, num_petals=3, band_dia=8.1):
     delta = (band_dia / 2.0) - 4.05
