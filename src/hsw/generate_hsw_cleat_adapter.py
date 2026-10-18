@@ -28,10 +28,7 @@ from core_library import (
     HSW_ASSETS_DIR,
     BACKPLATE_TOP_Y,
     TOP_RIDGE_Y,
-    RIDGE_DEPTH,
-    RIDGE_HEIGHT,
-    RIDGE_SURFACE_HALF_WIDTH,
-    RIDGE_PEAK_HALF_WIDTH,
+    get_ridge_points,
     DEFAULT_RAIL_HEIGHT,
     RAIL_PLAY,
     NUT_SLOT_TOLERANCE,
@@ -135,8 +132,6 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
     bottom_screw_y = y_bot + 10.0  # default: -84.0 mm (matching get_bottom_groove_y())
     
     t = backplate_thickness
-    ridge_depth = RIDGE_DEPTH  # 3.0 mm
-    
     # Invariant Object Reference Frame & Workplane rules:
     # Use "YZ" workplane (Local X = Global Y, Local Y = Global Z)
     # Profile includes:
@@ -144,49 +139,30 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
     # 2. Top shallow trapezoidal locking ridge at top_screw_y (Y=10.0)
     # 3. Bottom shallow trapezoidal locking ridge at bottom_screw_y (Y=-84.0)
     # 4. Flat back face at Z=t resting flush against wall
-    pts = [
-        (y_top, t),
-        (y_top - t, 0.0),
-        (top_screw_y + RIDGE_SURFACE_HALF_WIDTH, 0.0),
-        (top_screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (top_screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (top_screw_y - RIDGE_SURFACE_HALF_WIDTH, 0.0),
-        (bottom_screw_y + RIDGE_SURFACE_HALF_WIDTH, 0.0),
-        (bottom_screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (bottom_screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (bottom_screw_y - RIDGE_SURFACE_HALF_WIDTH, 0.0),
-        (y_bot, 0.0),
-        (y_bot, t)
-    ]
+    pts = (
+        [(y_top, t), (y_top - t, 0.0)]
+        + get_ridge_points(top_screw_y)
+        + get_ridge_points(bottom_screw_y)
+        + [(y_bot, 0.0), (y_bot, t)]
+    )
     
     body = (
         cq.Workplane("YZ")
         .polyline(pts).close()
-        .extrude(width)
-        .translate((-width / 2.0, 0, 0))
+        .extrude(width / 2.0, both=True)
     )
     
     # Clearance screw holes along Z at X=0
-    for sy in [top_screw_y, bottom_screw_y]:
-        screw_hole = (
-            cq.Workplane("XY")
-            .workplane(offset=-ridge_depth - 5.0)
-            .center(0, sy)
-            .circle(screw_d / 2.0)
-            .extrude(backplate_thickness + ridge_depth + 10.0)
-        )
-        body = body.cut(screw_hole)
+    body = body.faces(">Z").workplane().pushPoints([(0.0, top_screw_y), (0.0, bottom_screw_y)]).hole(screw_d)
     
     # Shortest-path side-entry captive nut slots:
     # Nut slides in from right (+X) side across width/2 (14mm).
     # Pusher hole exits through left (-X) side.
     side_depth = width / 2.0  # 14.0 mm
+    slot_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
+    slot_rot = cq.Workplane(slot_solid).rotate((0, 0, 0), (0, 0, 1), -90).val()
     for sy in [top_screw_y, bottom_screw_y]:
-        slot_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
-        # Rotate -90 degrees around Z so +Y (entry) maps to +X (right edge), and -Y (pusher) maps to -X (left edge)
-        slot_solid = cq.Workplane(slot_solid).rotate((0, 0, 0), (0, 0, 1), -90).val()
-        slot_solid = slot_solid.translate(cq.Vector(0, sy, slot_z_center))
-        body = body.cut(cq.Workplane(slot_solid))
+        body = body.cut(cq.Workplane(slot_rot).translate((0, sy, slot_z_center)))
     
     # HSW Plugs position:
     # Plugs start 5.0 mm below topmost ridge.
