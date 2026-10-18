@@ -20,7 +20,7 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import (
     UNIT_WIDTH, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR,
-    RIDGE_HEIGHT, RIDGE_SURFACE_HALF_WIDTH, RIDGE_PEAK_HALF_WIDTH, NUT_SLOT_TOLERANCE
+    get_ridge_points, NUT_SLOT_TOLERANCE
 )
 
 def load_mc_block(filename, opengrid_path=None):
@@ -116,78 +116,43 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     if top_y > stack_top_y:
         gap_height = top_y - stack_top_y
         gap_center_y = stack_top_y + gap_height / 2.0
-        top_filler = cq.Workplane("XY").box(width, gap_height, 6.4).translate((0, gap_center_y, 3.2))
+        top_filler = cq.Workplane("XY", origin=(0, gap_center_y, 3.2)).box(width, gap_height, 6.4)
         adapter = adapter.union(top_filler)
         
     if bottom_y < stack_bot_y:
         gap_height = stack_bot_y - bottom_y
         gap_center_y = stack_bot_y - gap_height / 2.0
-        bot_filler = cq.Workplane("XY").box(width, gap_height, 6.4).translate((0, gap_center_y, 3.2))
+        bot_filler = cq.Workplane("XY", origin=(0, gap_center_y, 3.2)).box(width, gap_height, 6.4)
         adapter = adapter.union(bot_filler)
         
     # Ridges on the Z=0 face pointing into -Z
-    top_ridge_pts = [
-        (top_screw_y + RIDGE_SURFACE_HALF_WIDTH, 0),
-        (top_screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (top_screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (top_screw_y - RIDGE_SURFACE_HALF_WIDTH, 0)
-    ]
+    top_ridge = cq.Workplane("YZ").polyline(get_ridge_points(top_screw_y)).close().extrude(width / 2.0, both=True)
+    bot_ridge = cq.Workplane("YZ").polyline(get_ridge_points(bottom_screw_y)).close().extrude(width / 2.0, both=True)
+    adapter = adapter.union(top_ridge).union(bot_ridge)
     
-    top_ridge = (
-        cq.Workplane("YZ")
-        .polyline(top_ridge_pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
-    )
-    adapter = adapter.union(top_ridge)
+    # Drill clearance screw holes through the adapter
+    screw_pts = [(-width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH, y) for i in range(units) for y in [top_screw_y, bottom_screw_y]]
+    adapter = adapter.faces(">Z").workplane(centerOption="ProjectedOrigin").pushPoints(screw_pts).hole(screw_d)
     
-    bot_ridge_pts = [
-        (bottom_screw_y + RIDGE_SURFACE_HALF_WIDTH, 0),
-        (bottom_screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (bottom_screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (bottom_screw_y - RIDGE_SURFACE_HALF_WIDTH, 0)
-    ]
-    
-    bot_ridge = (
-        cq.Workplane("YZ")
-        .polyline(bot_ridge_pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
-    )
-    adapter = adapter.union(bot_ridge)
-    
-    # Nut slots and screw holes
+    # Nut slots
     slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 2.0 + slot_t / 2.0
     
-    import math
-    angle = math.radians(30)
-    cos30 = math.cos(angle)
-    sin30 = math.sin(angle)
-    
     for i in range(units):
-        x = -width/2 + UNIT_WIDTH/2 + i*UNIT_WIDTH
-        
-        # Top screw hole
-        hole_top = cq.Workplane("XY").workplane(offset=-10).center(x, top_screw_y).circle(screw_d/2).extrude(50)
-        adapter = adapter.cut(hole_top)
-        
-        # Bottom screw hole
-        hole_bot = cq.Workplane("XY").workplane(offset=-10).center(x, bottom_screw_y).circle(screw_d/2).extrude(50)
-        adapter = adapter.cut(hole_bot)
+        x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
         
         if units == 1:
             # Shortest path: slide in from right (+X) side, push hole exits through left (-X) side
             side_depth = width / 2.0  # 14mm
             # Top nut slot (side entry)
             slot_top_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
-            slot_top_solid = cq.Workplane(slot_top_solid).rotate((0,0,0), (0,0,1), -90).val()
+            slot_top_solid = cq.Workplane(slot_top_solid).rotate((0, 0, 0), (0, 0, 1), -90).val()
             slot_top_solid = slot_top_solid.translate(cq.Vector(x, top_screw_y, slot_z_center))
             adapter = adapter.cut(cq.Workplane(slot_top_solid))
             
             # Bottom nut slot (side entry)
             slot_bot_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
-            slot_bot_solid = cq.Workplane(slot_bot_solid).rotate((0,0,0), (0,0,1), -90).val()
+            slot_bot_solid = cq.Workplane(slot_bot_solid).rotate((0, 0, 0), (0, 0, 1), -90).val()
             slot_bot_solid = slot_bot_solid.translate(cq.Vector(x, bottom_screw_y, slot_z_center))
             adapter = adapter.cut(cq.Workplane(slot_bot_solid))
         else:
@@ -200,7 +165,7 @@ def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
             # Bottom nut slot (vertical from bottom)
             depth_bot = bottom_screw_y - bottom_y
             slot_bot_solid = create_nut_slot(screw_m, depth=depth_bot, push_hole=True, push_hole_angle=-30.0)
-            slot_bot_solid = cq.Workplane(slot_bot_solid).rotate(cq.Vector(0,0,0), cq.Vector(0,0,1), 180).val()
+            slot_bot_solid = cq.Workplane(slot_bot_solid).rotate((0, 0, 0), (0, 0, 1), 180).val()
             slot_bot_solid = slot_bot_solid.translate(cq.Vector(x, bottom_screw_y, slot_z_center))
             adapter = adapter.cut(cq.Workplane(slot_bot_solid))
 
