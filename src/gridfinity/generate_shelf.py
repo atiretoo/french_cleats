@@ -43,58 +43,52 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
     shelf_thickness = 7.0
     brace_thickness = 5.0
     
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(
-        width_units, rail_height, mount_type="groove", num_rows=2
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        width_units, rail_height
     )
     
     # Position shelf 1/3 of the way from the bottom to the top
-    # Total height from bottom_y to top_y
     total_height = top_y - bottom_y
     shelf_top = bottom_y + total_height / 3.0
     shelf_bot = shelf_top - shelf_thickness
     
-    # 1. Add the main shelf slab
+    # 1. Shelf slab and triangular braces
     shelf_pts = [
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
         (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
         (shelf_top, -BACKPLATE_THICKNESS)
     ]
-    shelf = (
-        cq.Workplane("YZ")
-        .polyline(shelf_pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
-    )
-    tool_holder = tool_holder.union(shelf)
-    
-    # 2. Add the triangular braces underneath
-    # Brace goes from the bottom of the baseplate to the bottom of the shelf,
-    # and extends to the front of the shelf.
     brace_pts = [
         (bottom_y, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS),
         (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth)
     ]
     
-    # Left brace
-    left_brace = (
-        cq.Workplane("YZ")
-        .polyline(brace_pts).close()
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("right_wp")
+        .polyline(shelf_pts)
+        .close()
+        .extrude(-width)
+        .workplaneFromTagged("right_wp")
+        .workplane(offset=-width)
+        .polyline(brace_pts)
+        .close()
         .extrude(brace_thickness)
-        .translate((-width/2, 0, 0))
-    )
-    # Right brace
-    right_brace = (
-        cq.Workplane("YZ")
-        .polyline(brace_pts).close()
-        .extrude(brace_thickness)
-        .translate((width/2 - brace_thickness, 0, 0))
+        .workplaneFromTagged("right_wp")
+        .polyline(brace_pts)
+        .close()
+        .extrude(-brace_thickness)
     )
     
-    tool_holder = tool_holder.union(left_brace).union(right_brace)
-    
-    # 3. Add Gridfinity Baseplate geometry on top of the shelf
+    # 2. Add Gridfinity Baseplate geometry on top of the shelf
     if gridfinity:
         gf_cutout = make_gridfinity_cutout()
         
@@ -111,27 +105,22 @@ def create_shelf(width_units=3, depth_units=3, gridfinity=True, rail_height=73.0
                 # Rotate around X-axis by 90 degrees maps +Z to -Y.
                 inst = (
                     gf_cutout
-                    .rotate((0,0,0), (1,0,0), 90)
+                    .rotate((0, 0, 0), (1, 0, 0), 90)
                     .translate((cx, shelf_top, cz))
                 )
                 tool_holder = tool_holder.cut(inst)
                 
-    # Cut screws
-    screws = (
-        cq.Workplane("XY").workplane(offset=0)
+    # 3. Cut screw clearance holes and recesses
+    tool_holder = (
+        tool_holder
+        .workplaneFromTagged("back_wp")
         .pushPoints(screw_pts)
-        .circle(3.6/2.0)
-        .extrude(-20) 
-    )
-    tool_holder = tool_holder.cut(screws)
-    
-    recesses = (
-        cq.Workplane("XY").workplane(offset=-8)
+        .hole(3.6, 20.0)
+        .workplaneFromTagged("back_wp")
+        .workplane(offset=-8.0)
         .pushPoints(screw_pts)
-        .circle(8.0/2.0) 
-        .extrude(-200) 
+        .hole(8.0, 200.0)
     )
-    tool_holder = tool_holder.cut(recesses)
     
     return tool_holder, width_units, depth_units
 
@@ -189,7 +178,7 @@ def main():
         print_orient = args.print_orientation
     
     gf_str = "_GF" if not args.no_gridfinity else ""
-    filename = f"shelf_{fw}x{fd}u{gf_str}_groove_H{args.rail_height}.stl"
+    filename = f"shelf_{fw}x{fd}u{gf_str}_H{args.rail_height}.stl"
     export_model(export_shape, filename, category='gridfinity', print_orientation=print_orient, export=args.export)
     print(f"Exported {filename}")
 
