@@ -26,12 +26,11 @@ from core_library import (
     BACKPLATE_TOP_Y,
     TOP_RIDGE_Y,
     RIDGE_HEIGHT,
-    RIDGE_SURFACE_HALF_WIDTH,
-    RIDGE_PEAK_HALF_WIDTH,
     DEFAULT_RAIL_HEIGHT,
     RAIL_PLAY,
     get_bottom_groove_y,
     get_bottom_edge_y,
+    get_ridge_points,
     create_nut_slot,
     export_model,
     NUT_SLOT_TOLERANCE,
@@ -344,8 +343,7 @@ def create_shelf_dovetail_test_wedge(
         cq.Workplane("YZ")
         .polyline(pts_backing)
         .close()
-        .extrude(w_mount)
-        .translate((-w_mount / 2.0, 0, 0))
+        .extrude(w_mount / 2.0, both=True)
     )
 
     wedge = build_dovetail_wedge_solid(
@@ -422,9 +420,8 @@ def create_shelf_edge_spacing_test_coupon(
 
     # 1. Rigid connecting bridge bar
     bridge = (
-        cq.Workplane("XY")
+        cq.Workplane("XY", origin=(0, y_top - h / 2.0, 0))
         .box(total_w, h, bridge_thickness, centered=(True, True, False))
-        .translate((0, y_top - h / 2.0, 0))
     )
 
     if side_chamfer > 0:
@@ -593,29 +590,23 @@ def create_shelf_edge_adapter(
     # Front face is strictly vertical at Z = 0 (ridges protrude to -RIDGE_HEIGHT).
     # Back face incorporates the lower 3-degree slope, 45-degree chamfered 2mm lip, and upper 3-degree slope.
     # Top edge is flat at y_top from (y_top, t_top) to (y_top, 0.0).
-    plate_pts = [
-        (y_top, t_top),
-        (y_top, 0.0),
-        (top_screw_y + RIDGE_SURFACE_HALF_WIDTH, 0.0),
-        (top_screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (top_screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (top_screw_y - RIDGE_SURFACE_HALF_WIDTH, 0.0),
-        (bottom_screw_y + RIDGE_SURFACE_HALF_WIDTH, 0.0),
-        (bottom_screw_y + RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (bottom_screw_y - RIDGE_PEAK_HALF_WIDTH, -RIDGE_HEIGHT),
-        (bottom_screw_y - RIDGE_SURFACE_HALF_WIDTH, 0.0),
-        (y_bot, 0.0),
-        (y_bot, t_bot),
-        (y_lip_bot, z_lip_bot),
-        (y_lip_top, z_lip_top),
-    ]
+    plate_pts = (
+        [(y_top, t_top), (y_top, 0.0)]
+        + get_ridge_points(top_screw_y)
+        + get_ridge_points(bottom_screw_y)
+        + [
+            (y_bot, 0.0),
+            (y_bot, t_bot),
+            (y_lip_bot, z_lip_bot),
+            (y_lip_top, z_lip_top),
+        ]
+    )
 
     plate = (
         cq.Workplane("YZ")
         .polyline(plate_pts)
         .close()
-        .extrude(width)
-        .translate((-width / 2.0, 0, 0))
+        .extrude(width / 2.0, both=True)
     )
 
     # 2. 45-degree chamfers on the vertical sides (lateral ends at X = +/- width/2)
@@ -686,51 +677,58 @@ def create_shelf_edge_adapter(
 
     # 4. Screw clearance holes and captive nut slots (if enabled)
     if with_screws and screw_m.lower() != "none":
+        screw_pts = [
+            (-width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH, sy)
+            for i in range(units)
+            for sy in [top_screw_y, bottom_screw_y]
+        ]
+
+        plane = cq.Plane(origin=(0, 0, -RIDGE_HEIGHT - 5.0), normal=(0, 0, -1))
+        adapter = (
+            cq.Workplane(plane)
+            .add(adapter.val())
+            .pushPoints(screw_pts)
+            .hole(screw_d, depth=t_top + 10.0)
+        )
+
+        depth_top = y_top - top_screw_y
+        slot_top_proto = create_nut_slot(
+            screw_m,
+            depth=depth_top,
+            push_hole=True,
+            push_hole_angle=push_hole_angle,
+            push_hole_dia=push_hole_dia,
+        )
+
+        depth_bot = bottom_screw_y - y_bot
+        slot_bot_proto = create_nut_slot(
+            screw_m,
+            depth=depth_bot,
+            push_hole=True,
+            push_hole_angle=push_hole_angle,
+            push_hole_dia=push_hole_dia,
+        )
+        slot_bot_proto = (
+            cq.Workplane(slot_bot_proto)
+            .rotate((0, 0, 0), (0, 0, 1), 180)
+            .val()
+        )
+
+        slot_solids = []
         for i in range(units):
             x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
-
-            for sy in [top_screw_y, bottom_screw_y]:
-                hole = (
-                    cq.Workplane("XY")
-                    .workplane(offset=-RIDGE_HEIGHT - 5.0)
-                    .center(x, sy)
-                    .circle(screw_d / 2.0)
-                    .extrude(t_top + 10.0)
-                )
-                adapter = adapter.cut(hole)
-
-            # Top nut slot (entry from top face along Y)
-            depth_top = y_top - top_screw_y
-            slot_top = create_nut_slot(
-                screw_m,
-                depth=depth_top,
-                push_hole=True,
-                push_hole_angle=push_hole_angle,
-                push_hole_dia=push_hole_dia,
-            )
-            slot_top = (
-                cq.Workplane(slot_top)
+            slot_solids.append(
+                cq.Workplane(slot_top_proto)
                 .translate(cq.Vector(x, top_screw_y, slot_z_center))
                 .val()
             )
-            adapter = adapter.cut(cq.Workplane(slot_top))
-
-            # Bottom nut slot (entry from bottom face along Y)
-            depth_bot = bottom_screw_y - y_bot
-            slot_bot = create_nut_slot(
-                screw_m,
-                depth=depth_bot,
-                push_hole=True,
-                push_hole_angle=push_hole_angle,
-                push_hole_dia=push_hole_dia,
-            )
-            slot_bot = (
-                cq.Workplane(slot_bot)
-                .rotate((0, 0, 0), (0, 0, 1), 180)
+            slot_solids.append(
+                cq.Workplane(slot_bot_proto)
                 .translate(cq.Vector(x, bottom_screw_y, slot_z_center))
                 .val()
             )
-            adapter = adapter.cut(cq.Workplane(slot_bot))
+
+        adapter = adapter.cut(cq.Workplane().add(slot_solids))
 
     return adapter
 
