@@ -103,6 +103,38 @@ class TestWhiteboardToolHolder(unittest.TestCase):
         ]
         self.assertTrue(len(shelf_faces) > 0, "Shelf top face should be at Y = -64.0")
 
+    def test_whiteboard_holder_inline_2u(self):
+        holder = create_whiteboard_tool_holder(layout="inline_2u")
+        solid = holder.val()
+
+        self.assertEqual(len(solid.Solids()), 1)
+
+        bb = solid.BoundingBox()
+        expected_width = 2 * UNIT_WIDTH  # 56.0 mm
+        expected_depth = 111.0 + BACKPLATE_THICKNESS  # 122.0 mm
+        expected_bottom_y = get_bottom_edge_y(73.0, RAIL_PLAY)  # -94.0 mm
+
+        self.assertAlmostEqual(bb.xlen, expected_width, delta=0.2)
+        self.assertAlmostEqual(bb.ymin, expected_bottom_y, delta=0.2)
+        self.assertAlmostEqual(bb.ymax, BACKPLATE_TOP_Y, delta=0.2)
+        self.assertAlmostEqual(bb.zlen, expected_depth, delta=0.2)
+
+    def test_whiteboard_holder_inline_3u(self):
+        holder = create_whiteboard_tool_holder(layout="inline_3u")
+        solid = holder.val()
+
+        self.assertEqual(len(solid.Solids()), 1)
+
+        bb = solid.BoundingBox()
+        expected_width = 3 * UNIT_WIDTH  # 84.0 mm
+        expected_depth = 88.0 + BACKPLATE_THICKNESS  # 99.0 mm
+        expected_bottom_y = get_bottom_edge_y(73.0, RAIL_PLAY)  # -94.0 mm
+
+        self.assertAlmostEqual(bb.xlen, expected_width, delta=0.2)
+        self.assertAlmostEqual(bb.ymin, expected_bottom_y, delta=0.2)
+        self.assertAlmostEqual(bb.ymax, BACKPLATE_TOP_Y, delta=0.2)
+        self.assertAlmostEqual(bb.zlen, expected_depth, delta=0.2)
+
     def test_print_orientation_bottom_down(self):
         holder = create_whiteboard_tool_holder(units=4)
         # Apply the bottom_down rotation: rotate around (1, 0, 0) by +90 deg
@@ -142,6 +174,20 @@ class TestWhiteboardTestCoupon(unittest.TestCase):
         # Check for circular edge with bottle radius = 36.5 / 2 = 18.25
         radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
         self.assertIn(18.25, radii, "Spray bottle circular edge not found in test coupon")
+
+    def test_coupon_inline_2u(self):
+        coupon = create_whiteboard_test_coupon(layout="inline_2u", coupon_height=15.0)
+        solid = coupon.val()
+
+        self.assertEqual(len(solid.Solids()), 1)
+
+        bb = solid.BoundingBox()
+        self.assertAlmostEqual(bb.xlen, 2 * UNIT_WIDTH, delta=0.2)
+        self.assertAlmostEqual(bb.ylen, 15.0, delta=0.2)
+        self.assertAlmostEqual(bb.zlen, 111.0 + BACKPLATE_THICKNESS, delta=0.2)
+
+        radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
+        self.assertIn(18.25, radii, "Spray bottle circular edge not found in inline coupon")
 
     def test_coupon_without_groove(self):
         coupon = create_whiteboard_test_coupon(units=4, coupon_height=15.0, with_groove=False)

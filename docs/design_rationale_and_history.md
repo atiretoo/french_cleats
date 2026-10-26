@@ -67,6 +67,20 @@ To support ferromagnetic surfaces such as office and shop steel whiteboards, too
 - **Low 30mm Shelf Architecture:** For tall 125 mm tools (whiteboard cleaner spray bottle and eraser), standard thin 5mm shelves would allow tipping. A dedicated 30 mm thick low shelf sits at the bottom of the baseplate ($Y=-94.0$ to $Y=-64.0$), creating 27 mm deep cradle sockets with centered floor drain/cleanout holes, while the tall 84 mm backplate extension provides upright backing support.
 - **Bottom-Down Print Orientation Fix:** Corrected rotation sign in `core_library.py` so `bottom_down` rotates $+90^\circ$ around the X-axis, orienting the large flat shelf bottom on the build plate for 100% support-free printing.
 
+## 11. Whiteboard Tool Holder Inline Configurations & Cleat Height Compatibility
+Following user clearance verification and spatial constraints, the Whiteboard Tool Holder was expanded from a wide 4U (112 mm) side-by-side design to compact **inline configurations**:
+- **Inline 2U (56 mm width $\times$ 111 mm projection):**
+  - **Tool Placement:** Spray bottle (36.5 mm dia) closest to the backplate for minimum cantilever moment; whiteboard eraser oriented with its narrow edge forward (33.5 mm across X, 56.5 mm along Z depth) in front.
+  - **Wall Footprint:** Reduces required wall/rail width by 50% compared to side-by-side, occupying only 2 UNITs (56 mm).
+  - **Shelf Depth:** $6\text{ mm rear wall} + 36.5\text{ mm bottle} + 6\text{ mm divider} + 56.5\text{ mm eraser} + 6\text{ mm front wall} = 111.0\text{ mm}$ projection from the backplate.
+- **Inline 3U (84 mm width $\times$ 88 mm projection):**
+  - **Tool Placement:** Spray bottle closest to the back; eraser oriented with its wide edge forward (56.5 mm across X, 33.5 mm along Z depth) in front.
+  - **Wall Footprint:** Occupies 3 UNITs (84 mm), reducing shelf projection by 23 mm ($88.0\text{ mm}$ vs $111.0\text{ mm}$) for tight forward clearances.
+- **73mm Cleat Rail Compatibility & Backplate Height:**
+  - Standard cleat rail height of 73.0 mm produces a 114 mm backplate ($Y = -94.0$ to $+20.0$).
+  - With the 30 mm thick shelf positioned at the bottom ($Y = -94.0$ to $-64.0$), the remaining 84 mm tall backplate extension acts as a rigid vertical backstop. The 125 mm tall tools comfortably extend 11 mm above the top edge, saving filament while maintaining full structural support and 100% interchangeability with standard French cleat rails and magnetic adapters.
+
+
 
 
 

@@ -88,8 +88,11 @@ echo "Generating Claw Hammer Holders..."
 python src/tool_holders/generate_claw_hammer_holder.py --units 2
 
 echo "Generating Whiteboard Tool Holders..."
-python src/tool_holders/generate_whiteboard_tool_holder.py --units 4
-python src/tool_holders/generate_whiteboard_tool_holder.py --units 4 --coupon
+python src/tool_holders/generate_whiteboard_tool_holder.py --layout inline_2u
+python src/tool_holders/generate_whiteboard_tool_holder.py --layout inline_3u
+python src/tool_holders/generate_whiteboard_tool_holder.py --layout bottle_left --units 4
+python src/strength_testing/generate_whiteboard_coupon.py --layout inline_2u
+python src/strength_testing/generate_whiteboard_coupon.py --layout bottle_left --units 4
 
 
 echo "Generating Corner Clamp Tester..."

@@ -21,7 +21,7 @@ Generates a compact, fast-printing test coupon (15 mm tall) to verify hole dimen
 clearances, divider wall spacing, and groove engagement for the Whiteboard Tool Holder:
   - Round hole for spray bottle (35.0 mm dia + clearance).
   - Rectangular hole with rounded corners for eraser (55.0 x 32.0 mm + clearance).
-  - Exact 8.0 mm divider wall and 5.5 mm side margins.
+  - Exact divider wall and side margins.
   - Standard 45° shallow groove on the rear backplate face (10 mm from bottom) to test
     mechanical seating against the magnetic mount or French cleat rails.
   - 1.0 mm lead-in chamfers on the top rims.
@@ -45,16 +45,16 @@ from core_library import (
 
 
 def create_whiteboard_test_coupon(
-    units=4,
+    units=None,
     coupon_height=15.0,
-    shelf_depth=50.0,
+    shelf_depth=None,
     bottle_dia=35.0,
     bottle_clearance=1.5,
     eraser_width=55.0,
     eraser_thickness=32.0,
     eraser_clearance=1.5,
     eraser_corner_radius=2.5,
-    layout="bottle_left",
+    layout="auto",
     with_groove=True,
     fillet_radius=4.0,
     lip_chamfer=1.0,
@@ -63,18 +63,49 @@ def create_whiteboard_test_coupon(
     Creates a physical test coupon to calibrate and verify hole clearances and spacing
     for the whiteboard spray bottle and eraser.
     """
-    effective_bottle_dia = bottle_dia + bottle_clearance
-    effective_eraser_w = eraser_width + eraser_clearance
-    effective_eraser_d = eraser_thickness + eraser_clearance
+    if layout in (None, "auto"):
+        if units == 2:
+            resolved_layout = "inline_2u"
+        elif units == 3:
+            resolved_layout = "inline_3u"
+        elif units is not None and units >= 4:
+            resolved_layout = "bottle_left"
+        else:
+            resolved_layout = "inline_2u"
+    elif layout == "inline":
+        resolved_layout = "inline_2u"
+    elif layout == "side_by_side":
+        resolved_layout = "bottle_left"
+    else:
+        resolved_layout = layout
 
-    min_required_width = effective_bottle_dia + effective_eraser_w + 16.0
-    min_units = int(math.ceil(min_required_width / UNIT_WIDTH))
-    if units < min_units:
+    is_inline = resolved_layout in ("inline_2u", "inline_3u")
+
+    if resolved_layout == "inline_2u":
+        min_units = 2
+        default_depth = 111.0
+    elif resolved_layout == "inline_3u":
+        min_units = 3
+        default_depth = 88.0
+    else:
+        min_units = 4
+        default_depth = 50.0
+
+    if units is None:
         units = min_units
+    elif units < min_units:
+        units = min_units
+
+    if shelf_depth is None:
+        shelf_depth = default_depth
 
     width = units * UNIT_WIDTH
     bp_thick = BACKPLATE_THICKNESS
     groove_y = 10.0  # 10mm from bottom edge (matching standard bottom groove location)
+
+    effective_bottle_dia = bottle_dia + bottle_clearance
+    raw_eraser_w = eraser_width + eraser_clearance
+    raw_eraser_d = eraser_thickness + eraser_clearance
 
     # 1. Profile in YZ plane
     # If with_groove: include standard 45° shallow groove on the back face (Z=0)
@@ -132,25 +163,44 @@ def create_whiteboard_test_coupon(
         pass
 
     # 3. Calculate Hole Positions
-    z_center = -bp_thick - shelf_depth / 2.0
+    if is_inline:
+        bottle_x = 0.0
+        eraser_x = 0.0
 
-    rem_width = width - (effective_bottle_dia + effective_eraser_w)
-    wall_left = rem_width * (5.5 / 19.0)
-    wall_mid = rem_width * (8.0 / 19.0)
-    wall_right = rem_width * (5.5 / 19.0)
+        if resolved_layout == "inline_2u":
+            effective_eraser_w = raw_eraser_d
+            effective_eraser_d = raw_eraser_w
+        else:
+            effective_eraser_w = raw_eraser_w
+            effective_eraser_d = raw_eraser_d
 
-    if layout == "bottle_left":
-        bottle_x = -width / 2.0 + wall_left + effective_bottle_dia / 2.0
-        eraser_x = -width / 2.0 + wall_left + effective_bottle_dia + wall_mid + effective_eraser_w / 2.0
+        w_rear = 6.0
+        w_mid = 6.0
+        z_bottle = -bp_thick - w_rear - effective_bottle_dia / 2.0
+        z_eraser = -bp_thick - w_rear - effective_bottle_dia - w_mid - effective_eraser_d / 2.0
+
     else:
-        eraser_x = -width / 2.0 + wall_left + effective_eraser_w / 2.0
-        bottle_x = -width / 2.0 + wall_left + effective_eraser_w + wall_mid + effective_bottle_dia / 2.0
+        effective_eraser_w = raw_eraser_w
+        effective_eraser_d = raw_eraser_d
+        z_center = -bp_thick - shelf_depth / 2.0
+        z_bottle = z_center
+        z_eraser = z_center
+
+        rem_width = width - (effective_bottle_dia + effective_eraser_w)
+        wall_left = rem_width * (5.5 / 19.0)
+        wall_mid = rem_width * (8.0 / 19.0)
+
+        if resolved_layout == "bottle_left":
+            bottle_x = -width / 2.0 + wall_left + effective_bottle_dia / 2.0
+            eraser_x = -width / 2.0 + wall_left + effective_bottle_dia + wall_mid + effective_eraser_w / 2.0
+        else:
+            eraser_x = -width / 2.0 + wall_left + effective_eraser_w / 2.0
+            bottle_x = -width / 2.0 + wall_left + effective_eraser_w + wall_mid + effective_bottle_dia / 2.0
 
     # 4. Cut Through-Holes
-    # In Workplane("ZX", origin=(0, y, 0)): Local X = Global Z, Local Y = Global X, Normal = +Global Y
     bottle_hole = (
         cq.Workplane("ZX", origin=(0, -5.0, 0))
-        .center(z_center, bottle_x)
+        .center(z_bottle, bottle_x)
         .circle(effective_bottle_dia / 2.0)
         .extrude(coupon_height + 10.0)
     )
@@ -158,7 +208,7 @@ def create_whiteboard_test_coupon(
 
     eraser_hole = (
         cq.Workplane("ZX", origin=(0, -5.0, 0))
-        .center(z_center, eraser_x)
+        .center(z_eraser, eraser_x)
         .rect(effective_eraser_d, effective_eraser_w)
         .extrude(coupon_height + 10.0)
     )
@@ -180,6 +230,7 @@ def create_whiteboard_test_coupon(
                             b.xmin > -width / 2.0 + 1.0
                             and b.xmax < width / 2.0 - 1.0
                             and b.zmax < -bp_thick - 1.0
+                            and b.zmin > -bp_thick - shelf_depth + 1.0
                         ):
                             res.append(o)
                 return res
@@ -197,10 +248,24 @@ def main():
         description="Generate physical test coupon for whiteboard tool clearances and spacing."
     )
     parser.add_argument(
+        "--layout",
+        type=str,
+        default="inline_2u",
+        choices=[
+            "inline_2u",
+            "inline_3u",
+            "inline",
+            "bottle_left",
+            "eraser_left",
+            "side_by_side",
+        ],
+        help="Arrangement of tools on the shelf (default: inline_2u)",
+    )
+    parser.add_argument(
         "--units",
         type=int,
-        default=4,
-        help="Width in 28mm UNITs (default: 4 for 112mm width)",
+        default=None,
+        help="Width in 28mm UNITs (default: 2 for inline_2u, 3 for inline_3u, 4 for side_by_side)",
     )
     parser.add_argument(
         "--coupon-height",
@@ -211,8 +276,8 @@ def main():
     parser.add_argument(
         "--shelf-depth",
         type=float,
-        default=50.0,
-        help="Shelf depth in mm (default: 50.0)",
+        default=None,
+        help="Shelf depth in mm (default: auto based on layout)",
     )
     parser.add_argument(
         "--bottle-dia",
@@ -251,13 +316,6 @@ def main():
         help="Internal corner radius of eraser hole in mm (default: 2.5)",
     )
     parser.add_argument(
-        "--layout",
-        type=str,
-        default="bottle_left",
-        choices=["bottle_left", "eraser_left"],
-        help="Arrangement of tools on the shelf (default: bottle_left)",
-    )
-    parser.add_argument(
         "--no-groove",
         dest="with_groove",
         action="store_false",
@@ -279,8 +337,21 @@ def main():
 
     args = parser.parse_args()
 
+    if args.layout in ("inline_2u", "inline"):
+        eff_units = 2 if args.units is None else args.units
+        eff_layout = "inline_2u"
+        layout_tag = f"inline_{eff_units}u"
+    elif args.layout == "inline_3u":
+        eff_units = 3 if args.units is None else args.units
+        eff_layout = "inline_3u"
+        layout_tag = f"inline_{eff_units}u"
+    else:
+        eff_units = 4 if args.units is None else args.units
+        eff_layout = args.layout
+        layout_tag = f"{eff_units}u"
+
     coupon = create_whiteboard_test_coupon(
-        units=args.units,
+        units=eff_units,
         coupon_height=args.coupon_height,
         shelf_depth=args.shelf_depth,
         bottle_dia=args.bottle_dia,
@@ -289,11 +360,11 @@ def main():
         eraser_thickness=args.eraser_thickness,
         eraser_clearance=args.eraser_clearance,
         eraser_corner_radius=args.eraser_corner_radius,
-        layout=args.layout,
+        layout=eff_layout,
         with_groove=args.with_groove,
     )
 
-    filename = f"whiteboard_hole_test_coupon_{args.units}u_H{int(args.coupon_height)}.stl"
+    filename = f"whiteboard_hole_test_coupon_{layout_tag}_H{int(args.coupon_height)}.stl"
     export_model(
         coupon,
         filename,
