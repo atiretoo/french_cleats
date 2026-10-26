@@ -83,6 +83,9 @@ python src/tool_holders/generate_mallet_holder.py --units 3
 echo Generating Claw Hammer Holders...
 python src/tool_holders/generate_claw_hammer_holder.py --units 2
 
+echo Generating Allen Key Holders...
+python src/tool_holders/generate_allen_key_holder.py --units 2
+
 
 echo Generating Corner Clamp Tester...
 python src/strength_testing/generate_corner_clamp_tester.py
