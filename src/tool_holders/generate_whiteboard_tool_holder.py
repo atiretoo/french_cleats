@@ -345,6 +345,17 @@ if __name__ == "__main__":
         help="Disable cleanout / drain holes in pocket floor",
     )
     parser.add_argument(
+        "--coupon",
+        action="store_true",
+        help="Generate a compact 15mm tall test coupon to check hole spacing and clearances",
+    )
+    parser.add_argument(
+        "--coupon-height",
+        type=float,
+        default=15.0,
+        help="Height of the test coupon in mm if --coupon is set (default: 15.0)",
+    )
+    parser.add_argument(
         "--export",
         choices=["both", "stl", "step"],
         default="both",
@@ -368,25 +379,41 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    holder = create_whiteboard_tool_holder(
-        units=args.units,
-        rail_height=args.rail_height,
-        shelf_thickness=args.shelf_thickness,
-        shelf_depth=args.shelf_depth,
-        floor_thickness=args.floor_thickness,
-        drain_holes=args.drain_holes,
-        bottle_dia=args.bottle_dia,
-        bottle_clearance=args.bottle_clearance,
-        eraser_width=args.eraser_width,
-        eraser_thickness=args.eraser_thickness,
-        eraser_clearance=args.eraser_clearance,
-        eraser_corner_radius=args.eraser_corner_radius,
-        layout=args.layout,
-    )
+    if args.coupon:
+        from strength_testing.generate_whiteboard_coupon import create_whiteboard_test_coupon
+        model = create_whiteboard_test_coupon(
+            units=args.units,
+            coupon_height=args.coupon_height,
+            shelf_depth=args.shelf_depth,
+            bottle_dia=args.bottle_dia,
+            bottle_clearance=args.bottle_clearance,
+            eraser_width=args.eraser_width,
+            eraser_thickness=args.eraser_thickness,
+            eraser_clearance=args.eraser_clearance,
+            eraser_corner_radius=args.eraser_corner_radius,
+            layout=args.layout,
+        )
+        filename = f"whiteboard_tool_holder_{args.units}u_coupon.stl"
+    else:
+        model = create_whiteboard_tool_holder(
+            units=args.units,
+            rail_height=args.rail_height,
+            shelf_thickness=args.shelf_thickness,
+            shelf_depth=args.shelf_depth,
+            floor_thickness=args.floor_thickness,
+            drain_holes=args.drain_holes,
+            bottle_dia=args.bottle_dia,
+            bottle_clearance=args.bottle_clearance,
+            eraser_width=args.eraser_width,
+            eraser_thickness=args.eraser_thickness,
+            eraser_clearance=args.eraser_clearance,
+            eraser_corner_radius=args.eraser_corner_radius,
+            layout=args.layout,
+        )
+        filename = f"whiteboard_tool_holder_{args.units}u.stl"
 
-    filename = f"whiteboard_tool_holder_{args.units}u.stl"
     export_model(
-        holder,
+        model,
         filename,
         category="tool_holders",
         print_orientation=args.print_orientation,

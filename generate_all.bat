@@ -91,6 +91,7 @@ python src/tool_holders/generate_claw_hammer_holder.py --units 2
 
 echo Generating Whiteboard Tool Holders...
 python src/tool_holders/generate_whiteboard_tool_holder.py --units 4
+python src/tool_holders/generate_whiteboard_tool_holder.py --units 4 --coupon
 
 
 echo Generating Corner Clamp Tester...

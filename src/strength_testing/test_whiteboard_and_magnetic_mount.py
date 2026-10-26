@@ -30,6 +30,7 @@ from core_library import (
 )
 from magnetic.generate_magnetic_adapter import create_magnetic_adapter
 from tool_holders.generate_whiteboard_tool_holder import create_whiteboard_tool_holder
+from strength_testing.generate_whiteboard_coupon import create_whiteboard_test_coupon
 
 
 class TestMagneticAdapter(unittest.TestCase):
@@ -123,6 +124,28 @@ class TestWhiteboardToolHolder(unittest.TestCase):
     def test_whiteboard_holder_through_holes(self):
         holder = create_whiteboard_tool_holder(units=4, floor_thickness=0.0)
         solid = holder.val()
+        self.assertEqual(len(solid.Solids()), 1)
+
+
+class TestWhiteboardTestCoupon(unittest.TestCase):
+    def test_coupon_geometry_and_holes(self):
+        coupon = create_whiteboard_test_coupon(units=4, coupon_height=15.0)
+        solid = coupon.val()
+
+        self.assertEqual(len(solid.Solids()), 1)
+
+        bb = solid.BoundingBox()
+        self.assertAlmostEqual(bb.xlen, 4 * UNIT_WIDTH, delta=0.2)
+        self.assertAlmostEqual(bb.ylen, 15.0, delta=0.2)
+        self.assertAlmostEqual(bb.zlen, 50.0 + BACKPLATE_THICKNESS, delta=0.2)
+
+        # Check for circular edge with bottle radius = 36.5 / 2 = 18.25
+        radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
+        self.assertIn(18.25, radii, "Spray bottle circular edge not found in test coupon")
+
+    def test_coupon_without_groove(self):
+        coupon = create_whiteboard_test_coupon(units=4, coupon_height=15.0, with_groove=False)
+        solid = coupon.val()
         self.assertEqual(len(solid.Solids()), 1)
 
 
