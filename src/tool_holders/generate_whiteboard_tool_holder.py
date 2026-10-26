@@ -27,6 +27,7 @@ from core_library import (
     DEFAULT_RAIL_HEIGHT,
     create_baseplate,
     export_model,
+    support_fin,
 )
 
 
@@ -46,6 +47,8 @@ def create_whiteboard_tool_holder(
     layout="auto",
     fillet_radius=4.0,
     lip_chamfer=1.0,
+    print_orientation="none",
+    support_fins=True,
 ):
     """
     Creates a French Cleat / UNIT whiteboard tool holder designed to store a whiteboard
@@ -64,15 +67,14 @@ def create_whiteboard_tool_holder(
     Features:
       - Standard UNIT shallow groove backplate compatible with all cleat rails,
         as well as magnetic, Multiconnect, HSW, and pegboard adapters.
-      - 30 mm thick low shelf positioned at the bottom of the baseplate, providing
-        deep pockets that securely prevent tall 125 mm tools from tipping over.
-      - Backplate extends 84 mm above the shelf up to Y = 20.0, providing tall,
-        rigid backing support for the spray bottle and eraser.
-      - Centered drain / cleanout holes in the pocket floor to prevent dust accumulation
-        and eliminate suction when inserting snug tools.
-      - Chamfered top entrance rims for smooth, effortless insertion.
+      - Elevated shelf position (bottom at Y = bottom_groove_y + 14.0, or Y = -70.0 for H73):
+        keeps the lower mount screws and groove completely clear and fully operable from the front.
+      - 30 mm thick shelf providing deep pockets that securely prevent tall 125 mm tools from tipping.
+      - Backplate extends 60 mm above the shelf up to Y = 20.0, providing rigid vertical backstop support.
+      - Centered drain / cleanout holes in the pocket floor to prevent dust accumulation.
+      - Chamfered top entrance rims for smooth insertion.
+      - 45-degree print orientation with support fins under the projection and backplate.
     """
-    # Resolve layout alias & defaults
     if layout in (None, "auto"):
         if units == 2:
             resolved_layout = "inline_2u"
@@ -91,7 +93,6 @@ def create_whiteboard_tool_holder(
 
     is_inline = resolved_layout in ("inline_2u", "inline_3u")
 
-    # Resolve default units and shelf depth based on layout
     if resolved_layout == "inline_2u":
         min_units = 2
         default_depth = 111.0
@@ -114,8 +115,8 @@ def create_whiteboard_tool_holder(
     width = units * UNIT_WIDTH
 
     effective_bottle_dia = bottle_dia + bottle_clearance
-    raw_eraser_w = eraser_width + eraser_clearance      # 56.5 mm
-    raw_eraser_d = eraser_thickness + eraser_clearance  # 33.5 mm
+    raw_eraser_w = eraser_width + eraser_clearance
+    raw_eraser_d = eraser_thickness + eraser_clearance
 
     # 1. Baseplate with standard UNIT groove
     body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
@@ -124,7 +125,8 @@ def create_whiteboard_tool_holder(
         mount_type="groove",
     )
 
-    shelf_bottom_y = bottom_y
+    # Elevated shelf: 14mm above bottom groove so groove and lower screws are completely clear
+    shelf_bottom_y = bottom_groove_y + 14.0
     shelf_top_y = shelf_bottom_y + shelf_thickness
 
     # 2. Shelf Solid
@@ -146,7 +148,7 @@ def create_whiteboard_tool_holder(
     body = body.union(shelf)
 
     # 3. Fillets
-    # Junction fillet where shelf top meets backplate front face
+    # Junction fillets where shelf meets backplate front face (both top and bottom junctions)
     class JunctionSelector(cq.Selector):
         def filter(self, objectList):
             res = []
@@ -155,7 +157,7 @@ def create_whiteboard_tool_holder(
                     continue
                 b = o.BoundingBox()
                 if (
-                    abs(b.ymin - shelf_top_y) < 0.5
+                    (abs(b.ymin - shelf_top_y) < 0.5 or abs(b.ymin - shelf_bottom_y) < 0.5)
                     and abs(b.zmin - (-BACKPLATE_THICKNESS)) < 0.5
                     and abs(b.zmax - (-BACKPLATE_THICKNESS)) < 0.5
                     and (b.xmax - b.xmin) > (width - 1.0)
@@ -197,31 +199,25 @@ def create_whiteboard_tool_holder(
     cut_height = shelf_thickness + 15.0
 
     if is_inline:
-        # Inline layout: tools centered across X (X=0)
         bottle_x = 0.0
         eraser_x = 0.0
 
         if resolved_layout == "inline_2u":
-            # Narrow end forward: 33.5 mm across X, 56.5 mm along Z (depth)
             effective_eraser_w = raw_eraser_d
             effective_eraser_d = raw_eraser_w
         else:
-            # Wide end forward: 56.5 mm across X, 33.5 mm along Z (depth)
             effective_eraser_w = raw_eraser_w
             effective_eraser_d = raw_eraser_d
 
         w_rear = 6.0
         w_mid = 6.0
-        # Spray bottle closest to the back
         z_bottle = -BACKPLATE_THICKNESS - w_rear - effective_bottle_dia / 2.0
-        # Eraser in front
         z_eraser = -BACKPLATE_THICKNESS - w_rear - effective_bottle_dia - w_mid - effective_eraser_d / 2.0
 
         drain_eraser_w = max(10.0, effective_eraser_w - 14.0)
         drain_eraser_d = max(10.0, effective_eraser_d - 20.0)
 
     else:
-        # Side-by-side layout: both tools at same depth
         effective_eraser_w = raw_eraser_w
         effective_eraser_d = raw_eraser_d
         z_center = -BACKPLATE_THICKNESS - shelf_depth / 2.0
@@ -307,14 +303,14 @@ def create_whiteboard_tool_holder(
         except Exception:
             pass
 
-    # 9. Top Screws
+    # 9. Mounting Screws (both top and bottom are now unobstructed)
     if screw_pts:
-        top_screw_pts = [pt for pt in screw_pts if pt[1] > shelf_top_y]
-        if top_screw_pts:
+        valid_screw_pts = [pt for pt in screw_pts if pt[1] > shelf_top_y or pt[1] < shelf_bottom_y]
+        if valid_screw_pts:
             screws = (
                 cq.Workplane("XY")
                 .workplane(offset=0)
-                .pushPoints(top_screw_pts)
+                .pushPoints(valid_screw_pts)
                 .circle(3.6 / 2.0)
                 .extrude(-20)
             )
@@ -323,18 +319,48 @@ def create_whiteboard_tool_holder(
             recesses = (
                 cq.Workplane("XY")
                 .workplane(offset=-8)
-                .pushPoints(top_screw_pts)
+                .pushPoints(valid_screw_pts)
                 .circle(8.0 / 2.0)
                 .extrude(-20)
             )
             body = body.cut(recesses)
+
+    # 10. 45-degree Print Orientation & Support Fins
+    if print_orientation == "45_deg":
+        # Rotate: 180 deg around X then +45 deg around Y so chamfered backplate edge sits on build plate
+        body = body.rotate((0, 0, 0), (1, 0, 0), 180).rotate((0, 0, 0), (0, 1, 0), 45)
+        bb = body.val().BoundingBox()
+        body = body.translate((0, 0, -bb.zmin))
+
+        if support_fins:
+            cos45 = math.cos(math.radians(45))
+            fin_L = shelf_depth * cos45
+            fin_H = fin_L
+
+            # Support fin under the projecting shelf (runs along bottom floor of shelf)
+            fin = support_fin(z_gap=0.0, is_right=False, length=fin_L, height=fin_H, fin_width=1.6)
+            fin = fin.rotate((0, 0, 0), (0, 0, 1), -90)
+
+            fin_start_x = (width / 2.0) * cos45
+            shelf_rot_y = -shelf_bottom_y  # bottom of shelf in rotated coordinates
+            shelf_fin1 = fin.translate((fin_start_x + fin_L, shelf_rot_y - 0.8, 0))
+            shelf_fin2 = fin.translate((fin_start_x + fin_L, shelf_rot_y - 2.8, 0))
+
+            # Backplate fins
+            bp_L = width * cos45
+            bp_fin = support_fin(z_gap=0.0, is_right=False, length=bp_L, height=bp_L, fin_width=1.6)
+            bp_fin = bp_fin.rotate((0, 0, 0), (0, 0, 1), -90).translate((bp_L, 0, 0))
+            fin_bp_top = bp_fin.translate((0, -top_y + 0.8, 0))
+            fin_bp_bot = bp_fin.translate((0, -bottom_y - 0.8, 0))
+
+            body = body.union(shelf_fin1).union(shelf_fin2).union(fin_bp_top).union(fin_bp_bot)
 
     return body
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Generate whiteboard tool holder with low 30mm shelf."
+        description="Generate whiteboard tool holder with elevated shelf and 45-degree print orientation."
     )
     parser.add_argument(
         "--layout",
@@ -423,6 +449,11 @@ if __name__ == "__main__":
         help="Disable cleanout / drain holes in pocket floor",
     )
     parser.add_argument(
+        "--no-support-fins",
+        action="store_true",
+        help="Disable support fins in 45_deg orientation",
+    )
+    parser.add_argument(
         "--coupon",
         action="store_true",
         help="Generate a compact 15mm tall test coupon to check hole spacing and clearances",
@@ -442,8 +473,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--print-orientation",
         type=str,
-        default="bottom_down",
+        default="45_deg",
         choices=[
+            "45_deg",
             "bottom_down",
             "back_down",
             "left_down",
@@ -452,7 +484,7 @@ if __name__ == "__main__":
             "face_down",
             "none",
         ],
-        help="Print orientation for STL export (default: bottom_down)",
+        help="Print orientation for STL export (default: 45_deg with support fins)",
     )
 
     args = parser.parse_args()
@@ -485,7 +517,11 @@ if __name__ == "__main__":
             layout=eff_layout,
         )
         filename = f"whiteboard_tool_holder_{layout_tag}_coupon.stl"
+        export_orient = args.print_orientation if args.print_orientation != "45_deg" else "bottom_down"
     else:
+        holder_orient = "45_deg" if args.print_orientation == "45_deg" else "none"
+        export_orient = "none" if args.print_orientation == "45_deg" else args.print_orientation
+
         model = create_whiteboard_tool_holder(
             units=eff_units,
             rail_height=args.rail_height,
@@ -500,6 +536,8 @@ if __name__ == "__main__":
             eraser_clearance=args.eraser_clearance,
             eraser_corner_radius=args.eraser_corner_radius,
             layout=eff_layout,
+            print_orientation=holder_orient,
+            support_fins=not args.no_support_fins,
         )
         filename = f"whiteboard_tool_holder_{layout_tag}.stl"
 
@@ -507,6 +545,6 @@ if __name__ == "__main__":
         model,
         filename,
         category="tool_holders",
-        print_orientation=args.print_orientation,
+        print_orientation=export_orient,
         export=args.export,
     )

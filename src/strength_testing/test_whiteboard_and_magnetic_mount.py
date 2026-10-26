@@ -82,7 +82,6 @@ class TestMagneticAdapter(unittest.TestCase):
         adapter = create_magnetic_adapter(units=2, mag_count=2, rail_height=73.0)
         solid = adapter.val()
 
-        # Single solid
         self.assertEqual(len(solid.Solids()), 1)
 
         bb = solid.BoundingBox()
@@ -91,14 +90,21 @@ class TestMagneticAdapter(unittest.TestCase):
         self.assertAlmostEqual(bb.ymin, -94.0, delta=0.2)
         self.assertAlmostEqual(bb.ymax, 20.0, delta=0.2)
 
-        # Check for 4 magnet pockets (2 vertically aligned per 1U space)
         circle_radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
         pocket_edges = circle_radii.count(9.6)
         push_edges = circle_radii.count(1.0)
 
-        # 4 pockets total: at least 4 edges of r=9.6 and r=1.0
         self.assertGreaterEqual(pocket_edges, 4)
         self.assertGreaterEqual(push_edges, 4)
+
+    def test_magnetic_adapter_45deg_print_orientation(self):
+        adapter = create_magnetic_adapter(units=2, mag_count=2, print_orientation="45_deg", support_fins=True)
+        solid = adapter.val()
+        self.assertGreaterEqual(len(solid.Solids()), 1)
+
+        # Build plate should be at zmin = 0
+        bb = solid.BoundingBox()
+        self.assertAlmostEqual(bb.zmin, 0.0, delta=0.1)
 
 
 class TestWhiteboardToolHolder(unittest.TestCase):
@@ -118,12 +124,23 @@ class TestWhiteboardToolHolder(unittest.TestCase):
         self.assertAlmostEqual(bb.ymax, BACKPLATE_TOP_Y, delta=0.2)
         self.assertAlmostEqual(bb.zlen, expected_depth, delta=0.2)
 
-        # Shelf thickness check: shelf is from Y=-94.0 to Y=-64.0 (30.0 mm thick)
+        # Shelf thickness check: elevated shelf is from Y=-70.0 to Y=-40.0 (30.0 mm thick)
         shelf_faces = [
             f for f in solid.Faces()
-            if f.geomType() == "PLANE" and abs(f.Center().y - (-64.0)) < 0.2
+            if f.geomType() == "PLANE" and abs(f.Center().y - (-40.0)) < 0.2
         ]
-        self.assertTrue(len(shelf_faces) > 0, "Shelf top face should be at Y = -64.0")
+        self.assertTrue(len(shelf_faces) > 0, "Shelf top face should be at Y = -40.0")
+
+    def test_whiteboard_holder_both_screw_rows(self):
+        holder = create_whiteboard_tool_holder(units=2, layout="inline_2u")
+        solid = holder.val()
+
+        # Both top screws (Y=10.0) and bottom screws (Y=-84.0) should have holes
+        # 3.6mm dia hole edges (radius 1.8)
+        radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
+        screw_hole_edges = radii.count(1.8)
+        # 2 units * 2 rows = 4 screw holes -> each cylinder has at least 2 circular edges
+        self.assertGreaterEqual(screw_hole_edges, 4)
 
     def test_whiteboard_holder_inline_2u(self):
         holder = create_whiteboard_tool_holder(layout="inline_2u")
@@ -157,16 +174,13 @@ class TestWhiteboardToolHolder(unittest.TestCase):
         self.assertAlmostEqual(bb.ymax, BACKPLATE_TOP_Y, delta=0.2)
         self.assertAlmostEqual(bb.zlen, expected_depth, delta=0.2)
 
-    def test_print_orientation_bottom_down(self):
-        holder = create_whiteboard_tool_holder(units=4)
-        # Apply the bottom_down rotation: rotate around (1, 0, 0) by +90 deg
-        rotated = holder.rotate((0, 0, 0), (1, 0, 0), 90)
-        bb = rotated.val().BoundingBox()
+    def test_whiteboard_holder_45deg_print_orientation(self):
+        holder = create_whiteboard_tool_holder(layout="inline_2u", print_orientation="45_deg", support_fins=True)
+        solid = holder.val()
+        self.assertEqual(len(solid.Solids()), 1)
 
-        # In bottom_down orientation, the bottom face (Y=-94 in CAD) should be at zmin
-        # and the top (Y=20 in CAD) should be at zmax
-        self.assertAlmostEqual(bb.zmin, -94.0, delta=0.2)
-        self.assertAlmostEqual(bb.zmax, 20.0, delta=0.2)
+        bb = solid.BoundingBox()
+        self.assertAlmostEqual(bb.zmin, 0.0, delta=0.1)
 
     def test_whiteboard_holder_layout_swap(self):
         holder_left = create_whiteboard_tool_holder(units=4, layout="bottle_left")
@@ -193,7 +207,6 @@ class TestWhiteboardTestCoupon(unittest.TestCase):
         self.assertAlmostEqual(bb.ylen, 15.0, delta=0.2)
         self.assertAlmostEqual(bb.zlen, 50.0 + BACKPLATE_THICKNESS, delta=0.2)
 
-        # Check for circular edge with bottle radius = 36.5 / 2 = 18.25
         radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
         self.assertIn(18.25, radii, "Spray bottle circular edge not found in test coupon")
 

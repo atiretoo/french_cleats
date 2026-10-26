@@ -18,6 +18,7 @@ import cadquery as cq
 import argparse
 import sys
 import os
+import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import (
@@ -34,6 +35,7 @@ from core_library import (
     get_bottom_edge_y,
     create_nut_slot,
     export_model,
+    support_fin,
 )
 
 
@@ -47,13 +49,15 @@ def create_magnetic_adapter(
     mag_count=1,
     mag_y=None,
     no_screws=False,
+    print_orientation="none",
+    support_fins=True,
 ):
     """
     Creates a magnetic mount adapter that attaches to a steel surface (such as a
     whiteboard, tool cabinet, or machine tool) via disc magnets on the back, and
     provides standard UNIT shallow ridges on the front to seat into tool holder grooves.
 
-    Reference Frame:
+    Reference Frame (unrotated CAD):
       - Top: +Y
       - Bottom: -Y
       - Front: -Z (standard 45° locking ridges seat into tool holder grooves)
@@ -70,6 +74,8 @@ def create_magnetic_adapter(
         with 0.20 mm side clearance and 0.80 mm crest clearance.
       - Metric captive nut slots and clearance holes for M3 clamping bolts.
       - 2.0 mm chamfered outer back edges for flush contact against flat steel surfaces.
+      - 45-degree print orientation support: chamfers the long back edge to sit flat
+        on the build plate and adds 2 support fins under the back face (side without ridges).
     """
     width = units * UNIT_WIDTH
 
@@ -144,8 +150,6 @@ def create_magnetic_adapter(
         elif mag_count == 1:
             mag_pts.append((x, mid_y))
         elif mag_count > 1:
-            # Space magnets evenly between the ridges, keeping clear of ridge slopes
-            # For H73 with mag_count=2, spacing=40mm gives Y=-17.0 and Y=-57.0 (matching thin tool standard)
             available_span = (top_screw_y - bottom_screw_y) - mag_dia - 4.0
             spacing = min(40.0, available_span / (mag_count - 1))
             start_y = mid_y + (mag_count - 1) * spacing / 2.0
@@ -153,7 +157,6 @@ def create_magnetic_adapter(
                 mag_pts.append((x, start_y - k * spacing))
 
     if mag_pts and mag_dia > 0 and mag_depth > 0:
-        # Pockets cut from Z=plate_thickness towards front (-Z)
         mags = (
             cq.Workplane("XY")
             .workplane(offset=plate_thickness)
@@ -163,7 +166,6 @@ def create_magnetic_adapter(
         )
         adapter = adapter.cut(mags)
 
-        # 2.0 mm push-through holes to front face
         push_holes = (
             cq.Workplane("XY")
             .workplane(offset=plate_thickness)
@@ -236,6 +238,52 @@ def create_magnetic_adapter(
             )
             adapter = adapter.cut(cq.Workplane(slot_bot_solid))
 
+    # 6. Optional 45-degree Print Orientation & Support Fins
+    if print_orientation == "45_deg":
+        # Cut 45-degree chamfer across plate_thickness along the back-right long edge
+        cut_pts = [
+            (width / 2.0 - plate_thickness, plate_thickness),
+            (width / 2.0 + 10.0, plate_thickness),
+            (width / 2.0 + 10.0, -10.0),
+            (width / 2.0, 0.0),
+        ]
+        cutter = (
+            cq.Workplane("XZ")
+            .polyline(cut_pts).close()
+            .extrude(height + 100.0, both=True)
+            .translate((0, (top_y + bottom_y) / 2.0, 0))
+        )
+        adapter = adapter.cut(cutter)
+
+        # Rotate 135 deg around Y so chamfered edge lies flat on Z=0
+        adapter = adapter.rotate((0, 0, 0), (0, 1, 0), 135)
+        bb = adapter.val().BoundingBox()
+        adapter = adapter.translate((0, 0, -bb.zmin))
+
+        if support_fins:
+            sin45 = math.sin(math.radians(45))
+            fin_H = (width - plate_thickness) * sin45
+
+            # Fin supporting 45-degree underside (back face without ridges)
+            fin = support_fin(z_gap=0.0, is_right=False, length=fin_H, height=fin_H, fin_width=1.6)
+            fin = fin.rotate((0, 0, 0), (0, 0, 1), -90)
+
+            # Find chamfer footprint on bed
+            chamfer_faces = [
+                f for f in adapter.val().Faces()
+                if f.geomType() == "PLANE" and abs(f.Center().z) < 0.05
+            ]
+            if chamfer_faces:
+                c_bb = chamfer_faces[0].BoundingBox()
+                fin_x = c_bb.xmin
+            else:
+                fin_x = 0.0
+
+            fin_top = fin.translate((fin_x, top_y - 0.2, 0))
+            fin_bot = fin.translate((fin_x, bottom_y + 0.2, 0))
+
+            adapter = adapter.union(fin_top).union(fin_bot)
+
     return adapter
 
 
@@ -295,6 +343,11 @@ def main():
         help="Omit screw holes and nut slots",
     )
     parser.add_argument(
+        "--no-support-fins",
+        action="store_true",
+        help="Disable support fins in 45_deg orientation",
+    )
+    parser.add_argument(
         "--export",
         choices=["both", "stl", "step"],
         default="both",
@@ -303,12 +356,16 @@ def main():
     parser.add_argument(
         "--print-orientation",
         type=str,
-        default="back_down",
-        choices=["back_down", "face_down", "left_down", "right_down", "top_down", "bottom_down", "none"],
-        help="Print orientation for STL export (default: back_down)",
+        default="45_deg",
+        choices=["45_deg", "back_down", "face_down", "left_down", "right_down", "top_down", "bottom_down", "none"],
+        help="Print orientation for STL export (default: 45_deg)",
     )
 
     args = parser.parse_args()
+
+    # Pass 45_deg to create_magnetic_adapter if chosen, otherwise pass none and let export_model rotate
+    adapter_orient = "45_deg" if args.print_orientation == "45_deg" else "none"
+    export_orient = "none" if args.print_orientation == "45_deg" else args.print_orientation
 
     adapter = create_magnetic_adapter(
         units=args.units,
@@ -320,6 +377,8 @@ def main():
         mag_count=args.mag_count,
         mag_y=args.mag_y,
         no_screws=args.no_screws,
+        print_orientation=adapter_orient,
+        support_fins=not args.no_support_fins,
     )
 
     if args.mag_count > 1:
@@ -332,7 +391,7 @@ def main():
         adapter,
         filename,
         category="magnetic",
-        print_orientation=args.print_orientation,
+        print_orientation=export_orient,
         export=args.export,
     )
 
