@@ -64,6 +64,12 @@ python src/shelf/generate_shelf_edge_adapter.py --units 2 --rail-height 73.0 --s
 python src/shelf/generate_shelf_edge_adapter.py --units 7 --rail-height 73.0 --screw M3
 python src/shelf/generate_shelf_edge_adapter.py --test-wedge
 
+echo "Generating Magnetic Mount Adapters..."
+python src/magnetic/generate_magnetic_adapter.py --units 1
+python src/magnetic/generate_magnetic_adapter.py --units 2
+python src/magnetic/generate_magnetic_adapter.py --units 3
+python src/magnetic/generate_magnetic_adapter.py --units 4
+
 echo "Generating Auxiliary Tools..."
 python src/utilities/generate_nut_pusher.py --screw M3 --handle-length 11.0
 python src/utilities/generate_nut_pusher.py --screw M4 --handle-length 11.0
@@ -82,8 +88,7 @@ echo "Generating Claw Hammer Holders..."
 python src/tool_holders/generate_claw_hammer_holder.py --units 2
 
 echo "Generating Whiteboard Tool Holders..."
-python src/tool_holders/generate_whiteboard_tool_holder.py --units 4 --mount magnetic
-python src/tool_holders/generate_whiteboard_tool_holder.py --units 4 --mount groove
+python src/tool_holders/generate_whiteboard_tool_holder.py --units 4
 
 
 echo "Generating Corner Clamp Tester..."

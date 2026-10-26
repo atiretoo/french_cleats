@@ -33,7 +33,6 @@ from core_library import (
 def create_whiteboard_tool_holder(
     units=4,
     rail_height=DEFAULT_RAIL_HEIGHT,
-    mount_type="magnetic",
     shelf_thickness=30.0,
     shelf_depth=50.0,
     floor_thickness=3.0,
@@ -45,23 +44,20 @@ def create_whiteboard_tool_holder(
     eraser_clearance=1.5,
     eraser_corner_radius=2.5,
     layout="bottle_left",
-    mag_dia=19.2,
-    mag_depth=2.0,
     fillet_radius=4.0,
     lip_chamfer=1.0,
 ):
     """
-    Creates a whiteboard tool holder designed to store a whiteboard spray bottle
-    (35 mm dia x 125 mm high) and an eraser (55 mm x 32 mm cross section x 125 mm long).
+    Creates a French Cleat / UNIT whiteboard tool holder designed to store a whiteboard
+    spray bottle (35 mm dia x 125 mm high) and an eraser (55 mm x 32 mm cross section x 125 mm long).
 
     Features:
+      - Standard UNIT shallow groove backplate compatible with all cleat rails,
+        as well as magnetic, Multiconnect, HSW, and pegboard adapters.
       - 30 mm thick low shelf positioned at the bottom of the baseplate, providing
         deep pockets that securely prevent tall 125 mm tools from tipping over.
       - Backplate extends 84 mm above the shelf up to Y = 20.0, providing tall,
         rigid backing support for the spray bottle and eraser.
-      - Magnetic mount (default) with 1 19.2 mm x 2.0 mm disc magnet pocket per unit
-        on the back face (Z = 0) with 2.0 mm push-through holes to release magnets.
-      - Alternatively supports standard French Cleat shallow groove mounting.
       - Centered drain / cleanout holes in the pocket floor to prevent dust accumulation
         and eliminate suction when inserting snug tools.
       - Chamfered top entrance rims for smooth, effortless insertion.
@@ -79,13 +75,11 @@ def create_whiteboard_tool_holder(
 
     width = units * UNIT_WIDTH
 
-    # 1. Baseplate
+    # 1. Baseplate with standard UNIT groove
     body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
         units=units,
         rail_height=rail_height,
-        mount_type=mount_type,
-        mag_dia=mag_dia,
-        mag_depth=mag_depth,
+        mount_type="groove",
     )
 
     shelf_bottom_y = bottom_y
@@ -242,8 +236,8 @@ def create_whiteboard_tool_holder(
         except Exception:
             pass
 
-    # 9. Top Screws (if groove mount)
-    if mount_type == "groove" and screw_pts:
+    # 9. Top Screws
+    if screw_pts:
         top_screw_pts = [pt for pt in screw_pts if pt[1] > shelf_top_y]
         if top_screw_pts:
             screws = (
@@ -269,20 +263,13 @@ def create_whiteboard_tool_holder(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Generate whiteboard tool holder with low shelf and magnetic mount."
+        description="Generate whiteboard tool holder with low 30mm shelf."
     )
     parser.add_argument(
         "--units",
         type=int,
         default=4,
         help="Width in 28mm UNITs (default: 4 for 112mm width)",
-    )
-    parser.add_argument(
-        "--mount",
-        type=str,
-        default="magnetic",
-        choices=["magnetic", "groove"],
-        help="Mounting interface (default: magnetic)",
     )
     parser.add_argument(
         "--rail-height",
@@ -352,18 +339,6 @@ if __name__ == "__main__":
         help="Arrangement of tools on the shelf (default: bottle_left)",
     )
     parser.add_argument(
-        "--mag-dia",
-        type=float,
-        default=19.2,
-        help="Diameter of disc magnet pocket in mm (default: 19.2 for 19mm disc)",
-    )
-    parser.add_argument(
-        "--mag-depth",
-        type=float,
-        default=2.0,
-        help="Depth of disc magnet pocket in mm (default: 2.0)",
-    )
-    parser.add_argument(
         "--no-drain",
         dest="drain_holes",
         action="store_false",
@@ -388,7 +363,7 @@ if __name__ == "__main__":
             "face_down",
             "none",
         ],
-        help="Print orientation for STL export (default: bottom_down for support-free printing)",
+        help="Print orientation for STL export (default: bottom_down)",
     )
 
     args = parser.parse_args()
@@ -396,7 +371,6 @@ if __name__ == "__main__":
     holder = create_whiteboard_tool_holder(
         units=args.units,
         rail_height=args.rail_height,
-        mount_type=args.mount,
         shelf_thickness=args.shelf_thickness,
         shelf_depth=args.shelf_depth,
         floor_thickness=args.floor_thickness,
@@ -408,11 +382,9 @@ if __name__ == "__main__":
         eraser_clearance=args.eraser_clearance,
         eraser_corner_radius=args.eraser_corner_radius,
         layout=args.layout,
-        mag_dia=args.mag_dia,
-        mag_depth=args.mag_depth,
     )
 
-    filename = f"whiteboard_tool_holder_{args.units}u_{args.mount}.stl"
+    filename = f"whiteboard_tool_holder_{args.units}u.stl"
     export_model(
         holder,
         filename,
