@@ -59,5 +59,13 @@ What began as a French-cleat-specific parametric script library evolved into an 
 - **Accurate Functionality:** Establishes that each module is a standardized, unyielding tool-holding unit designed specifically for heavy tools.
 - **Universal Cross-System Interoperability:** Maintains French cleats as the native high-load backbone while granting 100% interoperability to any popular workshop wall standard.
 
+## 10. Magnetic Mount Interface & Whiteboard Tool Holder (V2.0)
+To support ferromagnetic surfaces such as office and shop steel whiteboards, tool chests, and metal cabinets, the system was expanded with a native magnetic mounting interface (`mount_type="magnetic"`):
+- **Standard Pocket Geometry:** Each 1U unit incorporates one 19.2 mm diameter by 2.0 mm deep disc magnet pocket on the rear mounting face ($Z=0$), matching the tolerances established in the thin tool / magnetic saw holder.
+- **Push-Through Holes:** 2.0 mm diameter centered through-holes extend from the pocket to the front face of the backplate, enabling clean release of glued or press-fit magnets with a 1.5–2.0 mm pin or hex wrench.
+- **Overturning Torque Resistance:** Placing the magnet column near the top of the backplate ($Y=7.0$) maximizes the vertical lever arm against peeling moments induced by tools resting in cantilevered forward pockets.
+- **Low 30mm Shelf Architecture:** For tall 125 mm tools (whiteboard cleaner spray bottle and eraser), standard thin 5mm shelves would allow tipping. A dedicated 30 mm thick low shelf sits at the bottom of the baseplate ($Y=-94.0$ to $Y=-64.0$), creating 27 mm deep cradle sockets with centered drain / cleanout holes in the floor, while the tall 84 mm backplate extension prevents backward tipping and maintains magnetic stability.
+
+
 
 

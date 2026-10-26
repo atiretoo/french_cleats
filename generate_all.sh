@@ -81,6 +81,10 @@ python src/tool_holders/generate_mallet_holder.py --units 3
 echo "Generating Claw Hammer Holders..."
 python src/tool_holders/generate_claw_hammer_holder.py --units 2
 
+echo "Generating Whiteboard Tool Holders..."
+python src/tool_holders/generate_whiteboard_tool_holder.py --units 4 --mount magnetic
+python src/tool_holders/generate_whiteboard_tool_holder.py --units 4 --mount groove
+
 
 echo "Generating Corner Clamp Tester..."
 python src/strength_testing/generate_corner_clamp_tester.py

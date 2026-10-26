@@ -80,7 +80,7 @@ def load_mc_block(filename, base_dir=None):
     dz = - bb.zmax
     return model.translate((dx, dy, dz))
 
-def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickness=11.0, mount_type="groove", num_rows=2):
+def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickness=11.0, mount_type="groove", num_rows=2, mag_dia=19.2, mag_depth=2.0, mag_y=7.0, mag_count=1):
     unit_width = UNIT_WIDTH
     width = units * unit_width
     
@@ -175,6 +175,73 @@ def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickne
         screw_pts = [] 
         bottom_groove_y = bottom_y + 10.0
         return baseplate, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids
+
+    elif mount_type in ["magnetic", "magnet"]:
+        play = RAIL_PLAY
+        bottom_groove_y = get_bottom_groove_y(rail_height, play)
+        bottom_y = get_bottom_edge_y(rail_height, play)
+        
+        pts = [
+            (BACKPLATE_TOP_Y, 0),
+            (bottom_y, 0),
+            (bottom_y, -backplate_thickness),
+            (BACKPLATE_TOP_Y, -backplate_thickness),
+            (BACKPLATE_TOP_Y, 0)
+        ]
+        
+        baseplate = (
+            cq.Workplane("YZ")
+            .polyline(pts).close()
+            .extrude(width)
+            .translate((-width / 2.0, 0, 0))
+        )
+        
+        # Chamfer the 4 outer back edges (on the >Z face at Z=0)
+        try:
+            outer_edges = []
+            for e in baseplate.edges(">Z").vals():
+                c = e.Center()
+                if abs(c.x) > (width / 2.0 - 0.1) or c.y > (BACKPLATE_TOP_Y - 0.1) or c.y < (bottom_y + 0.1):
+                    outer_edges.append(e)
+            
+            if outer_edges:
+                baseplate = baseplate.newObject(outer_edges).chamfer(2.0)
+        except Exception:
+            pass
+            
+        # 1 disc magnet pocket per unit on the back face (Z=0)
+        if mag_y is None:
+            mag_y = 7.0
+            
+        mag_pts = []
+        for i in range(units):
+            x = -width / 2.0 + unit_width / 2.0 + i * unit_width
+            mag_pts.append((x, mag_y))
+            if mag_count > 1:
+                mag_pts.append((x, bottom_groove_y))
+            
+        if mag_pts and mag_dia > 0 and mag_depth > 0:
+            mags = (
+                cq.Workplane("XY").workplane(offset=0)
+                .pushPoints(mag_pts)
+                .circle(mag_dia / 2.0)
+                .extrude(-mag_depth)
+            )
+            baseplate = baseplate.cut(mags)
+            
+            # Push holes: 2mm diameter, all the way through to front face
+            push_holes = (
+                cq.Workplane("XY").workplane(offset=0)
+                .pushPoints(mag_pts)
+                .circle(2.0 / 2.0)
+                .extrude(-backplate_thickness - 2.0)
+            )
+            baseplate = baseplate.cut(push_holes)
+            
+        screw_pts = []
+        return baseplate, BACKPLATE_TOP_Y, bottom_y, bottom_groove_y, screw_pts, []
+    else:
+        raise ValueError(f"Unsupported mount_type: {mount_type}. Must be 'groove', 'multiconnect', or 'magnetic'.")
 
 def get_main_repo_root(current_dir):
     import subprocess
