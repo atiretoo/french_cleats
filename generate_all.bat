@@ -68,6 +68,7 @@ python src/shelf/generate_shelf_edge_adapter.py --test-wedge
 echo Generating Magnetic Mount Adapters...
 python src/magnetic/generate_magnetic_adapter.py --units 1
 python src/magnetic/generate_magnetic_adapter.py --units 2
+python src/magnetic/generate_magnetic_adapter.py --units 2 --mag-count 2
 python src/magnetic/generate_magnetic_adapter.py --units 3
 python src/magnetic/generate_magnetic_adapter.py --units 4
 

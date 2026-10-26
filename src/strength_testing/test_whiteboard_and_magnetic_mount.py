@@ -78,6 +78,28 @@ class TestMagneticAdapter(unittest.TestCase):
         self.assertEqual(len(solid.Solids()), 1)
         self.assertAlmostEqual(solid.BoundingBox().xlen, 28.0, delta=0.1)
 
+    def test_magnetic_adapter_2u_4mags(self):
+        adapter = create_magnetic_adapter(units=2, mag_count=2, rail_height=73.0)
+        solid = adapter.val()
+
+        # Single solid
+        self.assertEqual(len(solid.Solids()), 1)
+
+        bb = solid.BoundingBox()
+        self.assertAlmostEqual(bb.xlen, 56.0, delta=0.2)
+        self.assertAlmostEqual(bb.ylen, 114.0, delta=0.2)
+        self.assertAlmostEqual(bb.ymin, -94.0, delta=0.2)
+        self.assertAlmostEqual(bb.ymax, 20.0, delta=0.2)
+
+        # Check for 4 magnet pockets (2 vertically aligned per 1U space)
+        circle_radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
+        pocket_edges = circle_radii.count(9.6)
+        push_edges = circle_radii.count(1.0)
+
+        # 4 pockets total: at least 4 edges of r=9.6 and r=1.0
+        self.assertGreaterEqual(pocket_edges, 4)
+        self.assertGreaterEqual(push_edges, 4)
+
 
 class TestWhiteboardToolHolder(unittest.TestCase):
     def test_whiteboard_holder_groove_default(self):

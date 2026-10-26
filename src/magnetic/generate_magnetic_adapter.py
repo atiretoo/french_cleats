@@ -62,7 +62,9 @@ def create_magnetic_adapter(
       - Right: +X
 
     Features:
-      - 1 19.2 mm x 2.0 mm disc magnet pocket per unit (matching thin tool holder dimensions).
+      - Disc magnet pockets (default 19.2 mm x 2.0 mm, matching thin tool holder standard).
+      - Configurable magnets per 1U space: mag_count=1 (centered) or mag_count=2
+        (2 vertically aligned pockets per 1U space, e.g. 4 magnets for a 2U mount).
       - 2.0 mm through push-holes extending to the front face for easy magnet release.
       - Dual standard shallow locking ridges (top at Y=10.0, bottom at Y=-84.0)
         with 0.20 mm side clearance and 0.80 mm crest clearance.
@@ -133,18 +135,22 @@ def create_magnetic_adapter(
 
     # 4. Magnet Pockets & Push Holes (on back face Z=plate_thickness, cutting into -Z)
     mag_pts = []
+    mid_y = (top_screw_y + bottom_screw_y) / 2.0
+
     for i in range(units):
         x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
         if mag_y is not None:
             mag_pts.append((x, mag_y))
         elif mag_count == 1:
-            # Centered between top and bottom ridges: (10.0 + (-84.0)) / 2 = -37.0
-            mid_y = (top_screw_y + bottom_screw_y) / 2.0
             mag_pts.append((x, mid_y))
-        else:
-            # Two magnets per unit: matches perpendicular saw holder pattern
-            mag_pts.append((x, -17.0))
-            mag_pts.append((x, -57.0))
+        elif mag_count > 1:
+            # Space magnets evenly between the ridges, keeping clear of ridge slopes
+            # For H73 with mag_count=2, spacing=40mm gives Y=-17.0 and Y=-57.0 (matching thin tool standard)
+            available_span = (top_screw_y - bottom_screw_y) - mag_dia - 4.0
+            spacing = min(40.0, available_span / (mag_count - 1))
+            start_y = mid_y + (mag_count - 1) * spacing / 2.0
+            for k in range(mag_count):
+                mag_pts.append((x, start_y - k * spacing))
 
     if mag_pts and mag_dia > 0 and mag_depth > 0:
         # Pockets cut from Z=plate_thickness towards front (-Z)
@@ -275,7 +281,7 @@ def main():
         "--mag-count",
         type=int,
         default=1,
-        help="Number of disc magnets per unit (default: 1)",
+        help="Number of disc magnets per unit space (default: 1, use 2 for 2 vertically aligned magnets per 1U)",
     )
     parser.add_argument(
         "--mag-y",
@@ -316,7 +322,12 @@ def main():
         no_screws=args.no_screws,
     )
 
-    filename = f"magnetic_adapter_{args.units}u_H{int(args.rail_height)}_{args.screw}.stl"
+    if args.mag_count > 1:
+        total_mags = args.units * args.mag_count
+        filename = f"magnetic_adapter_{args.units}u_H{int(args.rail_height)}_{total_mags}mag_{args.screw}.stl"
+    else:
+        filename = f"magnetic_adapter_{args.units}u_H{int(args.rail_height)}_{args.screw}.stl"
+
     export_model(
         adapter,
         filename,
