@@ -123,7 +123,58 @@ def create_magnetic_adapter(
     )
     adapter = adapter.union(bot_ridge)
 
-    # 3. Outer Back Edge Chamfers (on >Z face at Z=plate_thickness)
+    # 3. Outer Edge Chamfers on Ridge Side (Z=0 face) matching tool holder backplates
+    # Long right edge (X = +width/2)
+    cut_pts_r = [
+        (width / 2.0 - 2.0 - RIDGE_HEIGHT - 1.0, -RIDGE_HEIGHT - 1.0),
+        (width / 2.0 + 10.0, -RIDGE_HEIGHT - 1.0),
+        (width / 2.0 + 10.0, 10.0),
+        (width / 2.0, 2.0),
+    ]
+    cutter_r = (
+        cq.Workplane("XZ")
+        .polyline(cut_pts_r).close()
+        .extrude(height + 100.0, both=True)
+        .translate((0, (top_y + bottom_y) / 2.0, 0))
+    )
+    adapter = adapter.cut(cutter_r)
+
+    # Long left edge (X = -width/2)
+    cut_pts_l = [
+        (-width / 2.0 + 2.0 + RIDGE_HEIGHT + 1.0, -RIDGE_HEIGHT - 1.0),
+        (-width / 2.0 - 10.0, -RIDGE_HEIGHT - 1.0),
+        (-width / 2.0 - 10.0, 10.0),
+        (-width / 2.0, 2.0),
+    ]
+    cutter_l = (
+        cq.Workplane("XZ")
+        .polyline(cut_pts_l).close()
+        .extrude(height + 100.0, both=True)
+        .translate((0, (top_y + bottom_y) / 2.0, 0))
+    )
+    adapter = adapter.cut(cutter_l)
+
+    # Top edge (Y = top_y)
+    cut_pts_top = [
+        (top_y - 2.0, 0.0),
+        (top_y + 10.0, 0.0),
+        (top_y + 10.0, 10.0),
+        (top_y, 2.0),
+    ]
+    cutter_top = cq.Workplane("YZ").polyline(cut_pts_top).close().extrude(width + 100.0, both=True)
+    adapter = adapter.cut(cutter_top)
+
+    # Bottom edge (Y = bottom_y)
+    cut_pts_bot = [
+        (bottom_y + 2.0, 0.0),
+        (bottom_y - 10.0, 0.0),
+        (bottom_y - 10.0, 10.0),
+        (bottom_y, 2.0),
+    ]
+    cutter_bot = cq.Workplane("YZ").polyline(cut_pts_bot).close().extrude(width + 100.0, both=True)
+    adapter = adapter.cut(cutter_bot)
+
+    # Outer Back Edge Chamfers (on >Z face at Z=plate_thickness)
     try:
         outer_edges = []
         for e in adapter.edges(">Z").vals():
@@ -206,7 +257,7 @@ def create_magnetic_adapter(
             # Top captive nut slot (slides in from +Y top edge)
             depth_top = top_y - top_screw_y
             slot_top_solid = create_nut_slot(
-                screw_m, depth=depth_top, push_hole=True, push_hole_angle=30.0
+                screw_m, depth=depth_top, push_hole=True, push_hole_angle=15.0
             )
             slot_top_solid = slot_top_solid.translate(
                 cq.Vector(x, top_screw_y, slot_z_center)
@@ -226,7 +277,7 @@ def create_magnetic_adapter(
             # Bottom captive nut slot (slides in from -Y bottom edge)
             depth_bot = bottom_screw_y - bottom_y
             slot_bot_solid = create_nut_slot(
-                screw_m, depth=depth_bot, push_hole=True, push_hole_angle=30.0
+                screw_m, depth=depth_bot, push_hole=True, push_hole_angle=15.0
             )
             slot_bot_solid = (
                 cq.Workplane(slot_bot_solid)
@@ -240,48 +291,23 @@ def create_magnetic_adapter(
 
     # 6. Optional 45-degree Print Orientation & Support Fins
     if print_orientation == "45_deg":
-        # Cut 45-degree chamfer across plate_thickness along the back-right long edge
-        cut_pts = [
-            (width / 2.0 - plate_thickness, plate_thickness),
-            (width / 2.0 + 10.0, plate_thickness),
-            (width / 2.0 + 10.0, -10.0),
-            (width / 2.0, 0.0),
-        ]
-        cutter = (
-            cq.Workplane("XZ")
-            .polyline(cut_pts).close()
-            .extrude(height + 100.0, both=True)
-            .translate((0, (top_y + bottom_y) / 2.0, 0))
-        )
-        adapter = adapter.cut(cutter)
-
-        # Rotate 135 deg around Y so chamfered edge lies flat on Z=0
-        adapter = adapter.rotate((0, 0, 0), (0, 1, 0), 135)
+        # Rotate 45 deg around Y so the ridge-side 2mm chamfer lies flat on build plate (Z=0).
+        # Ridges face down, magnet pockets face up.
+        adapter = adapter.rotate((0, 0, 0), (0, 1, 0), 45)
         bb = adapter.val().BoundingBox()
         adapter = adapter.translate((0, 0, -bb.zmin))
 
         if support_fins:
-            sin45 = math.sin(math.radians(45))
-            fin_H = (width - plate_thickness) * sin45
+            plate_bed_x = (width / 2.0 - 2.0) * math.cos(math.radians(45))
+            fin_L = (width - 4.0) * math.cos(math.radians(45))
 
-            # Fin supporting 45-degree underside (back face without ridges)
-            # Rotated 90 deg around Z (+90) so hypotenuse rises with +X
-            fin = support_fin(z_gap=0.0, is_right=False, length=fin_H, height=fin_H, fin_width=1.6)
-            fin = fin.rotate((0, 0, 0), (0, 0, 1), 90)
+            # Fin supporting 45-degree underside (ridge side facing down)
+            fin = support_fin(z_gap=0.0, is_right=False, length=fin_L, height=fin_L, fin_width=1.6)
+            fin = fin.rotate((0, 0, 0), (0, 0, 1), -90).translate((plate_bed_x, 0, 0))
 
-            # Find chamfer footprint on bed
-            bed_faces = [
-                f for f in adapter.val().Faces()
-                if f.geomType() == "PLANE" and abs(f.Center().z) < 0.05 and f.normalAt().z < -0.9
-            ]
-            if bed_faces:
-                c_bb = bed_faces[0].BoundingBox()
-                fin_x = c_bb.xmax
-            else:
-                fin_x = -plate_thickness * math.cos(math.radians(45))
-
-            fin_top = fin.translate((fin_x, top_y - 1.6, 0))
-            fin_bot = fin.translate((fin_x, bottom_y + 1.6, 0))
+            # Support fins aligned with the inner edge of each ridge
+            fin_top = fin.translate((0, top_screw_y - RIDGE_SURFACE_HALF_WIDTH - 0.8, 0))
+            fin_bot = fin.translate((0, bottom_screw_y + RIDGE_SURFACE_HALF_WIDTH + 0.8, 0))
 
             adapter = adapter.union(fin_top).union(fin_bot)
 
