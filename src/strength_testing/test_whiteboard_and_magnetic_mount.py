@@ -106,6 +106,36 @@ class TestMagneticAdapter(unittest.TestCase):
         bb = solid.BoundingBox()
         self.assertAlmostEqual(bb.zmin, 0.0, delta=0.1)
 
+        # Support fins should be aligned with the first convex edge of each ridge:
+        # Top ridge first convex edge: Y = 10.0 - 1.1 = 8.90
+        # Bottom ridge first convex edge: Y = -84.0 + 1.1 = -82.90
+        fin_faces_top = [
+            f for f in solid.Faces()
+            if abs(f.Center().y - 8.90) < 0.2 and f.geomType() == "PLANE"
+        ]
+        fin_faces_bot = [
+            f for f in solid.Faces()
+            if abs(f.Center().y - (-82.90)) < 0.2 and f.geomType() == "PLANE"
+        ]
+        self.assertTrue(len(fin_faces_top) > 0, "Top fin not found at convex edge Y=8.90")
+        self.assertTrue(len(fin_faces_bot) > 0, "Bottom fin not found at convex edge Y=-82.90")
+
+    def test_magnetic_adapter_nut_slots_push_hole(self):
+        adapter = create_magnetic_adapter(units=2, mag_count=2, print_orientation="none", support_fins=False)
+        solid = adapter.val()
+
+        # At the top nut slot end wall (Y = 10.0 - 3.175 = 6.825), the push out hole must be
+        # fully open with a single continuous ellipse wire, without obstructing shelf faces.
+        end_wall_faces = [
+            f for f in solid.Faces()
+            if abs(f.Center().y - 6.825) < 0.2 and f.geomType() == "PLANE"
+        ]
+        self.assertTrue(len(end_wall_faces) > 0, "Top nut slot end wall face not found")
+        top_end_wall = end_wall_faces[0]
+        # Should contain slot outer boundary wire and hole ellipse wire (exactly 2 wires, 1 ellipse)
+        hole_wires = [w for w in top_end_wall.Wires() if len(w.Edges()) == 1 and w.Edges()[0].geomType() == "ELLIPSE"]
+        self.assertEqual(len(hole_wires), 1, "Push hole through nut slot end wall should be a clean, single ellipse")
+
 
 class TestWhiteboardToolHolder(unittest.TestCase):
     def test_whiteboard_holder_groove_default(self):

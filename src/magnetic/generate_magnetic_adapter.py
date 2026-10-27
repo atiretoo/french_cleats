@@ -298,16 +298,22 @@ def create_magnetic_adapter(
         adapter = adapter.translate((0, 0, -bb.zmin))
 
         if support_fins:
-            plate_bed_x = (width / 2.0 - 2.0) * math.cos(math.radians(45))
-            fin_L = (width - 4.0) * math.cos(math.radians(45))
+            # The first convex edge of the ridges (crest) is at Z = -RIDGE_HEIGHT.
+            # At this Z depth, the 45-degree edge chamfers reduce the width to
+            # width - 2*(2.0 + RIDGE_HEIGHT). When rotated 45 deg around Y:
+            plate_bed_x = (width / 2.0 - 2.0 - 2 * RIDGE_HEIGHT) * math.cos(math.radians(45))
+            fin_L = (width - 4.0 - 2 * RIDGE_HEIGHT) * math.cos(math.radians(45))
 
             # Fin supporting 45-degree underside (ridge side facing down)
             fin = support_fin(z_gap=0.0, is_right=False, length=fin_L, height=fin_L, fin_width=1.6)
             fin = fin.rotate((0, 0, 0), (0, 0, 1), -90).translate((plate_bed_x, 0, 0))
 
-            # Support fins aligned with the inner edge of each ridge
-            fin_top = fin.translate((0, top_screw_y - RIDGE_SURFACE_HALF_WIDTH - 0.8, 0))
-            fin_bot = fin.translate((0, bottom_screw_y + RIDGE_SURFACE_HALF_WIDTH + 0.8, 0))
+            # Support fins aligned with the first convex edge of each ridge:
+            # Top ridge first convex edge: Y = top_screw_y - RIDGE_PEAK_HALF_WIDTH (crest inner edge)
+            # Bottom ridge first convex edge: Y = bottom_screw_y + RIDGE_PEAK_HALF_WIDTH (crest inner edge)
+            # The fin tapered tip is centered at Y=0, so this directly aligns the tip center with the edge.
+            fin_top = fin.translate((0, top_screw_y - RIDGE_PEAK_HALF_WIDTH, 0))
+            fin_bot = fin.translate((0, bottom_screw_y + RIDGE_PEAK_HALF_WIDTH, 0))
 
             adapter = adapter.union(fin_top).union(fin_bot)
 

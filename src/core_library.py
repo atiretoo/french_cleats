@@ -324,7 +324,16 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
         # Create a cylinder starting at Y = -nut_point_dist and extending downwards (negative Y)
         # We will make it 100mm long to ensure it pierces the outer wall.
         cyl_r = push_hole_dia / 2.0
-        cyl = cq.Solid.makeCylinder(cyl_r, 100.0, cq.Vector(0, 0, 0), cq.Vector(0, -1, 0))
+        # If angled, extend slightly into the slot box so the tilted circular start cap
+        # penetrates fully through the end wall, preventing a partial crescent obstruction.
+        ext = (
+            (cyl_r * math.tan(math.radians(abs(push_hole_angle))) + 0.5)
+            if push_hole_angle != 0.0
+            else 0.0
+        )
+        cyl = cq.Solid.makeCylinder(
+            cyl_r, 100.0 + ext, cq.Vector(0, ext, 0), cq.Vector(0, -1, 0)
+        )
         cyl = cyl.translate((0, -nut_point_dist, 0))
         
         if push_hole_angle != 0.0:
