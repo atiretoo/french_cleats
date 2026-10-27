@@ -265,22 +265,23 @@ def create_magnetic_adapter(
             fin_H = (width - plate_thickness) * sin45
 
             # Fin supporting 45-degree underside (back face without ridges)
+            # Rotated 90 deg around Z (+90) so hypotenuse rises with +X
             fin = support_fin(z_gap=0.0, is_right=False, length=fin_H, height=fin_H, fin_width=1.6)
-            fin = fin.rotate((0, 0, 0), (0, 0, 1), -90)
+            fin = fin.rotate((0, 0, 0), (0, 0, 1), 90)
 
             # Find chamfer footprint on bed
-            chamfer_faces = [
+            bed_faces = [
                 f for f in adapter.val().Faces()
-                if f.geomType() == "PLANE" and abs(f.Center().z) < 0.05
+                if f.geomType() == "PLANE" and abs(f.Center().z) < 0.05 and f.normalAt().z < -0.9
             ]
-            if chamfer_faces:
-                c_bb = chamfer_faces[0].BoundingBox()
-                fin_x = c_bb.xmin
+            if bed_faces:
+                c_bb = bed_faces[0].BoundingBox()
+                fin_x = c_bb.xmax
             else:
-                fin_x = 0.0
+                fin_x = -plate_thickness * math.cos(math.radians(45))
 
-            fin_top = fin.translate((fin_x, top_y - 0.2, 0))
-            fin_bot = fin.translate((fin_x, bottom_y + 0.2, 0))
+            fin_top = fin.translate((fin_x, top_y - 1.6, 0))
+            fin_bot = fin.translate((fin_x, bottom_y + 1.6, 0))
 
             adapter = adapter.union(fin_top).union(fin_bot)
 

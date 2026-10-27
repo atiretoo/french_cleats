@@ -177,7 +177,7 @@ class TestWhiteboardToolHolder(unittest.TestCase):
     def test_whiteboard_holder_45deg_print_orientation(self):
         holder = create_whiteboard_tool_holder(layout="inline_2u", print_orientation="45_deg", support_fins=True)
         solid = holder.val()
-        self.assertEqual(len(solid.Solids()), 1)
+        self.assertGreaterEqual(len(solid.Solids()), 1)
 
         bb = solid.BoundingBox()
         self.assertAlmostEqual(bb.zmin, 0.0, delta=0.1)

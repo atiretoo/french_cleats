@@ -334,26 +334,40 @@ def create_whiteboard_tool_holder(
 
         if support_fins:
             cos45 = math.cos(math.radians(45))
-            fin_L = shelf_depth * cos45
-            fin_H = fin_L
 
-            # Support fin under the projecting shelf (runs along bottom floor of shelf)
-            fin = support_fin(z_gap=0.0, is_right=False, length=fin_L, height=fin_H, fin_width=1.6)
-            fin = fin.rotate((0, 0, 0), (0, 0, 1), -90)
+            # Find bed contact face (chamfer along backplate edge)
+            bed_faces = [
+                f for f in body.val().Faces()
+                if f.geomType() == "PLANE" and abs(f.Center().z) < 0.05 and f.normalAt().z < -0.9
+            ]
+            if bed_faces:
+                c_bb = bed_faces[0].BoundingBox()
+                bed_xmin = c_bb.xmin
+                bed_xmax = c_bb.xmax
+            else:
+                bed_xmin = (width / 2.0 - 2.0) * cos45
+                bed_xmax = (width / 2.0) * cos45
 
-            fin_start_x = (width / 2.0) * cos45
-            shelf_rot_y = -shelf_bottom_y  # bottom of shelf in rotated coordinates
-            shelf_fin1 = fin.translate((fin_start_x + fin_L, shelf_rot_y - 0.8, 0))
-            shelf_fin2 = fin.translate((fin_start_x + fin_L, shelf_rot_y - 2.8, 0))
-
-            # Backplate fins
+            # 1. Backplate support fins (at top and bottom along Y):
+            # Backplate underside spans towards -X starting at bed_xmin.
+            # Fin hypotenuse rises along Z = bed_xmin - X.
             bp_L = width * cos45
             bp_fin = support_fin(z_gap=0.0, is_right=False, length=bp_L, height=bp_L, fin_width=1.6)
-            bp_fin = bp_fin.rotate((0, 0, 0), (0, 0, 1), -90).translate((bp_L, 0, 0))
-            fin_bp_top = bp_fin.translate((0, -top_y + 0.8, 0))
-            fin_bp_bot = bp_fin.translate((0, -bottom_y - 0.8, 0))
+            bp_fin = bp_fin.rotate((0, 0, 0), (0, 0, 1), -90).translate((bed_xmin, 0, 0))
+            fin_bp_top = bp_fin.translate((0, -top_y + 1.6, 0))
+            fin_bp_bot = bp_fin.translate((0, -bottom_y - 1.6, 0))
 
-            body = body.union(shelf_fin1).union(shelf_fin2).union(fin_bp_top).union(fin_bp_bot)
+            # 2. Shelf projection support fin (1 fin along bottom floor of shelf):
+            # Shelf underside spans towards +X starting at bed_xmax up to front shelf corner.
+            # Fin hypotenuse rises along Z = X - bed_xmax.
+            shelf_max_x = (width / 2.0 * cos45) + (BACKPLATE_THICKNESS + shelf_depth) * cos45
+            shelf_fin_L = max(30.0, shelf_max_x - bed_xmax - 2.83)
+            shelf_fin = support_fin(z_gap=0.0, is_right=True, length=shelf_fin_L, height=shelf_fin_L, fin_width=1.6)
+            shelf_fin = shelf_fin.rotate((0, 0, 0), (0, 0, 1), -90)
+            shelf_rot_y = -shelf_bottom_y  # bottom floor of shelf in rotated coordinates (e.g. 70.0)
+            shelf_fin = shelf_fin.translate((bed_xmax, shelf_rot_y - 0.8, 0))
+
+            body = body.union(fin_bp_top).union(fin_bp_bot).union(shelf_fin)
 
     return body
 
