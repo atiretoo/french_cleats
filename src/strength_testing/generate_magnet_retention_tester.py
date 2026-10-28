@@ -20,22 +20,24 @@ generate_magnet_retention_tester.py
 Generates physical test coupon plates to evaluate compliant magnet retention
 mechanisms for 3D printed tool holders and mounts.
 
-MultiConnect Slit Snap V3 Matrix:
-  - Pocket depth equal to magnet thickness (magnets sit flush/slightly proud to maximize holding force).
-  - Fullsize slit (0.40 mm or 0.50 mm) behind compliant arcs.
-  - 4 arcs separated by 1.20 mm solid bridges.
-  - 0.20 mm air gap under free arcs above the flat solid pocket floor.
+MultiConnect Slit Snap V4 Matrix:
+  - Baseline winner from V3: 2-perimeter wall (0.80 mm), wide slit (0.50 mm),
+    pocket depth equal to magnet thickness (magnet flush/slightly proud).
+  - 0.20 mm air gap under free arcs above flat solid pocket floor.
   - Central push-out hole for magnet removal.
+  - Dedicated margins for column & row headers, keeping the area around
+    compliant arcs completely flat and clean (zero text-induced stringing/blobs).
 
-  Comparisons Tested (3x3 grid):
-    * Columns (Wall & Slit Configuration):
-        - 1P: 1 perimeter arc (0.40 mm wall), full slit (0.40 mm)
-        - 2P: 2 perimeter arc (0.80 mm wall), full slit (0.40 mm)
-        - 2PS5: 2 perimeter arc (0.80 mm wall), wide slit (0.50 mm - extra flex travel)
-    * Rows (Clearance & Snap Bump Variations):
-        - C25_B12: Baseline (0.25 mm clearance, +0.12 mm / +0.15 mm bump)
-        - C20_B12: Tighter clearance (0.20 mm clearance, +0.12 mm / +0.15 mm bump)
-        - C20_B18: Tighter clearance + Larger bump (0.20 mm clearance, +0.18 mm / +0.22 mm bump)
+  Comparisons Tested (3x4 grid):
+    * Columns (Arc Count):
+        - 2 ARCS (2A): 2 long flexible arcs (higher compliance, lower insertion force)
+        - 3 ARCS (3A): 3 medium arcs (balanced compliance & tri-point centration)
+        - 4 ARCS (4A): 4 arcs (V3 baseline configuration)
+    * Rows (Clearance & Bump Variations):
+        - C20 B18 / C20 B22: Baseline winner (0.20 mm clearance, +0.18 mm / +0.22 mm bump)
+        - C15 B18 / C15 B22: Tighter clearance (0.15 mm clearance, +0.18 mm / +0.22 mm bump)
+        - C20 B23 / C20 B27: Larger bump (0.20 mm clearance, +0.23 mm / +0.27 mm bump, +0.05 mm)
+        - C15 B23 / C15 B27: Tighter clearance + Larger bump (0.15 mm clearance, +0.23 mm / +0.27 mm bump)
 
 Supported Test Magnet Sizes:
   - Small: 10.0 mm diameter x 1.55 mm thickness
@@ -60,17 +62,24 @@ MAGNET_SPECS = {
         "cell_size": 24.0,
         "push_dia": 3.0,
         "row_params": [
-            {"c_radial": 0.25, "b_extra": 0.12, "label": "C25_B12"},
-            {"c_radial": 0.20, "b_extra": 0.12, "label": "C20_B12"},
-            {"c_radial": 0.20, "b_extra": 0.18, "label": "C20_B18"},
+            {"c_radial": 0.20, "b_extra": 0.18, "label": "C20 B18"},
+            {"c_radial": 0.15, "b_extra": 0.18, "label": "C15 B18"},
+            {"c_radial": 0.20, "b_extra": 0.23, "label": "C20 B23"},
+            {"c_radial": 0.15, "b_extra": 0.23, "label": "C15 B23"},
         ],
         "col_params": [
-            {"t_wall": 0.40, "w_slit": 0.40, "label": "1P"},
-            {"t_wall": 0.80, "w_slit": 0.40, "label": "2P"},
-            {"t_wall": 0.80, "w_slit": 0.50, "label": "2PS5"},
+            {"num_arcs": 2, "label": "2 ARCS"},
+            {"num_arcs": 3, "label": "3 ARCS"},
+            {"num_arcs": 4, "label": "4 ARCS"},
         ],
+        "t_wall": 0.80,
+        "w_slit": 0.50,
         "bridge_w": 1.20,
         "gap_floor": 0.20,
+        "margin_left": 20.0,
+        "margin_right": 8.0,
+        "margin_top": 20.0,
+        "margin_bottom": 8.0,
     },
     "19.25mm": {
         "dia": 19.25,
@@ -79,17 +88,24 @@ MAGNET_SPECS = {
         "cell_size": 34.0,
         "push_dia": 5.0,
         "row_params": [
-            {"c_radial": 0.25, "b_extra": 0.15, "label": "C25_B15"},
-            {"c_radial": 0.20, "b_extra": 0.15, "label": "C20_B15"},
-            {"c_radial": 0.20, "b_extra": 0.22, "label": "C20_B22"},
+            {"c_radial": 0.20, "b_extra": 0.22, "label": "C20 B22"},
+            {"c_radial": 0.15, "b_extra": 0.22, "label": "C15 B22"},
+            {"c_radial": 0.20, "b_extra": 0.27, "label": "C20 B27"},
+            {"c_radial": 0.15, "b_extra": 0.27, "label": "C15 B27"},
         ],
         "col_params": [
-            {"t_wall": 0.40, "w_slit": 0.40, "label": "1P"},
-            {"t_wall": 0.80, "w_slit": 0.40, "label": "2P"},
-            {"t_wall": 0.80, "w_slit": 0.50, "label": "2PS5"},
+            {"num_arcs": 2, "label": "2 ARCS"},
+            {"num_arcs": 3, "label": "3 ARCS"},
+            {"num_arcs": 4, "label": "4 ARCS"},
         ],
+        "t_wall": 0.80,
+        "w_slit": 0.50,
         "bridge_w": 1.20,
         "gap_floor": 0.20,
+        "margin_left": 24.0,
+        "margin_right": 10.0,
+        "margin_top": 24.0,
+        "margin_bottom": 10.0,
     }
 }
 
@@ -100,10 +116,10 @@ def add_multiconnect_snap_pocket(
     face_z=2.0,
     mag_dia=10.0,
     mag_thick=1.55,
-    c_radial=0.25,
-    b_extra=0.12,
+    c_radial=0.20,
+    b_extra=0.18,
     t_wall=0.80,
-    w_slit=0.40,
+    w_slit=0.50,
     bridge_w=1.20,
     num_arcs=4,
     gap_floor=0.20,
@@ -116,7 +132,7 @@ def add_multiconnect_snap_pocket(
       - Main pocket bore has radius r_pocket = r_mag + c_radial with a flat floor at floor_z.
       - pocket_depth defaults to mag_thick (magnet sits flush or slightly proud).
       - Compliant wall has thickness t_wall with parallel slit of width w_slit.
-      - 4 arcs separated by bridge_w (1.20 mm) solid bridges.
+      - num_arcs arcs separated by bridge_w (1.20 mm) solid bridges.
       - gap_floor (0.20 mm) air gap under the free arcs above floor_z.
       - 45-degree inward bump at the top edge of each compliant arc (drops down at 45 deg).
       - Central push-out hole.
@@ -219,10 +235,11 @@ def add_multiconnect_snap_pocket(
 
 def create_multiconnect_coupon_plate(size_key="10mm", plate_thick=4.0):
     """
-    Creates a 3x3 test coupon plate for MultiConnect-style compliant slit snaps:
-      - Depth: magnet thickness (1.55 mm for 10mm / 1.60 mm for 19.25mm)
-      - Rows: Clearance & Bump Variations
-      - Cols: Wall Thickness & Slit Width Options
+    Creates a 3x4 test coupon plate for MultiConnect-style compliant slit snaps:
+      - Fixed: 2-perimeter wall (0.80 mm), wide slit (0.50 mm), flush depth.
+      - Columns: Number of Arcs (2, 3, 4 arcs).
+      - Rows: Clearance & Bump Variations (C20 vs C15, Baseline bump vs +0.05 mm bump).
+      - Clean matrix header layout with labels isolated in dedicated margins.
     """
     spec = MAGNET_SPECS[size_key]
     mag_dia = spec["dia"]
@@ -231,14 +248,20 @@ def create_multiconnect_coupon_plate(size_key="10mm", plate_thick=4.0):
     push_dia = spec["push_dia"]
     row_params = spec["row_params"]
     col_params = spec["col_params"]
+    t_wall = spec["t_wall"]
+    w_slit = spec["w_slit"]
     bridge_w = spec["bridge_w"]
     gap_floor = spec["gap_floor"]
     
+    margin_left = spec["margin_left"]
+    margin_right = spec["margin_right"]
+    margin_top = spec["margin_top"]
+    margin_bottom = spec["margin_bottom"]
+    
     cols = len(col_params)
     rows = len(row_params)
-    margin_top = cell * 0.45
-    plate_w = cols * cell
-    plate_h = rows * cell + margin_top
+    plate_w = margin_left + cols * cell + margin_right
+    plate_h = margin_bottom + rows * cell + margin_top
     
     plate = cq.Workplane("XY").box(plate_w, plate_h, plate_thick)
     face_z = plate_thick / 2.0
@@ -248,21 +271,17 @@ def create_multiconnect_coupon_plate(size_key="10mm", plate_thick=4.0):
     except Exception:
         pass
         
-    x0 = -plate_w / 2.0 + cell / 2.0
-    y0 = plate_h / 2.0 - margin_top - cell / 2.0
+    grid_left_x = -plate_w / 2.0 + margin_left
+    grid_top_y = plate_h / 2.0 - margin_top
     
     for r_idx, r_item in enumerate(row_params):
         c_val = r_item["c_radial"]
         b_ext = r_item["b_extra"]
-        r_lbl = r_item["label"]
+        cy = grid_top_y - r_idx * cell - cell / 2.0
         
         for c_idx, c_item in enumerate(col_params):
-            t_w = c_item["t_wall"]
-            w_s = c_item["w_slit"]
-            c_lbl = c_item["label"]
-            
-            cx = x0 + c_idx * cell
-            cy = y0 - r_idx * cell
+            n_arcs = c_item["num_arcs"]
+            cx = grid_left_x + c_idx * cell + cell / 2.0
             
             plate = add_multiconnect_snap_pocket(
                 plate,
@@ -272,35 +291,55 @@ def create_multiconnect_coupon_plate(size_key="10mm", plate_thick=4.0):
                 mag_thick=mag_thick,
                 c_radial=c_val,
                 b_extra=b_ext,
-                t_wall=t_w,
-                w_slit=w_s,
+                t_wall=t_wall,
+                w_slit=w_slit,
                 bridge_w=bridge_w,
+                num_arcs=n_arcs,
                 gap_floor=gap_floor,
                 push_hole_dia=push_dia,
                 pocket_depth=mag_thick,
                 through_depth=plate_thick + 2.0
             )
             
-            lbl = f"{c_lbl}\n{r_lbl}"
-            try:
-                txt = (
-                    cq.Workplane("XY", origin=(cx, cy + cell * 0.40, face_z))
-                    .text(lbl, fontsize=cell * 0.08, distance=-0.3)
-                )
-                plate = plate.cut(txt)
-            except Exception:
-                pass
-                
+    # 1. Title Header centered above column grid
     try:
-        hdr_txt = f"SNAP V3 - {spec['name']} (DEPTH {mag_thick:.2f}mm)"
-        txt = (
-            cq.Workplane("XY", origin=(0, plate_h / 2.0 - margin_top / 2.0, face_z))
-            .text(hdr_txt, fontsize=cell * 0.09, distance=-0.3)
+        grid_center_x = grid_left_x + (cols * cell) / 2.0
+        title_y = plate_h / 2.0 - margin_top * 0.28
+        hdr_txt = f"SNAP V4 - {spec['name']} (DEPTH {mag_thick:.2f}mm)"
+        txt_title = (
+            cq.Workplane("XY", origin=(grid_center_x, title_y, face_z))
+            .text(hdr_txt, fontsize=cell * 0.12, distance=-0.35)
         )
-        plate = plate.cut(txt)
+        plate = plate.cut(txt_title)
     except Exception:
         pass
-        
+
+    # 2. Column Headers (Arc Counts) above each column
+    col_header_y = plate_h / 2.0 - margin_top * 0.72
+    for c_idx, c_item in enumerate(col_params):
+        cx = grid_left_x + c_idx * cell + cell / 2.0
+        try:
+            txt_col = (
+                cq.Workplane("XY", origin=(cx, col_header_y, face_z))
+                .text(c_item["label"], fontsize=cell * 0.11, distance=-0.35)
+            )
+            plate = plate.cut(txt_col)
+        except Exception:
+            pass
+
+    # 3. Row Headers (Clearance & Bump) in left margin
+    row_header_x = -plate_w / 2.0 + margin_left * 0.48
+    for r_idx, r_item in enumerate(row_params):
+        cy = grid_top_y - r_idx * cell - cell / 2.0
+        try:
+            txt_row = (
+                cq.Workplane("XY", origin=(row_header_x, cy, face_z))
+                .text(r_item["label"], fontsize=cell * 0.10, distance=-0.35)
+            )
+            plate = plate.cut(txt_row)
+        except Exception:
+            pass
+            
     return plate
 
 
