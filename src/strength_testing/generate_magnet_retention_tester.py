@@ -21,21 +21,24 @@ Generates physical test coupon plates to evaluate compliant magnet retention
 mechanisms for 3D printed tool holders and mounts.
 
 Mechanisms Supported:
-  1. Slanted Deformable Ribs:
-     - Ribs are solidly rooted into the outside pocket wall.
-     - Bottom of each rib is suspended 0.10 mm above the pocket floor (enabling
-       unconstrained horizontal deflection in the XY plane).
-     - No top edge chamfer on the outer pocket perimeter.
-     - 45-degree lead-in chamfer on the inside top corner of each rib tip.
+  1. MultiConnect Slit Snap (Recommended):
+     - Main pocket has radial clearance so magnet drops in freely.
+     - 0.40 mm compliant wall (1 perimeter) with a 0.20 mm slit behind it.
+     - 4 arcs separated by 1.20 mm solid bridges (3 perimeters).
+     - 0.20 mm air gap under the free arcs at the pocket floor.
+     - 45-degree inward-sloping retaining bump at the top edge of the compliant arcs.
      - Central push-out hole for magnet removal.
+     - Matrix: Clearance sweep (0.20, 0.25, 0.30 mm) x Bump extra (0.00, 0.06, 0.12 mm).
+
+  2. Slanted Deformable Ribs:
+     - Ribs are solidly rooted into the outside pocket wall.
+     - Bottom of each rib is suspended 0.10 mm above the pocket floor.
+     - 45-degree lead-in chamfer on the inside top corner of each rib tip.
      - Matrix: 3, 4, and 6 ribs x Short, Medium, and Long rib lengths.
 
-  2. Spiral Arc Flexures:
+  3. Spiral Arc Flexures:
      - Curved flexure arms rooted in the outer wall with spiral clearance slots.
-     - Tips have an inner diameter slightly smaller than the magnet (active interference).
-     - Floor relief undercut (0.10 mm air gap / missing layer) under the tips and arms,
-       leaving a solid central shelf that supports the magnet from falling through.
-     - 45-degree lead-in chamfer on the inside top corner of each flexure tip.
+     - 0.10 mm floor relief undercut under the tips and arms.
      - Matrix: 3-arm and 4-arm flexures x Light, Medium, and Deep interference.
 
 Supported Test Magnet Sizes:
@@ -58,8 +61,16 @@ MAGNET_SPECS = {
         "dia": 10.0,
         "thick": 1.55,
         "name": "10x1.55mm",
-        "cell_size": 20.0,
+        "cell_size": 22.0,
         "push_dia": 3.0,
+        "mc_params": {
+            "c_radials": [0.20, 0.25, 0.30],
+            "b_extras":  [0.00, 0.06, 0.12],
+            "t_wall": 0.40,
+            "w_slit": 0.20,
+            "bridge_w": 1.20,
+            "gap_floor": 0.20,
+        },
         "rib_params": {
             "short":  {"wall_offset": 0.50, "interference": 0.18},
             "medium": {"wall_offset": 0.85, "interference": 0.25},
@@ -81,8 +92,16 @@ MAGNET_SPECS = {
         "dia": 19.25,
         "thick": 1.60,
         "name": "19.25x1.60mm",
-        "cell_size": 30.0,
+        "cell_size": 32.0,
         "push_dia": 5.0,
+        "mc_params": {
+            "c_radials": [0.20, 0.25, 0.30],
+            "b_extras":  [0.00, 0.08, 0.15],
+            "t_wall": 0.40,
+            "w_slit": 0.20,
+            "bridge_w": 1.20,
+            "gap_floor": 0.20,
+        },
         "rib_params": {
             "short":  {"wall_offset": 0.60, "interference": 0.20},
             "medium": {"wall_offset": 1.00, "interference": 0.30},
@@ -101,6 +120,204 @@ MAGNET_SPECS = {
         }
     }
 }
+
+
+def add_multiconnect_snap_pocket(
+    body,
+    center_pt=(0, 0),
+    face_z=2.0,
+    mag_dia=10.0,
+    mag_thick=1.55,
+    c_radial=0.25,
+    b_extra=0.06,
+    t_wall=0.40,
+    w_slit=0.20,
+    bridge_w=1.20,
+    num_arcs=4,
+    gap_floor=0.20,
+    push_hole_dia=3.0,
+    pocket_depth=None,
+    through_depth=10.0
+):
+    """
+    Cuts a MultiConnect-style compliant snap pocket into `body`:
+      - Main pocket bore has radius r_pocket = r_mag + c_radial.
+      - 0.40 mm compliant wall with a 0.20 mm slit behind it.
+      - 4 arcs separated by 1.20 mm solid bridges.
+      - 0.20 mm air gap under the free arcs at the floor.
+      - 45-degree inward bump at the top edge of each compliant arc.
+      - Central push-out hole.
+    """
+    if pocket_depth is None:
+        pocket_depth = mag_thick + 0.25  # slight flush-to-recessed fit
+        
+    floor_z = face_z - pocket_depth
+    r_mag = mag_dia / 2.0
+    r_pocket = r_mag + c_radial
+    r_slit_in = r_pocket + t_wall
+    r_slit_out = r_slit_in + w_slit
+    
+    b_radial = c_radial + b_extra
+    r_bump_top = r_pocket - b_radial
+    bump_h = b_radial
+    
+    # 1. Central push-out hole
+    body = body.cut(
+        cq.Workplane("XY")
+        .circle(push_hole_dia / 2.0)
+        .extrude(through_depth)
+        .translate((center_pt[0], center_pt[1], face_z - through_depth))
+    )
+    
+    # 2. Main pocket bore (full clearance cylinder)
+    body = body.cut(
+        cq.Workplane("XY")
+        .workplane(offset=floor_z)
+        .circle(r_pocket)
+        .extrude(pocket_depth + 0.05)
+        .translate((center_pt[0], center_pt[1], 0))
+    )
+    
+    # 3. Slit, Undercut, and Bump Profiles
+    r_mid = (r_slit_in + r_slit_out) / 2.0
+    d_theta_bridge = math.degrees(bridge_w / r_mid)
+    arc_sweep = (360.0 / num_arcs) - d_theta_bridge
+    
+    slit_z_bot = floor_z - gap_floor
+    slit_h = face_z - slit_z_bot
+    r_shelf = max(push_hole_dia / 2.0 + 0.6, r_mag - 0.5)
+    
+    slit_prof = [
+        (r_slit_in, slit_z_bot),
+        (r_slit_out, slit_z_bot),
+        (r_slit_out, face_z),
+        (r_slit_in, face_z)
+    ]
+    undercut_prof = [
+        (r_shelf, slit_z_bot),
+        (r_slit_out, slit_z_bot),
+        (r_slit_out, floor_z),
+        (r_shelf, floor_z)
+    ]
+    bump_prof = [
+        (r_pocket, face_z - bump_h),
+        (r_bump_top, face_z),
+        (r_pocket, face_z)
+    ]
+    
+    for i in range(num_arcs):
+        center_angle = i * (360.0 / num_arcs)
+        start_angle = center_angle - arc_sweep / 2.0
+        
+        # 3a. Concentric 0.20 mm slit behind the 0.40 mm wall
+        slit_arc = (
+            cq.Workplane("XZ")
+            .polyline(slit_prof).close()
+            .revolve(arc_sweep, (0, 0, 0), (0, 1, 0))
+            .rotate((0, 0, 0), (0, 0, 1), start_angle)
+            .translate((center_pt[0], center_pt[1], 0))
+        )
+        body = body.cut(slit_arc)
+        
+        # 3b. 0.20 mm undercut beneath the compliant arc
+        undercut_arc = (
+            cq.Workplane("XZ")
+            .polyline(undercut_prof).close()
+            .revolve(arc_sweep, (0, 0, 0), (0, 1, 0))
+            .rotate((0, 0, 0), (0, 0, 1), start_angle)
+            .translate((center_pt[0], center_pt[1], 0))
+        )
+        body = body.cut(undercut_arc)
+        
+        # 3c. 45-degree bump at the top of this compliant arc
+        if bump_h > 0.001:
+            bump_arc = (
+                cq.Workplane("XZ")
+                .polyline(bump_prof).close()
+                .revolve(arc_sweep, (0, 0, 0), (0, 1, 0))
+                .rotate((0, 0, 0), (0, 0, 1), start_angle)
+                .translate((center_pt[0], center_pt[1], 0))
+            )
+            body = body.union(bump_arc)
+            
+    return body
+
+
+def create_multiconnect_coupon_plate(size_key="10mm", plate_thick=4.0):
+    """
+    Creates a 3x3 test coupon plate for MultiConnect-style compliant slit snaps.
+      Rows: Clearance sweep (0.20, 0.25, 0.30 mm)
+      Cols: Bump extra (0.00 = Flush/zero snap, 0.06/0.08 = Light, 0.12/0.15 = Firm)
+    """
+    spec = MAGNET_SPECS[size_key]
+    mag_dia = spec["dia"]
+    mag_thick = spec["thick"]
+    cell = spec["cell_size"]
+    push_dia = spec["push_dia"]
+    mc_params = spec["mc_params"]
+    
+    cols = 3
+    rows = 3
+    margin_top = cell * 0.40
+    plate_w = cols * cell
+    plate_h = rows * cell + margin_top
+    
+    plate = cq.Workplane("XY").box(plate_w, plate_h, plate_thick)
+    face_z = plate_thick / 2.0
+    
+    try:
+        plate = plate.edges("<Z").chamfer(0.8)
+    except Exception:
+        pass
+        
+    x0 = -plate_w / 2.0 + cell / 2.0
+    y0 = plate_h / 2.0 - margin_top - cell / 2.0
+    
+    c_radials = mc_params["c_radials"]
+    b_extras = mc_params["b_extras"]
+    
+    for r_idx, c_val in enumerate(c_radials):
+        for c_idx, b_ext in enumerate(b_extras):
+            cx = x0 + c_idx * cell
+            cy = y0 - r_idx * cell
+            
+            plate = add_multiconnect_snap_pocket(
+                plate,
+                center_pt=(cx, cy),
+                face_z=face_z,
+                mag_dia=mag_dia,
+                mag_thick=mag_thick,
+                c_radial=c_val,
+                b_extra=b_ext,
+                t_wall=mc_params["t_wall"],
+                w_slit=mc_params["w_slit"],
+                bridge_w=mc_params["bridge_w"],
+                gap_floor=mc_params["gap_floor"],
+                push_hole_dia=push_dia,
+                through_depth=plate_thick + 2.0
+            )
+            
+            lbl = f"C{int(c_val*100)}_B{int(b_ext*100)}"
+            try:
+                txt = (
+                    cq.Workplane("XY", origin=(cx, cy + cell * 0.40, face_z))
+                    .text(lbl, fontsize=cell * 0.09, distance=-0.4)
+                )
+                plate = plate.cut(txt)
+            except Exception:
+                pass
+                
+    try:
+        hdr_txt = f"MULTICONNECT SNAP - {spec['name']}"
+        txt = (
+            cq.Workplane("XY", origin=(0, plate_h / 2.0 - margin_top / 2.0, face_z))
+            .text(hdr_txt, fontsize=cell * 0.10, distance=-0.4)
+        )
+        plate = plate.cut(txt)
+    except Exception:
+        pass
+        
+    return plate
 
 
 def add_slanted_rib_pocket(
@@ -127,14 +344,13 @@ def add_slanted_rib_pocket(
       4. Centered with a push-out hole.
     """
     if pocket_depth is None:
-        pocket_depth = mag_thick + 0.20  # slight flush-to-recessed fit
+        pocket_depth = mag_thick + 0.20
         
     floor_z = face_z - pocket_depth
     r_mag = mag_dia / 2.0
     r_wall = r_mag + wall_offset
     r_tip = r_mag - interference
     
-    # 1. Cut cylindrical pocket (sharp outer top rim, no chamfer)
     body = body.cut(
         cq.Workplane("XY")
         .workplane(offset=floor_z)
@@ -143,7 +359,6 @@ def add_slanted_rib_pocket(
         .translate((center_pt[0], center_pt[1], 0))
     )
     
-    # 2. Cut central push-out hole through the bottom floor
     body = body.cut(
         cq.Workplane("XY")
         .circle(push_hole_dia / 2.0)
@@ -151,7 +366,6 @@ def add_slanted_rib_pocket(
         .translate((center_pt[0], center_pt[1], face_z - through_depth))
     )
     
-    # 3. Geometric ray-intersection for slanted rib
     beta = math.radians(slant_angle_deg)
     b_c = -2 * r_wall * math.cos(beta)
     c_c = r_wall**2 - r_tip**2
@@ -164,16 +378,12 @@ def add_slanted_rib_pocket(
     tip_x = r_wall - s_tip * math.cos(beta)
     tip_y = s_tip * math.sin(beta)
     
-    # Embed rib root 1.2 mm into the outer solid wall
     s_root = -1.20
     L = s_tip - s_root
     
     rib_h = pocket_depth - gap_floor
     chamfer_size = min(0.60, rib_h * 0.45)
     
-    # Local profile in X-Z plane:
-    # X=0 is inside tip, X=L is root in wall.
-    # Z=0 is bottom of rib (gap_floor above pocket floor), Z=rib_h is top of rib (face_z).
     prof_pts = [
         (0, 0),
         (L, 0),
@@ -188,7 +398,6 @@ def add_slanted_rib_pocket(
         .extrude(rib_thick / 2.0, both=True)
     )
     
-    # Union the ribs symmetrically around the center
     for i in range(num_ribs):
         rot_angle = i * (360.0 / num_ribs)
         r_sol = (
@@ -203,121 +412,9 @@ def add_slanted_rib_pocket(
     return body
 
 
-def add_spiral_flexure_pocket(
-    body,
-    center_pt=(0, 0),
-    face_z=0.0,
-    mag_dia=10.0,
-    mag_thick=1.55,
-    num_arms=3,
-    r_outer_offset=3.5,
-    interference=0.25,
-    slot_w=0.85,
-    sweep_deg=80.0,
-    push_hole_dia=3.0,
-    pocket_depth=None,
-    gap_floor=0.10,
-    through_depth=10.0
-):
-    """
-    Cuts a spiral arc flexure pocket where:
-      1. Flexure tips have diameter smaller than the magnet (active interference).
-      2. Floor relief undercut (0.10 mm air gap) is cut beneath the flexure arms and tips,
-         leaving a solid central shelf that supports the bottom of the magnet.
-      3. Inside top edge of flexure tips has a 45-degree lead-in chamfer.
-      4. Central push-out hole is provided.
-    """
-    if pocket_depth is None:
-        pocket_depth = mag_thick + 0.20
-        
-    floor_z = face_z - pocket_depth
-    r_mag = mag_dia / 2.0
-    r_tip = r_mag - interference
-    r_outer = r_mag + r_outer_offset
-    r_shelf = max(push_hole_dia / 2.0 + 0.8, r_tip - 0.5)
-    
-    # 1. Push-out hole in center
-    body = body.cut(
-        cq.Workplane("XY")
-        .circle(push_hole_dia / 2.0)
-        .extrude(through_depth)
-        .translate((center_pt[0], center_pt[1], face_z - through_depth))
-    )
-    
-    # 2. Main pocket bore to r_tip
-    body = body.cut(
-        cq.Workplane("XY")
-        .workplane(offset=floor_z)
-        .circle(r_tip)
-        .extrude(pocket_depth + 0.05)
-        .translate((center_pt[0], center_pt[1], 0))
-    )
-    
-    # 3. Floor relief undercut (0.10 mm missing layer under flexure tips and arms)
-    undercut = (
-        cq.Workplane("XY")
-        .workplane(offset=floor_z - gap_floor)
-        .circle(r_outer + 0.5)
-        .circle(r_shelf)
-        .extrude(gap_floor + 0.001)
-        .translate((center_pt[0], center_pt[1], 0))
-    )
-    body = body.cut(undercut)
-    
-    # 4. Spiral clearance slots
-    n_steps = 25
-    inner_pts = []
-    outer_pts = []
-    for j in range(n_steps + 1):
-        t = j / float(n_steps)
-        theta = math.radians(t * sweep_deg)
-        r = r_tip + (r_outer - r_tip) * t
-        cx = r * math.cos(theta)
-        cy = r * math.sin(theta)
-        
-        dr = (r_outer - r_tip) / math.radians(sweep_deg)
-        tx = dr * math.cos(theta) - r * math.sin(theta)
-        ty = dr * math.sin(theta) + r * math.cos(theta)
-        t_len = math.hypot(tx, ty)
-        nx = -ty / t_len
-        ny = tx / t_len
-        
-        inner_pts.append((cx - nx * slot_w / 2.0, cy - ny * slot_w / 2.0))
-        outer_pts.append((cx + nx * slot_w / 2.0, cy + ny * slot_w / 2.0))
-        
-    slot_poly = inner_pts + outer_pts[::-1]
-    slot_depth = pocket_depth + gap_floor
-    
-    for i in range(num_arms):
-        angle = i * (360.0 / num_arms)
-        sw = (
-            cq.Workplane("XY")
-            .workplane(offset=floor_z - gap_floor)
-            .polyline(slot_poly)
-            .close()
-            .extrude(slot_depth + 0.05)
-            .rotate((0, 0, 0), (0, 0, 1), angle)
-            .translate((center_pt[0], center_pt[1], 0))
-        )
-        body = body.cut(sw)
-        
-    # 5. Lead-in chamfer at inside top edge of flexure tips (45 deg)
-    chamfer_h = min(0.60, pocket_depth * 0.35)
-    cone = cq.Solid.makeCone(
-        r_tip, r_tip + chamfer_h, chamfer_h + 0.05,
-        cq.Vector(center_pt[0], center_pt[1], face_z - chamfer_h),
-        cq.Vector(0, 0, 1)
-    )
-    body = body.cut(cq.Workplane(cone))
-    
-    return body
-
-
 def create_ribs_coupon_plate(size_key="10mm", plate_thick=4.0):
     """
     Creates a 3x3 test coupon plate for Slanted Deformable Ribs.
-      Rows: 3 ribs, 4 ribs, 6 ribs
-      Cols: Short (S), Medium (M), Long (L)
     """
     spec = MAGNET_SPECS[size_key]
     mag_dia = spec["dia"]
@@ -388,11 +485,109 @@ def create_ribs_coupon_plate(size_key="10mm", plate_thick=4.0):
     return plate
 
 
+def add_spiral_flexure_pocket(
+    body,
+    center_pt=(0, 0),
+    face_z=0.0,
+    mag_dia=10.0,
+    mag_thick=1.55,
+    num_arms=3,
+    r_outer_offset=3.5,
+    interference=0.25,
+    slot_w=0.85,
+    sweep_deg=80.0,
+    push_hole_dia=3.0,
+    pocket_depth=None,
+    gap_floor=0.10,
+    through_depth=10.0
+):
+    """
+    Cuts a spiral arc flexure pocket.
+    """
+    if pocket_depth is None:
+        pocket_depth = mag_thick + 0.20
+        
+    floor_z = face_z - pocket_depth
+    r_mag = mag_dia / 2.0
+    r_tip = r_mag - interference
+    r_outer = r_mag + r_outer_offset
+    r_shelf = max(push_hole_dia / 2.0 + 0.8, r_tip - 0.5)
+    
+    body = body.cut(
+        cq.Workplane("XY")
+        .circle(push_hole_dia / 2.0)
+        .extrude(through_depth)
+        .translate((center_pt[0], center_pt[1], face_z - through_depth))
+    )
+    
+    body = body.cut(
+        cq.Workplane("XY")
+        .workplane(offset=floor_z)
+        .circle(r_tip)
+        .extrude(pocket_depth + 0.05)
+        .translate((center_pt[0], center_pt[1], 0))
+    )
+    
+    undercut = (
+        cq.Workplane("XY")
+        .workplane(offset=floor_z - gap_floor)
+        .circle(r_outer + 0.5)
+        .circle(r_shelf)
+        .extrude(gap_floor + 0.001)
+        .translate((center_pt[0], center_pt[1], 0))
+    )
+    body = body.cut(undercut)
+    
+    n_steps = 25
+    inner_pts = []
+    outer_pts = []
+    for j in range(n_steps + 1):
+        t = j / float(n_steps)
+        theta = math.radians(t * sweep_deg)
+        r = r_tip + (r_outer - r_tip) * t
+        cx = r * math.cos(theta)
+        cy = r * math.sin(theta)
+        
+        dr = (r_outer - r_tip) / math.radians(sweep_deg)
+        tx = dr * math.cos(theta) - r * math.sin(theta)
+        ty = dr * math.sin(theta) + r * math.cos(theta)
+        t_len = math.hypot(tx, ty)
+        nx = -ty / t_len
+        ny = tx / t_len
+        
+        inner_pts.append((cx - nx * slot_w / 2.0, cy - ny * slot_w / 2.0))
+        outer_pts.append((cx + nx * slot_w / 2.0, cy + ny * slot_w / 2.0))
+        
+    slot_poly = inner_pts + outer_pts[::-1]
+    slot_depth = pocket_depth + gap_floor
+    
+    for i in range(num_arms):
+        angle = i * (360.0 / num_arms)
+        sw = (
+            cq.Workplane("XY")
+            .workplane(offset=floor_z - gap_floor)
+            .polyline(slot_poly)
+            .close()
+            .extrude(slot_depth + 0.05)
+            .rotate((0, 0, 0), (0, 0, 1), angle)
+            .translate((center_pt[0], center_pt[1], 0))
+        )
+        body = body.cut(sw)
+        
+    chamfer_h = min(0.60, pocket_depth * 0.35)
+    cone = cq.Solid.makeCone(
+        r_tip, r_tip + chamfer_h, chamfer_h + 0.05,
+        cq.Vector(center_pt[0], center_pt[1], face_z - chamfer_h),
+        cq.Vector(0, 0, 1)
+    )
+    body = body.cut(cq.Workplane(cone))
+    
+    return body
+
+
 def create_spiral_coupon_plate(size_key="10mm", plate_thick=4.0):
     """
     Creates a 2x3 test coupon plate for Spiral Arc Flexures.
-      Rows: 3-arm, 4-arm
-      Cols: Light (Lgt), Medium (Med), Deep (Dp) interference
     """
     spec = MAGNET_SPECS[size_key]
     mag_dia = spec["dia"]
@@ -469,15 +664,18 @@ def create_spiral_coupon_plate(size_key="10mm", plate_thick=4.0):
 def main():
     parser = argparse.ArgumentParser(description="Generate compliant magnet retention test coupons.")
     parser.add_argument("--size", choices=["10mm", "19.25mm", "both"], default="both", help="Magnet size to generate")
-    parser.add_argument("--type", choices=["ribs", "spiral", "all"], default="all", help="Mechanism type to generate")
+    parser.add_argument("--type", choices=["multiconnect", "ribs", "spiral", "all"], default="multiconnect", help="Mechanism type to generate")
     args = parser.parse_args()
     
     sizes = ["10mm", "19.25mm"] if args.size == "both" else [args.size]
-    types = ["ribs", "spiral"] if args.type == "all" else [args.type]
+    types = ["multiconnect"] if args.type == "multiconnect" else (["multiconnect", "ribs", "spiral"] if args.type == "all" else [args.type])
     
     for s in sizes:
         for t in types:
-            if t == "ribs":
+            if t == "multiconnect":
+                plate = create_multiconnect_coupon_plate(size_key=s)
+                filename = f"magnet_multiconnect_coupon_{s}.stl"
+            elif t == "ribs":
                 plate = create_ribs_coupon_plate(size_key=s)
                 filename = f"magnet_retention_coupon_{s}.stl"
             else:
