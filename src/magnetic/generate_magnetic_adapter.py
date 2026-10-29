@@ -118,7 +118,7 @@ def create_magnetic_adapter(
     no_screws=False,
     print_orientation="none",
     support_fins=True,
-    fin_z_gap=0.01,
+    fin_z_gap=0.05,
 ):
     """
     Creates a magnetic mount adapter that attaches to a steel surface (such as a
@@ -438,8 +438,8 @@ def main():
     parser.add_argument(
         "--fin-z-gap",
         type=float,
-        default=0.01,
-        help="Z gap between support fin tip and model face in mm for separate perimeters (default: 0.01)",
+        default=0.05,
+        help="Z gap between support fin tip and model face in mm for separate perimeters (default: 0.05)",
     )
     parser.add_argument(
         "--export",

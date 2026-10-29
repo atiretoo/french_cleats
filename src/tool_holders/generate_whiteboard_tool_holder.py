@@ -50,7 +50,7 @@ def create_whiteboard_tool_holder(
     print_orientation="none",
     support_fins=True,
     shelf_fin_count=1,
-    fin_z_gap=0.01,
+    fin_z_gap=0.05,
 ):
     """
     Creates a French Cleat / UNIT whiteboard tool holder designed to store a whiteboard
@@ -480,8 +480,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--fin-z-gap",
         type=float,
-        default=0.01,
-        help="Z gap between support fin tip and model face in mm for separate perimeters (default: 0.01)",
+        default=0.05,
+        help="Z gap between support fin tip and model face in mm for separate perimeters (default: 0.05)",
     )
     parser.add_argument(
         "--coupon",
