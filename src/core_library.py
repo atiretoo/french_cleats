@@ -364,7 +364,7 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
         
     return result.val()
 
-def support_fin(z_gap=0.05, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0, cutoff_top=True):
+def support_fin(z_gap=0.10, is_right=True, length=30.0, height=30.0, fin_width=1.6, tip_width=0.4, taper_z_drop=4.0, cutoff_top=True):
     """
     Generates a 45-degree support fin.
     Note: For the cleanest breakaway, use z_gap=0.0 mm if the fin tip is perfectly aligned 

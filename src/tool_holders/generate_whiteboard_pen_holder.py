@@ -65,7 +65,7 @@ def create_whiteboard_pen_holder(
     print_orientation="none",
     support_fins=True,
     shelf_fin_count=1,
-    fin_z_gap=0.05,
+    fin_z_gap=0.10,
 ):
     """
     Creates a 1U whiteboard pen holder for marker caps matching the whiteboard suite projection.
@@ -87,7 +87,7 @@ def create_whiteboard_pen_holder(
       print_orientation: '45_deg', 'bottom_down', 'none', etc. (default: 'none').
       support_fins: If True and print_orientation is 45_deg, adds support fins (default: True).
       shelf_fin_count: Number of support fins under shelf projection (1 or 2, default: 1).
-      fin_z_gap: Z gap between support fin tip and model face in mm (default: 0.05 for separate perimeters).
+      fin_z_gap: Z gap between support fin tip and model face in mm (default: 0.10 for separate perimeters).
     """
     width = units * UNIT_WIDTH
 
@@ -498,8 +498,8 @@ def main():
     parser.add_argument(
         "--fin-z-gap",
         type=float,
-        default=0.05,
-        help="Z gap between support fin tip and model face in mm for separate perimeters (default: 0.05)",
+        default=0.10,
+        help="Z gap between support fin tip and model face in mm for separate perimeters (default: 0.10)",
     )
     parser.add_argument(
         "--coupon",
