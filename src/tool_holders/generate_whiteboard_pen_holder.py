@@ -65,6 +65,7 @@ def create_whiteboard_pen_holder(
     print_orientation="none",
     support_fins=True,
     shelf_fin_count=1,
+    fin_z_gap=0.01,
 ):
     """
     Creates a 1U whiteboard pen holder for marker caps matching the whiteboard suite projection.
@@ -86,6 +87,7 @@ def create_whiteboard_pen_holder(
       print_orientation: '45_deg', 'bottom_down', 'none', etc. (default: 'none').
       support_fins: If True and print_orientation is 45_deg, adds support fins (default: True).
       shelf_fin_count: Number of support fins under shelf projection (1 or 2, default: 1).
+      fin_z_gap: Z gap between support fin tip and model face in mm (default: 0.01 for separate perimeters).
     """
     width = units * UNIT_WIDTH
 
@@ -263,7 +265,7 @@ def create_whiteboard_pen_holder(
             # Backplate underside support fins
             # The center of each tapered tip aligns directly with the first convex edge of the chamfers
             bp_L = width * cos45
-            bp_fin = support_fin(z_gap=0.0, is_right=False, length=bp_L, height=bp_L, fin_width=1.6)
+            bp_fin = support_fin(z_gap=fin_z_gap, is_right=False, length=bp_L, height=bp_L, fin_width=1.6)
             bp_fin = bp_fin.rotate((0, 0, 0), (0, 0, 1), -90).translate((bed_xmin, 0, 0))
             fin_bp_top = bp_fin.translate((0, -top_y + 2.0, 0))
             fin_bp_bot = bp_fin.translate((0, -bottom_y - 2.0, 0))
@@ -272,7 +274,7 @@ def create_whiteboard_pen_holder(
             # The center of each tapered tip aligns directly with the edge of the projection
             shelf_max_x = (width / 2.0 * cos45) + (BACKPLATE_THICKNESS + shelf_depth) * cos45
             shelf_fin_L = max(30.0, shelf_max_x - bed_xmax - 2.83)
-            shelf_fin = support_fin(z_gap=0.0, is_right=True, length=shelf_fin_L, height=shelf_fin_L, fin_width=1.6)
+            shelf_fin = support_fin(z_gap=fin_z_gap, is_right=True, length=shelf_fin_L, height=shelf_fin_L, fin_width=1.6)
             shelf_fin = shelf_fin.rotate((0, 0, 0), (0, 0, 1), -90)
             shelf_rot_y = -shelf_bottom_y
             shelf_fin_bot = shelf_fin.translate((bed_xmax, shelf_rot_y, 0))
@@ -494,6 +496,12 @@ def main():
         help="Number of support fins under shelf projection (1 or 2, default: 1)",
     )
     parser.add_argument(
+        "--fin-z-gap",
+        type=float,
+        default=0.01,
+        help="Z gap between support fin tip and model face in mm for separate perimeters (default: 0.01)",
+    )
+    parser.add_argument(
         "--coupon",
         action="store_true",
         help="Generate a compact 15mm tall test coupon to check pen cap fit and pitch",
@@ -538,6 +546,7 @@ def main():
             print_orientation=holder_orient,
             support_fins=not args.no_support_fins,
             shelf_fin_count=args.shelf_fin_count,
+            fin_z_gap=args.fin_z_gap,
         )
         filename = f"whiteboard_pen_holder_{args.units}u.stl" if args.pen_count == 4 else f"whiteboard_pen_holder_{args.units}u_{args.pen_count}pen.stl"
 

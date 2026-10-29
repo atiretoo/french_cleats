@@ -118,6 +118,7 @@ def create_magnetic_adapter(
     no_screws=False,
     print_orientation="none",
     support_fins=True,
+    fin_z_gap=0.01,
 ):
     """
     Creates a magnetic mount adapter that attaches to a steel surface (such as a
@@ -359,7 +360,7 @@ def create_magnetic_adapter(
             fin_L = (width - 4.0 - 2 * RIDGE_HEIGHT) * math.cos(math.radians(45))
 
             # Fin supporting 45-degree underside (ridge side facing down)
-            fin = support_fin(z_gap=0.0, is_right=False, length=fin_L, height=fin_L, fin_width=1.6)
+            fin = support_fin(z_gap=fin_z_gap, is_right=False, length=fin_L, height=fin_L, fin_width=1.6)
             fin = fin.rotate((0, 0, 0), (0, 0, 1), -90).translate((plate_bed_x, 0, 0))
 
             # Support fins aligned with the first convex edge of each ridge:
@@ -435,6 +436,12 @@ def main():
         help="Disable support fins in 45_deg orientation",
     )
     parser.add_argument(
+        "--fin-z-gap",
+        type=float,
+        default=0.01,
+        help="Z gap between support fin tip and model face in mm for separate perimeters (default: 0.01)",
+    )
+    parser.add_argument(
         "--export",
         choices=["both", "stl", "step"],
         default="both",
@@ -466,6 +473,7 @@ def main():
         no_screws=args.no_screws,
         print_orientation=adapter_orient,
         support_fins=not args.no_support_fins,
+        fin_z_gap=args.fin_z_gap,
     )
 
     count_per_unit, _ = compute_magnet_layout(
