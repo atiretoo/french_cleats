@@ -51,7 +51,7 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_model
+from core_library import export_model, add_compliant_magnet_pocket
 
 # Standard Test Magnet Dimensions & Parameters
 MAGNET_SPECS = {
@@ -121,116 +121,33 @@ def add_multiconnect_snap_pocket(
     t_wall=0.80,
     w_slit=0.50,
     bridge_w=1.20,
-    num_arcs=4,
+    num_arcs=3,
     gap_floor=0.20,
     push_hole_dia=3.0,
     pocket_depth=None,
     through_depth=10.0
 ):
     """
-    Cuts a MultiConnect-style compliant snap pocket into `body`:
-      - Main pocket bore has radius r_pocket = r_mag + c_radial with a flat floor at floor_z.
-      - pocket_depth defaults to mag_thick (magnet sits flush or slightly proud).
-      - Compliant wall has thickness t_wall with parallel slit of width w_slit.
-      - num_arcs arcs separated by bridge_w (1.20 mm) solid bridges.
-      - gap_floor (0.20 mm) air gap under the free arcs above floor_z.
-      - 45-degree inward bump at the top edge of each compliant arc (drops down at 45 deg).
-      - Central push-out hole.
+    Wrapper around core_library.add_compliant_magnet_pocket for coupon testing.
     """
-    if pocket_depth is None:
-        pocket_depth = mag_thick  # Depth equal to magnet thickness
-        
-    floor_z = face_z - pocket_depth
-    r_mag = mag_dia / 2.0
-    r_pocket = r_mag + c_radial
-    r_slit_in = r_pocket + t_wall
-    r_slit_out = r_slit_in + w_slit
-    
-    b_radial = c_radial + b_extra
-    r_bump_top = r_pocket - b_radial
-    bump_h = b_radial
-    
-    # 1. Central push-out hole through the bottom
-    body = body.cut(
-        cq.Workplane("XY")
-        .circle(push_hole_dia / 2.0)
-        .extrude(through_depth)
-        .translate((center_pt[0], center_pt[1], face_z - through_depth))
+    return add_compliant_magnet_pocket(
+        body=body,
+        center_pt=center_pt,
+        face_z=face_z,
+        mag_dia=mag_dia,
+        mag_thick=mag_thick,
+        c_radial=c_radial,
+        b_extra=b_extra,
+        t_wall=t_wall,
+        w_slit=w_slit,
+        bridge_w=bridge_w,
+        num_arcs=num_arcs,
+        gap_floor=gap_floor,
+        push_hole_dia=push_hole_dia,
+        pocket_depth=pocket_depth,
+        through_depth=through_depth,
+        normal_dir="+Z"
     )
-    
-    # 2. Main pocket bore (flat floor at floor_z, radius r_pocket)
-    body = body.cut(
-        cq.Workplane("XY")
-        .workplane(offset=floor_z)
-        .circle(r_pocket)
-        .extrude(pocket_depth + 0.05)
-        .translate((center_pt[0], center_pt[1], 0))
-    )
-    
-    # 3. Arcs geometry (Slits, Under-arc gap, and Top bump)
-    r_mid = (r_slit_in + r_slit_out) / 2.0
-    d_theta_bridge = math.degrees(bridge_w / r_mid)
-    arc_sweep = (360.0 / num_arcs) - d_theta_bridge
-    
-    # Slit runs from floor_z up to face_z
-    slit_prof = [
-        (r_slit_in, floor_z),
-        (r_slit_out, floor_z),
-        (r_slit_out, face_z),
-        (r_slit_in, face_z)
-    ]
-    
-    # Gap runs from r_pocket to r_slit_out, between floor_z and floor_z + gap_floor
-    gap_prof = [
-        (r_pocket, floor_z),
-        (r_slit_out, floor_z),
-        (r_slit_out, floor_z + gap_floor),
-        (r_pocket, floor_z + gap_floor)
-    ]
-    
-    # 45-degree bump at the top edge of the arc
-    bump_prof = [
-        (r_pocket, face_z - bump_h),
-        (r_bump_top, face_z),
-        (r_pocket, face_z)
-    ]
-    
-    for i in range(num_arcs):
-        center_angle = i * (360.0 / num_arcs)
-        start_angle = center_angle - arc_sweep / 2.0
-        
-        # 3a. Concentric slit behind wall
-        slit_arc = (
-            cq.Workplane("XZ")
-            .polyline(slit_prof).close()
-            .revolve(arc_sweep, (0, 0, 0), (0, 1, 0))
-            .rotate((0, 0, 0), (0, 0, 1), start_angle)
-            .translate((center_pt[0], center_pt[1], 0))
-        )
-        body = body.cut(slit_arc)
-        
-        # 3b. 0.20 mm air gap under the compliant arc
-        gap_arc = (
-            cq.Workplane("XZ")
-            .polyline(gap_prof).close()
-            .revolve(arc_sweep, (0, 0, 0), (0, 1, 0))
-            .rotate((0, 0, 0), (0, 0, 1), start_angle)
-            .translate((center_pt[0], center_pt[1], 0))
-        )
-        body = body.cut(gap_arc)
-        
-        # 3c. 45-degree bump on the top of this compliant arc
-        if bump_h > 0.001:
-            bump_arc = (
-                cq.Workplane("XZ")
-                .polyline(bump_prof).close()
-                .revolve(arc_sweep, (0, 0, 0), (0, 1, 0))
-                .rotate((0, 0, 0), (0, 0, 1), start_angle)
-                .translate((center_pt[0], center_pt[1], 0))
-            )
-            body = body.union(bump_arc)
-            
-    return body
 
 
 def create_multiconnect_coupon_plate(size_key="10mm", plate_thick=4.0):
