@@ -52,6 +52,20 @@ RIDGE_PEAK_HALF_WIDTH = RIDGE_SURFACE_HALF_WIDTH - RIDGE_HEIGHT       # 1.10mm (
 # Metric Captive Nut Slot Tolerances
 NUT_SLOT_TOLERANCE = 0.3                # +0.3mm tolerance along both axes (5.80mm x 2.70mm for M3)
 
+# Compliant Magnet Retention Standards (Physically validated MultiConnect-style 3-arc snap)
+DEFAULT_MAGNET_DIA = 10.0               # Standard small magnet diameter (mm)
+DEFAULT_MAGNET_THICK = 1.55             # Standard small magnet thickness (mm)
+LARGE_MAGNET_DIA = 19.25                # Standard large magnet diameter (mm)
+LARGE_MAGNET_THICK = 1.60               # Standard large magnet thickness (mm)
+MAGNET_RADIAL_CLEARANCE = 0.15          # Radial clearance inside pocket bore (mm)
+MAGNET_WALL_THICKNESS = 0.80            # Compliant arc wall thickness (2 perimeters on 0.4mm nozzle)
+MAGNET_SLIT_WIDTH = 0.50                # Expansion slit width behind arc (mm)
+MAGNET_BRIDGE_WIDTH = 1.20              # Bridge anchor width separating arcs (mm)
+MAGNET_NUM_ARCS = 3                     # Number of compliant arcs (3-arc sweet spot)
+MAGNET_FLOOR_GAP = 0.20                 # Air gap under compliant arcs above solid floor (mm)
+MAGNET_BUMP_EXTRA_SMALL = 0.23          # Inward retaining bump extra interference for <=12mm magnets (mm)
+MAGNET_BUMP_EXTRA_LARGE = 0.27          # Inward retaining bump extra interference for >12mm magnets (mm)
+
 # Backward compatibility aliases
 RIDGE_DEPTH = RIDGE_HEIGHT
 RIDGE_CLEARANCE = RIDGE_DEPTH_CLEARANCE
@@ -481,3 +495,172 @@ def create_snap_fit_peg_parameterized(bot_p0, num_petals=3, band_dia=8.1):
     
     return snap_peg
 
+
+
+def add_compliant_magnet_pocket(
+    body,
+    center_pt=(0.0, 0.0),
+    face_z=0.0,
+    mag_dia=DEFAULT_MAGNET_DIA,
+    mag_thick=DEFAULT_MAGNET_THICK,
+    c_radial=MAGNET_RADIAL_CLEARANCE,
+    b_extra=None,
+    t_wall=MAGNET_WALL_THICKNESS,
+    w_slit=MAGNET_SLIT_WIDTH,
+    bridge_w=MAGNET_BRIDGE_WIDTH,
+    num_arcs=MAGNET_NUM_ARCS,
+    gap_floor=MAGNET_FLOOR_GAP,
+    push_hole_dia=None,
+    pocket_depth=None,
+    through_depth=15.0,
+    normal_dir="+Z"
+):
+    """
+    Cuts a physically validated compliant slit-snap magnet pocket into `body`.
+
+    Features:
+      - 3-arc compliant flexure with 45-degree inward retaining bumps.
+      - 2-perimeter (0.80 mm) wall with wide (0.50 mm) slit for deflection travel.
+      - Flat solid pocket floor with 0.20 mm air gap under the free arcs.
+      - Pocket depth defaults to magnet thickness (magnet sits flush/slightly proud).
+      - Central push-out hole for magnet removal.
+      - Supports any face normal (+Z, -Z, +X, -X, +Y, -Y).
+
+    Parameters:
+      body: cq.Workplane containing the solid to cut into.
+      center_pt: (x, y) tuple or (x, y, z) 3D coordinate of pocket center on the face.
+      face_z: Z coordinate of the face surface (used if center_pt is 2D).
+      mag_dia: Nominal magnet diameter (mm).
+      mag_thick: Nominal magnet thickness (mm).
+      c_radial: Radial clearance inside pocket bore (mm).
+      b_extra: Extra inward protrusion of retaining bump beyond magnet diameter (mm).
+               Defaults to 0.23 mm for <=12 mm magnets, 0.27 mm for >12 mm magnets.
+      t_wall: Thickness of compliant arc wall (mm).
+      w_slit: Width of concentric slit behind wall (mm).
+      bridge_w: Width of solid bridges anchoring the compliant arcs (mm).
+      num_arcs: Number of compliant arcs (default 3).
+      gap_floor: Air gap height under arcs above pocket floor (mm).
+      push_hole_dia: Diameter of central push-out hole (mm).
+                     Defaults to 3.0 mm for <=12 mm magnets, 5.0 mm for >12 mm magnets.
+      pocket_depth: Total pocket depth from face (mm, defaults to mag_thick).
+      through_depth: Length of push-out hole cut through the back (mm).
+      normal_dir: Normal direction of the face ("+Z", "-Z", "+X", "-X", "+Y", "-Y").
+    """
+    if pocket_depth is None:
+        pocket_depth = mag_thick
+    if b_extra is None:
+        b_extra = MAGNET_BUMP_EXTRA_SMALL if mag_dia <= 12.0 else MAGNET_BUMP_EXTRA_LARGE
+    if push_hole_dia is None:
+        push_hole_dia = 3.0 if mag_dia <= 12.0 else 5.0
+
+    floor_z = -pocket_depth
+    r_mag = mag_dia / 2.0
+    r_pocket = r_mag + c_radial
+    r_slit_in = r_pocket + t_wall
+    r_slit_out = r_slit_in + w_slit
+    b_radial = c_radial + b_extra
+    r_bump_top = r_pocket - b_radial
+    bump_h = b_radial
+
+    r_mid = (r_slit_in + r_slit_out) / 2.0
+    d_theta_bridge = math.degrees(bridge_w / r_mid)
+    arc_sweep = (360.0 / num_arcs) - d_theta_bridge
+
+    slit_prof = [
+        (r_slit_in, floor_z),
+        (r_slit_out, floor_z),
+        (r_slit_out, 0.0),
+        (r_slit_in, 0.0)
+    ]
+    gap_prof = [
+        (r_pocket, floor_z),
+        (r_slit_out, floor_z),
+        (r_slit_out, floor_z + gap_floor),
+        (r_pocket, floor_z + gap_floor)
+    ]
+    bump_prof = [
+        (r_pocket, -bump_h),
+        (r_bump_top, 0.0),
+        (r_pocket, 0.0)
+    ]
+
+    push_hole = (
+        cq.Workplane("XY")
+        .circle(push_hole_dia / 2.0)
+        .extrude(through_depth)
+        .translate((0, 0, -through_depth))
+    )
+    bore = (
+        cq.Workplane("XY")
+        .workplane(offset=floor_z)
+        .circle(r_pocket)
+        .extrude(pocket_depth + 0.05)
+    )
+
+    cuts = push_hole.union(bore)
+    bumps = None
+
+    for i in range(num_arcs):
+        center_angle = i * (360.0 / num_arcs)
+        start_angle = center_angle - arc_sweep / 2.0
+
+        slit_arc = (
+            cq.Workplane("XZ")
+            .polyline(slit_prof).close()
+            .revolve(arc_sweep, (0, 0, 0), (0, 1, 0))
+            .rotate((0, 0, 0), (0, 0, 1), start_angle)
+        )
+        cuts = cuts.union(slit_arc)
+
+        gap_arc = (
+            cq.Workplane("XZ")
+            .polyline(gap_prof).close()
+            .revolve(arc_sweep, (0, 0, 0), (0, 1, 0))
+            .rotate((0, 0, 0), (0, 0, 1), start_angle)
+        )
+        cuts = cuts.union(gap_arc)
+
+        if bump_h > 0.001:
+            bump_arc = (
+                cq.Workplane("XZ")
+                .polyline(bump_prof).close()
+                .revolve(arc_sweep, (0, 0, 0), (0, 1, 0))
+                .rotate((0, 0, 0), (0, 0, 1), start_angle)
+            )
+            bumps = bump_arc if bumps is None else bumps.union(bump_arc)
+
+    # Orientation and placement
+    if len(center_pt) == 2:
+        pt = (center_pt[0], center_pt[1], face_z)
+    else:
+        pt = center_pt
+
+    nd = normal_dir.upper().strip()
+    if nd in ['-Z', 'NEG_Z', 'BOTTOM']:
+        cuts = cuts.rotate((0, 0, 0), (1, 0, 0), 180)
+        if bumps is not None:
+            bumps = bumps.rotate((0, 0, 0), (1, 0, 0), 180)
+    elif nd in ['+X', 'POS_X', 'RIGHT']:
+        cuts = cuts.rotate((0, 0, 0), (0, 1, 0), 90)
+        if bumps is not None:
+            bumps = bumps.rotate((0, 0, 0), (0, 1, 0), 90)
+    elif nd in ['-X', 'NEG_X', 'LEFT']:
+        cuts = cuts.rotate((0, 0, 0), (0, 1, 0), -90)
+        if bumps is not None:
+            bumps = bumps.rotate((0, 0, 0), (0, 1, 0), -90)
+    elif nd in ['+Y', 'POS_Y', 'BACK', 'TOP']:
+        cuts = cuts.rotate((0, 0, 0), (1, 0, 0), -90)
+        if bumps is not None:
+            bumps = bumps.rotate((0, 0, 0), (1, 0, 0), -90)
+    elif nd in ['-Y', 'NEG_Y', 'FRONT']:
+        cuts = cuts.rotate((0, 0, 0), (1, 0, 0), 90)
+        if bumps is not None:
+            bumps = bumps.rotate((0, 0, 0), (1, 0, 0), 90)
+
+    cuts = cuts.translate(pt)
+    body = body.cut(cuts)
+    if bumps is not None:
+        bumps = bumps.translate(pt)
+        body = body.union(bumps)
+
+    return body
