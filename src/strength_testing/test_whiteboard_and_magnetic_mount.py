@@ -30,6 +30,10 @@ from core_library import (
 )
 from magnetic.generate_magnetic_adapter import create_magnetic_adapter
 from tool_holders.generate_whiteboard_tool_holder import create_whiteboard_tool_holder
+from tool_holders.generate_whiteboard_pen_holder import (
+    create_whiteboard_pen_holder,
+    create_whiteboard_pen_coupon,
+)
 from strength_testing.generate_whiteboard_coupon import create_whiteboard_test_coupon
 
 
@@ -278,6 +282,75 @@ class TestWhiteboardTestCoupon(unittest.TestCase):
         coupon = create_whiteboard_test_coupon(units=4, coupon_height=15.0, with_groove=False)
         solid = coupon.val()
         self.assertEqual(len(solid.Solids()), 1)
+
+
+class TestWhiteboardPenHolder(unittest.TestCase):
+    def test_whiteboard_pen_holder_1u_geometry(self):
+        holder = create_whiteboard_pen_holder(units=1, pen_count=4)
+        solid = holder.val()
+
+        self.assertEqual(len(solid.Solids()), 1)
+
+        bb = solid.BoundingBox()
+        expected_width = 1 * UNIT_WIDTH  # 28.0 mm
+        expected_depth = 111.0 + BACKPLATE_THICKNESS  # 122.0 mm
+        expected_bottom_y = get_bottom_edge_y(73.0, RAIL_PLAY)  # -94.0 mm
+
+        self.assertAlmostEqual(bb.xlen, expected_width, delta=0.2)
+        self.assertAlmostEqual(bb.ymin, expected_bottom_y, delta=0.2)
+        self.assertAlmostEqual(bb.ymax, BACKPLATE_TOP_Y, delta=0.2)
+        self.assertAlmostEqual(bb.zlen, expected_depth, delta=0.2)
+
+        # Shelf thickness check: elevated shelf is from Y=-70.0 to Y=-40.0 (30.0 mm thick)
+        shelf_faces = [
+            f for f in solid.Faces()
+            if f.geomType() == "PLANE" and abs(f.Center().y - (-40.0)) < 0.2
+        ]
+        self.assertTrue(len(shelf_faces) > 0, "Shelf top face should be at Y = -40.0")
+
+        shelf_bot_faces = [
+            f for f in solid.Faces()
+            if f.geomType() == "PLANE" and abs(f.Center().y - (-70.0)) < 0.2
+        ]
+        self.assertTrue(len(shelf_bot_faces) > 0, "Shelf bottom face should be at Y = -70.0")
+
+        # Circular edges for truncated cone pen pockets:
+        # Top opening: cap_opening_dia (11.8) + clearance (0.6) = 12.4 mm dia -> r = 6.2 mm
+        # Bottom opening: r_base = 6.2 - (1.65/90) * 30 = 5.65 mm -> dia 11.3 mm
+        radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
+        self.assertGreaterEqual(radii.count(6.2), 4, "Top opening circles missing")
+        self.assertGreaterEqual(radii.count(5.65), 4, "Bottom opening circles missing")
+
+    def test_whiteboard_pen_holder_both_screw_rows(self):
+        holder = create_whiteboard_pen_holder(units=1, pen_count=4)
+        solid = holder.val()
+
+        # Both top screws (Y=10.0) and bottom screws (Y=-84.0) should have holes
+        radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
+        screw_hole_edges = radii.count(1.8)
+        self.assertGreaterEqual(screw_hole_edges, 2)
+
+    def test_whiteboard_pen_holder_45deg_print_orientation(self):
+        holder = create_whiteboard_pen_holder(units=1, pen_count=4, print_orientation="45_deg", support_fins=True)
+        solid = holder.val()
+        self.assertGreaterEqual(len(solid.Solids()), 1)
+
+        bb = solid.BoundingBox()
+        self.assertAlmostEqual(bb.zmin, 0.0, delta=0.1)
+
+    def test_whiteboard_pen_coupon(self):
+        coupon = create_whiteboard_pen_coupon(units=1, pen_count=4, coupon_height=15.0)
+        solid = coupon.val()
+
+        self.assertEqual(len(solid.Solids()), 1)
+
+        bb = solid.BoundingBox()
+        self.assertAlmostEqual(bb.xlen, 1 * UNIT_WIDTH, delta=0.2)
+        self.assertAlmostEqual(bb.ylen, 15.0, delta=0.2)
+        self.assertAlmostEqual(bb.zlen, 111.0 + BACKPLATE_THICKNESS, delta=0.2)
+
+        radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
+        self.assertGreaterEqual(radii.count(6.2), 4, "Top opening circles missing in pen coupon")
 
 
 if __name__ == "__main__":

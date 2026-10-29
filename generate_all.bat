@@ -94,6 +94,7 @@ echo Generating Whiteboard Tool Holders...
 python src/tool_holders/generate_whiteboard_tool_holder.py --layout inline_2u
 python src/tool_holders/generate_whiteboard_tool_holder.py --layout inline_3u
 python src/tool_holders/generate_whiteboard_tool_holder.py --layout bottle_left --units 4
+python src/tool_holders/generate_whiteboard_pen_holder.py --pen-count 4
 python src/strength_testing/generate_whiteboard_coupon.py --layout inline_2u
 python src/strength_testing/generate_whiteboard_coupon.py --layout bottle_left --units 4
 echo Generating Allen Key Holders...
