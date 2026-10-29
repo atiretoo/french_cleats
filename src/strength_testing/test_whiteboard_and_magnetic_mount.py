@@ -236,6 +236,18 @@ class TestWhiteboardToolHolder(unittest.TestCase):
         bb = solid.BoundingBox()
         self.assertAlmostEqual(bb.zmin, 0.0, delta=0.1)
 
+        # Fin tapered edges should be aligned directly with the edges:
+        # Top chamfer convex edge at Y = -18.0
+        # Bottom chamfer convex edge at Y = 92.0
+        # Shelf projection edge at Y = 70.0
+        tip_faces = [
+            f.Center().y for f in solid.Faces()
+            if f.geomType() == "PLANE" and abs(abs(f.normalAt().x) - 0.707) < 0.05 and abs(abs(f.normalAt().z) - 0.707) < 0.05 and f.Area() < 50.0
+        ]
+        self.assertTrue(any(abs(y - (-18.0)) < 0.2 for y in tip_faces), "Top backplate fin tip not aligned at Y=-18.0")
+        self.assertTrue(any(abs(y - 92.0) < 0.2 for y in tip_faces), "Bottom backplate fin tip not aligned at Y=92.0")
+        self.assertTrue(any(abs(y - 70.0) < 0.2 for y in tip_faces), "Shelf fin tip not aligned at Y=70.0")
+
     def test_whiteboard_holder_layout_swap(self):
         holder_left = create_whiteboard_tool_holder(units=4, layout="bottle_left")
         holder_right = create_whiteboard_tool_holder(units=4, layout="eraser_left")
@@ -337,6 +349,15 @@ class TestWhiteboardPenHolder(unittest.TestCase):
 
         bb = solid.BoundingBox()
         self.assertAlmostEqual(bb.zmin, 0.0, delta=0.1)
+
+        # Fin tapered edges should be aligned directly with the edges:
+        tip_faces = [
+            f.Center().y for f in solid.Faces()
+            if f.geomType() == "PLANE" and abs(abs(f.normalAt().x) - 0.707) < 0.05 and abs(abs(f.normalAt().z) - 0.707) < 0.05 and f.Area() < 50.0
+        ]
+        self.assertTrue(any(abs(y - (-18.0)) < 0.2 for y in tip_faces), "Pen holder top fin not aligned at Y=-18.0")
+        self.assertTrue(any(abs(y - 92.0) < 0.2 for y in tip_faces), "Pen holder bottom fin not aligned at Y=92.0")
+        self.assertTrue(any(abs(y - 70.0) < 0.2 for y in tip_faces), "Pen holder shelf fin not aligned at Y=70.0")
 
     def test_whiteboard_pen_coupon(self):
         coupon = create_whiteboard_pen_coupon(units=1, pen_count=4, coupon_height=15.0)
