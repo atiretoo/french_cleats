@@ -36,7 +36,74 @@ from core_library import (
     create_nut_slot,
     export_model,
     support_fin,
+    add_compliant_magnet_pocket,
+    LARGE_MAGNET_DIA,
+    LARGE_MAGNET_THICK,
+    MAGNET_RADIAL_CLEARANCE,
+    MAGNET_WALL_THICKNESS,
+    MAGNET_SLIT_WIDTH,
 )
+
+
+def compute_magnet_layout(
+    rail_height=DEFAULT_RAIL_HEIGHT,
+    mag_dia=LARGE_MAGNET_DIA,
+    mag_count=None,
+    mag_y=None,
+    no_screws=False,
+    screw_m="M3",
+):
+    """
+    Computes the optimal vertical layout (Y-coordinates) for disc magnets on the mount
+    to fit the maximum number of magnets into the specified rail height while maintaining
+    clean clearances with captive nut slots and screw clearance holes.
+
+    Returns:
+        (count_per_unit, y_positions_list)
+    """
+    if mag_y is not None:
+        return 1, [mag_y]
+
+    top_screw_y = TOP_RIDGE_Y
+    bottom_screw_y = get_bottom_groove_y(rail_height, RAIL_PLAY)
+    top_y = BACKPLATE_TOP_Y
+    bottom_y = get_bottom_edge_y(rail_height, RAIL_PLAY)
+    mid_y = (top_screw_y + bottom_screw_y) / 2.0
+
+    r_pocket = (mag_dia / 2.0) + MAGNET_RADIAL_CLEARANCE
+    r_slit_out = r_pocket + MAGNET_WALL_THICKNESS + MAGNET_SLIT_WIDTH
+    d_slit = 2.0 * r_slit_out
+
+    if no_screws or screw_m.lower() == "none":
+        margin = 4.0
+        y_max = top_y - margin - r_slit_out
+        y_min = bottom_y + margin + r_slit_out
+    else:
+        nut_waf = 5.5 if screw_m == "M3" else (7.0 if screw_m == "M4" else 8.0)
+        nut_point_dist = (nut_waf / 2.0) / math.cos(math.radians(30))
+        margin = 4.0
+        y_max = (top_screw_y - nut_point_dist) - r_slit_out - margin
+        y_min = (bottom_screw_y + nut_point_dist) + r_slit_out + margin
+
+    available_span = y_max - y_min
+    min_web = 3.0
+    min_pitch = d_slit + min_web
+
+    if mag_count is None:
+        if available_span < 0:
+            count = 1
+        else:
+            count = 1 + int(math.floor(available_span / min_pitch))
+    else:
+        count = mag_count
+
+    if count <= 1:
+        return 1, [mid_y]
+    else:
+        max_spacing = available_span / (count - 1)
+        spacing = min(max_spacing, d_slit + 5.0)
+        start_y = mid_y + (count - 1) * spacing / 2.0
+        return count, [start_y - k * spacing for k in range(count)]
 
 
 def create_magnetic_adapter(
@@ -44,9 +111,9 @@ def create_magnetic_adapter(
     rail_height=DEFAULT_RAIL_HEIGHT,
     screw_m="M3",
     plate_thickness=6.0,
-    mag_dia=19.2,
-    mag_depth=2.0,
-    mag_count=1,
+    mag_dia=LARGE_MAGNET_DIA,
+    mag_depth=LARGE_MAGNET_THICK,
+    mag_count=None,
     mag_y=None,
     no_screws=False,
     print_orientation="none",
@@ -66,10 +133,10 @@ def create_magnetic_adapter(
       - Right: +X
 
     Features:
-      - Disc magnet pockets (default 19.2 mm x 2.0 mm, matching thin tool holder standard).
-      - Configurable magnets per 1U space: mag_count=1 (centered) or mag_count=2
-        (2 vertically aligned pockets per 1U space, e.g. 4 magnets for a 2U mount).
-      - 2.0 mm through push-holes extending to the front face for easy magnet release.
+      - Compliant slit-snap disc magnet pockets (default 19.25 mm x 1.60 mm standard large disc)
+        with 3-arc flexure, 45° retaining bumps, and central push-out hole for easy removal.
+      - Maximized magnet packing strategy: automatically fits the maximum number of magnets
+        for the given rail height (e.g. 3 magnets per 1U space = 6 magnets for 2U at 73mm rail).
       - Dual standard shallow locking ridges (top at Y=10.0, bottom at Y=-84.0)
         with 0.20 mm side clearance and 0.80 mm crest clearance.
       - Metric captive nut slots and clearance holes for M3 clamping bolts.
@@ -190,41 +257,28 @@ def create_magnetic_adapter(
     except Exception:
         pass
 
-    # 4. Magnet Pockets & Push Holes (on back face Z=plate_thickness, cutting into -Z)
-    mag_pts = []
-    mid_y = (top_screw_y + bottom_screw_y) / 2.0
-
-    for i in range(units):
-        x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
-        if mag_y is not None:
-            mag_pts.append((x, mag_y))
-        elif mag_count == 1:
-            mag_pts.append((x, mid_y))
-        elif mag_count > 1:
-            available_span = (top_screw_y - bottom_screw_y) - mag_dia - 4.0
-            spacing = min(40.0, available_span / (mag_count - 1))
-            start_y = mid_y + (mag_count - 1) * spacing / 2.0
-            for k in range(mag_count):
-                mag_pts.append((x, start_y - k * spacing))
-
-    if mag_pts and mag_dia > 0 and mag_depth > 0:
-        mags = (
-            cq.Workplane("XY")
-            .workplane(offset=plate_thickness)
-            .pushPoints(mag_pts)
-            .circle(mag_dia / 2.0)
-            .extrude(-mag_depth)
+    # 4. Compliant Magnet Retention Pockets (MultiConnect-style slit-snap on back face Z=plate_thickness)
+    if mag_dia > 0 and mag_depth > 0:
+        count_per_unit, mag_ys = compute_magnet_layout(
+            rail_height=rail_height,
+            mag_dia=mag_dia,
+            mag_count=mag_count,
+            mag_y=mag_y,
+            no_screws=no_screws,
+            screw_m=screw_m,
         )
-        adapter = adapter.cut(mags)
 
-        push_holes = (
-            cq.Workplane("XY")
-            .workplane(offset=plate_thickness)
-            .pushPoints(mag_pts)
-            .circle(2.0 / 2.0)
-            .extrude(-plate_thickness - 2.0)
-        )
-        adapter = adapter.cut(push_holes)
+        for i in range(units):
+            x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
+            for y in mag_ys:
+                adapter = add_compliant_magnet_pocket(
+                    adapter,
+                    center_pt=(x, y),
+                    face_z=plate_thickness,
+                    mag_dia=mag_dia,
+                    mag_thick=mag_depth,
+                    normal_dir="+Z",
+                )
 
     # 5. Captive Nut Slots & Screw Clearance Holes
     if not no_screws and screw_m.lower() != "none":
@@ -349,20 +403,20 @@ def main():
     parser.add_argument(
         "--mag-dia",
         type=float,
-        default=19.2,
-        help="Diameter of disc magnet pocket in mm (default: 19.2 for 19mm disc)",
+        default=LARGE_MAGNET_DIA,
+        help=f"Diameter of disc magnet in mm (default: {LARGE_MAGNET_DIA} for standard large disc)",
     )
     parser.add_argument(
         "--mag-depth",
         type=float,
-        default=2.0,
-        help="Depth of disc magnet pocket in mm (default: 2.0)",
+        default=LARGE_MAGNET_THICK,
+        help=f"Depth of disc magnet pocket in mm (default: {LARGE_MAGNET_THICK})",
     )
     parser.add_argument(
         "--mag-count",
         type=int,
-        default=1,
-        help="Number of disc magnets per unit space (default: 1, use 2 for 2 vertically aligned magnets per 1U)",
+        default=None,
+        help="Number of disc magnets per unit space (default: auto, maximizes magnets for rail height, e.g. 3 per 1U / 6 for 2U at 73mm)",
     )
     parser.add_argument(
         "--mag-y",
@@ -414,8 +468,17 @@ def main():
         support_fins=not args.no_support_fins,
     )
 
-    if args.mag_count > 1:
-        total_mags = args.units * args.mag_count
+    count_per_unit, _ = compute_magnet_layout(
+        rail_height=args.rail_height,
+        mag_dia=args.mag_dia,
+        mag_count=args.mag_count,
+        mag_y=args.mag_y,
+        no_screws=args.no_screws,
+        screw_m=args.screw,
+    )
+    total_mags = args.units * count_per_unit
+
+    if total_mags > 1:
         filename = f"magnetic_adapter_{args.units}u_H{int(args.rail_height)}_{total_mags}mag_{args.screw}.stl"
     else:
         filename = f"magnetic_adapter_{args.units}u_H{int(args.rail_height)}_{args.screw}.stl"

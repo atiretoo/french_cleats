@@ -62,15 +62,15 @@ class TestMagneticAdapter(unittest.TestCase):
         adapter = create_magnetic_adapter(units=units)
         solid = adapter.val()
 
-        # Check for circular edges: 19.2 mm dia (r=9.6) magnet pockets, 2.0 mm dia (r=1.0) push holes
+        # Check for circular edges: 19.25 mm dia compliant pocket bore (r=9.78 with clearance), 5.0 mm dia (r=2.5) push holes
         circle_radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
 
-        pocket_edges = circle_radii.count(9.6)
-        push_edges = circle_radii.count(1.0)
+        pocket_edges = circle_radii.count(9.78)
+        push_edges = circle_radii.count(2.5)
 
-        # 1 pocket per unit = 2 pockets (each cylinder feature has circular rims)
-        self.assertGreaterEqual(pocket_edges, units)
-        self.assertGreaterEqual(push_edges, units)
+        # Default auto layout fits 3 magnets per unit = 6 pockets total for 2U
+        self.assertGreaterEqual(pocket_edges, 6)
+        self.assertGreaterEqual(push_edges, 6)
 
     def test_single_unit_adapter(self):
         adapter = create_magnetic_adapter(units=1)
@@ -91,11 +91,31 @@ class TestMagneticAdapter(unittest.TestCase):
         self.assertAlmostEqual(bb.ymax, 20.0, delta=0.2)
 
         circle_radii = [round(e.radius(), 2) for e in solid.Edges() if e.geomType() == "CIRCLE"]
-        pocket_edges = circle_radii.count(9.6)
-        push_edges = circle_radii.count(1.0)
+        pocket_edges = circle_radii.count(9.78)
+        push_edges = circle_radii.count(2.5)
 
+        # Explicit mag_count=2 = 4 pockets total for 2U
         self.assertGreaterEqual(pocket_edges, 4)
         self.assertGreaterEqual(push_edges, 4)
+
+    def test_magnetic_adapter_auto_packing(self):
+        from magnetic.generate_magnetic_adapter import compute_magnet_layout
+        from core_library import LARGE_MAGNET_DIA
+
+        # At 73mm rail height, exactly 3 large magnets fit per 1U space
+        count_73, ys_73 = compute_magnet_layout(rail_height=73.0, mag_dia=LARGE_MAGNET_DIA)
+        self.assertEqual(count_73, 3)
+        self.assertEqual(len(ys_73), 3)
+
+        # At 50mm rail height, 2 large magnets fit per 1U space
+        count_50, ys_50 = compute_magnet_layout(rail_height=50.0, mag_dia=LARGE_MAGNET_DIA)
+        self.assertEqual(count_50, 2)
+        self.assertEqual(len(ys_50), 2)
+
+        # At 100mm rail height, 4 large magnets fit per 1U space
+        count_100, ys_100 = compute_magnet_layout(rail_height=100.0, mag_dia=LARGE_MAGNET_DIA)
+        self.assertEqual(count_100, 4)
+        self.assertEqual(len(ys_100), 4)
 
     def test_magnetic_adapter_45deg_print_orientation(self):
         adapter = create_magnetic_adapter(units=2, mag_count=2, print_orientation="45_deg", support_fins=True)
