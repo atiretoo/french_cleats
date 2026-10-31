@@ -16,79 +16,91 @@
 # along with french_cleats.  If not, see <https://www.gnu.org/licenses/>.
 import cadquery as cq
 import argparse
+import math
 import sys, os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_stl
+from core_library import SCREW_SPECS, export_model
 
-def create_nut_pusher(screw_m="M3", handle_length=11.0):
+def create_nut_pusher(screw_m="M3", layer_thickness=0.28, handle_length=40.0):
     """
-    Creates a small tool to push captive nuts into tight slots.
-    The handle provides grip, and the head is sized perfectly for the slot.
+    Creates a flat rectangular-handle tool to push captive nuts into tight slots.
+    When the handle shoulder hits the cleat face, the V-notched tip seats the nut
+    at the exact bolt centerline.
     """
-    if screw_m == "M3":
-        head_w, head_t = 5.2, 2.1  # slightly undersized from slot (5.6x2.5)
-        head_l = 8.0               # depth of push
-    elif screw_m == "M4":
-        head_w, head_t = 6.7, 2.9
-        head_l = 10.0
-    elif screw_m == "M5":
-        head_w, head_t = 7.7, 3.7
-        head_l = 12.0
-    else:
-        raise ValueError(f"Unsupported screw size: {screw_m}")
-        
-    handle_dia = max(10.0, head_w + 4.0)
-    
-    import math
-    
-    # Handle (Extrudes into +Z)
-    handle = (
-        cq.Workplane("XY")
-        .circle(handle_dia / 2.0)
-        .extrude(handle_length)
-        .edges(">Z").fillet(1.0)
-    )
-    
-    # Head (Extrudes into -Z)
-    head = (
-        cq.Workplane("XY")
-        .rect(head_w, head_t)
-        .extrude(-head_l)
-        .edges("<Z").chamfer(0.5) # Chamfer to easily slide into slot
-    )
-    
-    # Cut a 120-degree V-notch into the tip to cup the point of the hex nut
-    # Leave a 0.5mm flat shoulder on each side so the tips aren't infinitely sharp
-    notch_w = head_w - 1.0
-    notch_depth = (notch_w / 2.0) / math.tan(math.radians(60))
-    
-    notch_pts = [
-        (-head_l - 1.0, -notch_w/2.0),
-        (-head_l, -notch_w/2.0),
-        (-head_l + notch_depth, 0),
-        (-head_l, notch_w/2.0),
-        (-head_l - 1.0, notch_w/2.0)
+    if screw_m not in SCREW_SPECS:
+        raise ValueError(f"Unsupported screw size {screw_m}")
+    spec = SCREW_SPECS[screw_m]
+    nut_waf, nut_thick = spec["nut_waf"], spec["nut_thick"]
+
+    tool_thickness = nut_thick - 2.0 * layer_thickness
+    tool_width = nut_waf * 0.9
+
+    # In generate_cleats.py, the slot depth from the cleat face is:
+    # 10.0 + nut_waf / 2.0
+    slot_depth = 10.0 + nut_waf / 2.0
+
+    # A hexagon with flats on the side has a point-to-point length of:
+    nut_point_to_point = nut_waf * 2.0 / math.sqrt(3)
+
+    # The tool apex (deepest part of the V-notch) must be at this distance
+    # from the shoulder so that when the shoulder hits the cleat face,
+    # the nut's front point hits the bottom of the slot.
+    shaft_length = slot_depth - nut_point_to_point
+
+    # The prongs extend forward from the apex by:
+    prong_ext = (tool_width / 2.0) / math.tan(math.radians(60))
+
+    # Coordinates for the base tool profile
+    handle_w = tool_width * 2.0
+
+    pts = [
+        (0.0, tool_width / 2.0),
+        (shaft_length + prong_ext, tool_width / 2.0),
+        (shaft_length, 0.0),
+        (shaft_length + prong_ext, -tool_width / 2.0),
+        (0.0, -tool_width / 2.0),
+        (0.0, -handle_w / 2.0),
+        (-handle_length, -handle_w / 2.0),
+        (-handle_length, handle_w / 2.0),
+        (0.0, handle_w / 2.0),
     ]
-    
-    notch = (
-        cq.Workplane("ZX")
-        .polyline(notch_pts).close()
-        .extrude(head_t + 2.0, both=True)
+
+    handle_pts = [
+        (0.0, handle_w / 2.0),
+        (0.0, -handle_w / 2.0),
+        (-handle_length, -handle_w / 2.0),
+        (-handle_length, handle_w / 2.0),
+    ]
+
+    tool = (
+        cq.Workplane("XY")
+        .polyline(pts)
+        .close()
+        .extrude(tool_thickness)
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .polyline(handle_pts)
+        .close()
+        .extrude(tool_thickness)
     )
-    
-    head = head.cut(notch)
-    
-    return handle.union(head)
+
+    return tool, tool_thickness, tool_width
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate Nut Pusher Tool")
+    parser.add_argument("--screw", type=str, default="M3", choices=["M3", "M4", "M5"], help="Screw size (M3, M4, M5)")
+    parser.add_argument("--layer-thickness", type=float, default=0.28, help="Layer thickness in mm")
+    parser.add_argument("--handle-length", type=float, default=40.0, help="Handle length in mm (default: 40.0)")
+    parser.add_argument("--export", type=str, default="both", choices=["stl", "step", "both"], help="Export format")
+
+    args = parser.parse_args()
+
+    tool, t, w = create_nut_pusher(args.screw, args.layer_thickness, args.handle_length)
+
+    filename = f"nut_pusher_{args.screw}_L{args.layer_thickness}.stl"
+    export_model(tool, filename, print_orientation="none", category="utilities", export=args.export)
+    print(f"Exported {filename} (thickness: {t:.2f}mm, shaft width: {w:.2f}mm)")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate a captive nut pusher.")
-    parser.add_argument("--screw", default="M3", choices=["M3", "M4", "M5"], help="Screw size")
-    parser.add_argument("--handle-length", type=float, default=11.0, help="Length of the thumb handle")
-    args = parser.parse_args()
-    
-    pusher = create_nut_pusher(args.screw, args.handle_length)
-    filename = f"nut_pusher_{args.screw}_L{args.handle_length}.stl"
-    
-    # back_down rotates +Z (the handle) to touch the print bed, so it stands tall.
-    export_stl(pusher, filename, print_orientation="back_down", category="utilities")
+    main()

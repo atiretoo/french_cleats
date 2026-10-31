@@ -1,20 +1,27 @@
-# Modular French Cleat (MFC) System
-**Version 1.2.2**
+# The UNIT System
+**Universal Network of Interchangeable Tool-holders**  
+*(Formerly Modular French Cleat / MFC System)*  
+**Version 2.0.0**
 
-A fully parametric, modular 3D printed French Cleat organization system.
+A fully parametric, modular 3D-printed tool holding ecosystem with universal cross-system wall compatibility.
 
-Find ready-to-print models on [Printables: Modular French Cleat (MFC) System](https://www.printables.com/model/1844209-modular-french-cleat-mfc-system-parametric-opengri).
-See [NEWS.md](news.md) for version history and release notes.
+Find ready-to-print models on [Printables: The UNIT System](https://www.printables.com/model/1844209-modular-french-cleat-mfc-system-parametric-opengri).
 
-This project was born out of necessity for my own workshop. I needed heavy-duty tool holders for heavy tools and jigs. I initially experimented with Hexagon Storage Wall (HSW) and OpenGrid, but ultimately returned to the strength of French cleats. However, I found that every French cleat tool holder on Printables used wildly different approaches for sizing tools, with inconsistent cleat thicknesses and heights. This repository is an attempt to standardize French cleat tool holders into a unified, highly tolerant, and predictable system.
+This project was born out of necessity for my own workshop. I needed heavy-duty tool holders for heavy tools and jigs. I initially experimented with Honeycomb Storage Wall (HSW) and OpenGrid, but ultimately returned to the load-bearing strength of French cleats. However, as the project evolved with adapters for HSW, Multiconnect, Pegboards, and IKEA Skådis, it outgrew any single wall standard. 
+
+By establishing a rigorous **28 mm "Unit" grid** (`1U = 28.0 mm`) and separating the tool holder geometry from the mounting interface, this project became **The UNIT System**—a unified library of heavy-duty, interchangeable tool holders that mount effortlessly onto:
+* **French Cleats** (native high-load 73 mm wooden or printed rails)
+* **Honeycomb Storage Wall (HSW)**
+* **Multiconnect / OpenGrid**
+* **Standard 1/4" Pegboards & IKEA Skådis**
 
 ## Rationale & Inspiration
 
-While designing this system, I built upon the brilliant work already done by many, taking the best aspects of several existing systems and synthesizing them into a unified, highly tolerant standard. 
+While designing this system, I built upon the brilliant work already done by many, taking the best aspects of several existing systems and synthesizing them into a unified, highly tolerant standard:
 
-- **The Cleat Separation:** I was initially drawn to **Frenchfinity** (created by Bastelsaal) for the excellent concept of separating the cleat base from the tool holder itself. However, I found it difficult to slide the Frenchfinity holders and cleats together in practice (My printer may not be as dialed in as I think). I wanted to retain that two-part modularity but engineer a connection that was easier to assemble and lock.
-- **The Locking Mechanism:** I was heavily inspired by Printables user **shoooo** (@shoooo_1013338), who utilized screws and ridges on a couple of models. Taking that concept, I standardized it and shifted to a **trapezoidal groove**, which provided a much tighter, self-aligning fit between the holder and the cleat.
-- **The Grid Ecosystem:** To ensure this system doesn't exist in a vacuum, I designed the mounting dimensions to retain full compatibility with both **Gridfinity** (created by Zack Freedman) and **OpenGrid** (created by David D). Specifically, I adopted the OpenGrid spacing standard of **28 mm** across all the tool holders to ensure they interoperate flawlessly with existing Gridfinity and OpenGrid setups.
+- **The Cleat Separation & Modularity:** I was initially drawn to **Frenchfinity** (created by Bastelsaal) for the excellent concept of separating the cleat base from the tool holder itself. However, I found it difficult to slide the Frenchfinity holders and cleats together in practice. I wanted to retain that two-part modularity but engineer a connection that was easier to assemble, self-centering, and rock solid.
+- **The Locking Mechanism:** I was heavily inspired by Printables user **shoooo** (@shoooo_1013338), who utilized screws and ridges on a couple of models. Taking that concept, I standardized it and shifted to a **shallow trapezoidal groove & self-centering ridge standard (v2.0)**, which provides a rigid, wobble-free fit between the holder and any cleat or adapter.
+- **The "Unit" Grid Standard (1U = 28 mm):** To ensure this system doesn't exist in a vacuum, every holder is mathematically driven by a 28 mm modular unit grid. This matches the spacing of **OpenGrid** (by David D) and aligns naturally with **Gridfinity** (by Zack Freedman), allowing holders to interoperate seamlessly across different wall ecosystems.
 
 For a deeper dive into the iterations, FEA testing, and the history of the project's development, check out the [Design Rationale & History](docs/design_rationale_and_history.md) document.
 
@@ -38,7 +45,7 @@ uv pip install cadquery
 ```
 
 ### 3. Generate the Models
-You can run the generator scripts individually (e.g., `python src/generate_cleats.py`), or use the provided batch/shell scripts to generate the entire ecosystem at once into an `exports/` folder.
+You can run the generator scripts individually (e.g., `python src/cleats/generate_cleats.py`), or use the provided batch/shell scripts to generate the entire ecosystem at once into an `exports/` folder.
 
 **On Windows:**
 Activate the environment and run the batch file:

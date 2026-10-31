@@ -1,6 +1,8 @@
-﻿# French Cleat Tool System: Design Rationale & History
+# The UNIT System: Design Rationale & History
+**Universal Network of Interchangeable Tool-holders**  
+*(Formerly French Cleat Tool System)*
 
-This document outlines the evolutionary design choices, dimensional assumptions, and geometric rationale that shaped the V1.x generation of the parametric tool holder project.
+This document outlines the evolutionary design choices, dimensional assumptions, and geometric rationale that shaped the parametric tool holder project from its V1.x French-cleat origins to the V2.0 universal ecosystem.
 
 ## 1. The Core "U" System & Grid
 All components in this system are built upon a universal grid where **1U = 28.0 mm**.
@@ -41,4 +43,21 @@ During the generation of complex tool sockets (like the chisel holder which marr
 ## 7. Customization Mechanics (Recesses and Offsets)
 - **Variable Hole Scaling:** For tailored fits (like the nut driver rack), the hole generation logic utilizes a 1mm radius (2mm diameter) shaft clearance.
 - **Nesting Recesses:** To prevent top-heavy tools from tipping, the system supports independent recess generation. For example, a 22.3mm nut driver handle utilizes a 23.0mm diameter pocket, precisely cut 1.0mm deep into the top surface of the 5.0mm shelf.
+
+## 8. Structural Refactoring & Shallow Groove Standardization (V2.0)
+The V2.0 development cycle introduced major mechanical refinements:
+- **Shallow Groove & Ridge Standard:** Reduced groove depth from 4.0mm to 3.0mm with 45° sloping walls and a 1.0mm flat bottom (7.0mm surface opening). The cleat ridge was standardized to 2.2mm height with a physically validated 0.20mm side clearance and 0.80mm crest clearance. This eliminates vertical sliding play while ensuring smooth, self-centering assembly.
+- **Backplate Edge Finishing:** Added continuous 2.0mm 45° chamfers to all back perimeter edges at $Z=0$ to eliminate elephant's foot and ensure flush seating on imperfect walls. Added 2.5mm radius corner fillets on vertical $Z$-axis corners. The front edges of the backplate remain sharp to prevent weak grooved seams where shelves join.
+- **5.0mm Structural Junction Fillets:** Implemented robust `ShelfJuncSel` post-union fillets (5.0mm radius) along horizontal shelf-to-backplate junctions for massive cantilever load resistance.
+- **Corner-Aligned Braces:** Shortened side-brace bottoms by 2.5mm (`bottom_y + 2.5`), ending them precisely where the backplate corner fillets begin to eliminate overhang gaps.
+- **45° Build-Plate Support Fins:** Added parametric `support_fin` generation with 0.01mm micro-gaps to enable clean 45° print orientations (e.g. for Gridfinity shelves) that break away cleanly.
+- **Ecosystem Adapters:** Expanded interoperability with centralized vendor-neutral assets for Honeycomb Storage Wall (HSW), OpenGrid, and standard/Skådis pegboards.
+
+## 9. Evolution into The UNIT System (V2.0)
+What began as a French-cleat-specific parametric script library evolved into an open, universal standard. As adapters were engineered for Multiconnect / OpenGrid, Honeycomb Storage Wall (HSW), 1/4" Pegboards, and IKEA Skådis, the project outgrew its original name. In V2.0, it was officially renamed **The UNIT System** (**U**niversal **N**etwork of **I**nterchangeable **T**ool-holders):
+- **Code Alignment:** Directly reflects the foundational **`1U = 28.0 mm`** (`UNIT_WIDTH`) parameter that drives every generator script in the codebase.
+- **Accurate Functionality:** Establishes that each module is a standardized, unyielding tool-holding unit designed specifically for heavy tools.
+- **Universal Cross-System Interoperability:** Maintains French cleats as the native high-load backbone while granting 100% interoperability to any popular workshop wall standard.
+
+
 

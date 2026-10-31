@@ -21,57 +21,44 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, drill_backplate_screws, export_model
 
 def create_v_holder(width_units=2, depth_units=4, rail_height=73.0):
-    unit_width = 28.0
-    brace_thickness = 5.0
     shelf_thickness = 5.0
-    
-    width = width_units * unit_width
-    shelf_depth = depth_units * unit_width
-    
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(width_units, rail_height, mount_type="groove", num_rows=2)
-    
+
+    width = width_units * UNIT_WIDTH
+    shelf_depth = depth_units * UNIT_WIDTH
+
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        width_units, rail_height
+    )
+
     y_drop = width / 2.0
     y_thick = shelf_thickness * math.sqrt(2)
     shelf_top = top_y - 40.0
-    
+
     v_pts = [
-        (-width/2, shelf_top),
-        (0, shelf_top - y_drop),
-        (width/2, shelf_top),
-        (width/2, shelf_top - y_thick),
-        (0, shelf_top - y_drop - y_thick),
-        (-width/2, shelf_top - y_thick)
+        (-width / 2.0, shelf_top),
+        (0.0, shelf_top - y_drop),
+        (width / 2.0, shelf_top),
+        (width / 2.0, shelf_top - y_thick),
+        (0.0, shelf_top - y_drop - y_thick),
+        (-width / 2.0, shelf_top - y_thick),
     ]
-    
-    shelf = (
-        cq.Workplane("XY", origin=(0, 0, -11))
-        .polyline(v_pts).close()
+
+    # Extrude V-shelf directly from the backplate front plane and drill mounting holes
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .workplane(offset=-BACKPLATE_THICKNESS)
+        .polyline(v_pts)
+        .close()
         .extrude(-shelf_depth)
     )
-    
-    tool_holder = tool_holder.union(shelf)
-    
-    # The V-shape is structurally rigid enough that it does not need a side brace!
-            
-    screws = (
-        cq.Workplane("XY").workplane(offset=0)
-        .pushPoints(screw_pts)
-        .circle(3.6/2.0)
-        .extrude(-20) 
-    )
-    tool_holder = tool_holder.cut(screws)
-    
-    recesses = (
-        cq.Workplane("XY").workplane(offset=-8)
-        .pushPoints(screw_pts)
-        .circle(8.0/2.0) 
-        .extrude(-200) 
-    )
-    tool_holder = tool_holder.cut(recesses)
-    
+    tool_holder = drill_backplate_screws(tool_holder, screw_pts)
+
     return tool_holder, width_units, depth_units
 
 def main():
@@ -87,8 +74,8 @@ def main():
         rail_height=args.rail_height
     )
     
-    filename = f"v_holder_{fw}x{fd}u_groove_H{args.rail_height}.stl"
-    export_stl(holder, filename, category='tool_holders')
+    filename = f"v_holder_{fw}x{fd}u_H{args.rail_height}.stl"
+    export_model(holder, filename, category='tool_holders')
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

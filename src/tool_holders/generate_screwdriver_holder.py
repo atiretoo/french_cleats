@@ -21,18 +21,16 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, drill_backplate_screws, export_model
 
 def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole_spacing=25.0, num_holes=None, rail_height=73.0, hole_sizes=None, recess_size=0.0, recess_depth=1.0):
-    unit_width = 28.0
     brace_thickness = 2.5
     x_margin = 3.0
     front_margin = 3.0
     fillet_size = 5.0
-    backplate_thickness = 11.0
     
-    width = width_units * unit_width
-    shelf_depth = depth_units * unit_width
+    width = width_units * UNIT_WIDTH
+    shelf_depth = depth_units * UNIT_WIDTH
     
     has_right_brace = width_units > 1
     
@@ -45,7 +43,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
         actual_hole_sizes = [hole_size] * (num_holes if num_holes else 0)
         
     back_clearance = fillet_size + (max(actual_hole_sizes[0], recess_size) if hole_sizes else effective_max_size) / 2.0
-    Z_start = -11.0 - back_clearance
+    Z_start = -BACKPLATE_THICKNESS - back_clearance
     
     x_min = -width/2 + brace_thickness + x_margin + effective_max_size/2
     x_max = width/2 - (brace_thickness if has_right_brace else 0) - x_margin - effective_max_size/2
@@ -59,7 +57,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
     dz = dz_straight
     
     if not hole_sizes and num_holes is None:
-        Z_end = -11.0 - shelf_depth + front_margin + effective_max_size / 2.0
+        Z_end = -BACKPLATE_THICKNESS - shelf_depth + front_margin + effective_max_size / 2.0
         D_avail = abs(Z_end - Z_start) if Z_start >= Z_end else 0
         
         n_straight = int(D_avail / dz_straight) + 1 if D_avail >= 0 else 0
@@ -93,135 +91,126 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
             d_req = d_straight
             dz = dz_straight
             
-        required_depth_units = int(math.ceil(d_req / unit_width))
+        required_depth_units = int(math.ceil(d_req / UNIT_WIDTH))
         if required_depth_units > depth_units:
             print(f"Warning: {num_holes} holes would overflow the {depth_units}U depth.")
             print(f"Automatically increasing depth to {required_depth_units}U.")
             depth_units = required_depth_units
-            shelf_depth = depth_units * unit_width
+            shelf_depth = depth_units * UNIT_WIDTH
 
     if num_holes == 0:
         print(f"Error: Not enough depth to fit even 1 hole.")
         sys.exit(1)
 
     # Create Baseplate
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(width_units, rail_height, mount_type="groove", num_rows=2)
-    
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        width_units, rail_height
+    )
+
     shelf_top = top_y - 40.0
     shelf_bot = top_y - 45.0
-    
-    # Add Shelf
+
     shelf_pts = [
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth),
-        (shelf_top, -11 - shelf_depth),
-        (shelf_top, -11)
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS),
     ]
-    shelf = (
-        cq.Workplane("YZ")
-        .polyline(shelf_pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
+    brace_pts = [
+        (bottom_y, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
+    ]
+
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .polyline(shelf_pts)
+        .close()
+        .extrude(-width)
     )
-    tool_holder = tool_holder.union(shelf)
-    
-    hole_pts = []
-    
+
+    brace_offsets = [(-width, brace_thickness)]
+    if has_right_brace:
+        brace_offsets.append((0.0, -brace_thickness))
+
+    cutout_sketch = None
+    if depth_units > 2:
+        try:
+            cutout_sketch = (
+                cq.Sketch()
+                .polygon(brace_pts)
+                .wires()
+                .offset(-15.0, mode="r")
+                .reset()
+                .vertices()
+                .fillet(8.0)
+            )
+        except Exception:
+            cutout_sketch = None
+
+    for wp_offset, extrude_dist in brace_offsets:
+        tool_holder = (
+            tool_holder
+            .faces(">X")
+            .workplane(offset=wp_offset, centerOption="ProjectedOrigin")
+            .polyline(brace_pts)
+            .close()
+            .extrude(extrude_dist)
+        )
+        if cutout_sketch is not None:
+            tool_holder = (
+                tool_holder
+                .faces(">X")
+                .workplane(offset=wp_offset, centerOption="ProjectedOrigin")
+                .placeSketch(cutout_sketch)
+                .cutBlind(extrude_dist)
+            )
+
+    try:
+        tool_holder = (
+            tool_holder
+            .faces("-Z")
+            .faces("not <Z")
+            .edges("|X")
+            .edges("not >Y")
+            .edges("not <Y")
+            .fillet(5.0)
+        )
+    except Exception:
+        pass
+
+    # Coordinates in ZX plane: (z, x)
+    hole_zx_pts = []
     for i in range(num_holes):
         z = Z_start - i * dz
         if layout == "staggered":
             x = x_min if i % 2 == 0 else x_max
         else:
-            x = (x_min + x_max) / 2.0  
-        hole_pts.append((x, z))
-        
-    # Add Braces
-    brace_pts = [
-        (bottom_y, -11),
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth)
-    ]
-    
-    brace_x_positions = [-width/2 + brace_thickness/2]
-    if has_right_brace:
-        brace_x_positions.append(width/2 - brace_thickness/2)
-                    
-    for x_pos in brace_x_positions:
-        brace = (
-            cq.Workplane("YZ")
-            .polyline(brace_pts).close()
-            .extrude(brace_thickness)
-            .translate((x_pos - brace_thickness/2.0, 0, 0))
-        )
-        tool_holder = tool_holder.union(brace)
-        if depth_units > 2:
-            try:
-                cutout = (
-                    cq.Workplane("YZ")
-                    .polyline(brace_pts).close()
-                    .offset2D(-15.0)
-                    .extrude(brace_thickness + 2.0)
-                    .translate((x_pos - brace_thickness/2.0 - 1.0, 0, 0))
-                )
-                cutout = cutout.edges('|X').fillet(8.0)
-                tool_holder = tool_holder.cut(cutout)
-            except Exception as e:
-                pass
-        
-    class FilletSelector(cq.Selector):
-        def filter(self, objectList):
-            res = []
-            for o in objectList:
-                if not isinstance(o, cq.Edge): continue
-                b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-            return res
+            x = (x_min + x_max) / 2.0
+        hole_zx_pts.append((z, x))
 
-    try:
-        tool_holder = tool_holder.edges(FilletSelector()).fillet(5.0)
-    except:
-        pass
-    
-    # Cut variable holes one by one
-    for pt, sz in zip(hole_pts, actual_hole_sizes):
-        hole = (
-            cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
-            .center(pt[1], pt[0])
-            .circle(sz/2.0)
-            .extrude(40.0) 
-        )
-        tool_holder = tool_holder.cut(hole)
-        
-    # Cut recesses
-    if recess_size > 0 and recess_depth > 0:
-        for pt in hole_pts:
-            recess = (
-                cq.Workplane("ZX", origin=(0, shelf_top, 0))
-                .center(pt[1], pt[0])
-                .circle(recess_size/2.0)
-                .extrude(-recess_depth)
-            )
-            tool_holder = tool_holder.cut(recess)
-    
-    screws = (
-        cq.Workplane("XY").workplane(offset=0)
-        .pushPoints(screw_pts)
-        .circle(3.6/2.0)
-        .extrude(-20) 
-    )
-    tool_holder = tool_holder.cut(screws)
-    
-    recesses = (
-        cq.Workplane("XY").workplane(offset=-8)
-        .pushPoints(screw_pts)
-        .circle(8.0/2.0) 
-        .extrude(-200) 
-    )
-    tool_holder = tool_holder.cut(recesses)
-    
+    if not hole_sizes:
+        wp = tool_holder.copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top, 0))).pushPoints(hole_zx_pts)
+        if recess_size > 0 and recess_depth > 0:
+            tool_holder = wp.cboreHole(hole_size, recess_size, recess_depth, depth=20.0)
+        else:
+            tool_holder = wp.hole(hole_size, 20.0)
+    else:
+        for zx_pt, sz in zip(hole_zx_pts, actual_hole_sizes):
+            wp = tool_holder.copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top, 0))).pushPoints([zx_pt])
+            if recess_size > 0 and recess_depth > 0:
+                tool_holder = wp.cboreHole(sz, recess_size, recess_depth, depth=20.0)
+            else:
+                tool_holder = wp.hole(sz, 20.0)
+
+    tool_holder = drill_backplate_screws(tool_holder, screw_pts)
+
     return tool_holder, width_units, depth_units
 
 def main():
@@ -255,12 +244,12 @@ def main():
     )
     
     if hole_sizes_list:
-        filename = f"screwdriver_holder_{fw}x{fd}u_groove_H{args.rail_height}_VAR_S{args.hole_spacing}.stl"
+        filename = f"screwdriver_holder_{fw}x{fd}u_H{args.rail_height}_VAR_S{args.hole_spacing}.stl"
     else:
         layout_str = f"_N{args.num_holes}" if args.num_holes is not None else ""
-        filename = f"screwdriver_holder_{fw}x{fd}u_groove_H{args.rail_height}_D{args.hole_size}_S{args.hole_spacing}{layout_str}.stl"
+        filename = f"screwdriver_holder_{fw}x{fd}u_H{args.rail_height}_D{args.hole_size}_S{args.hole_spacing}{layout_str}.stl"
         
-    export_stl(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
+    export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
     print(f"Exported {filename}")
 
 if __name__ == "__main__":

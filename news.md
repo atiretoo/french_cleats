@@ -1,6 +1,33 @@
 # NEWS
 
-A chronological record of changes, fixes, and improvements to the Modular French Cleat (MFC) System, listed from newest to oldest.
+A chronological record of changes, fixes, and improvements to **The UNIT System** (formerly Modular French Cleat / MFC System), listed from newest to oldest.
+
+---
+
+## [2.0.0] - 2026-10-31
+
+### Added
+* **The UNIT System Rebrand & Universal Ecosystem:** Officially rebranded the project as **The UNIT System** (*Universal Network of Interchangeable Tool-holders*) built around the `1U = 28.0 mm` modular standard, separating mount-agnostic grooved tool holders from wall-specific mounting adapters.
+* **New Wall & Shelf Mounting Adapters:**
+  * **Honeycomb Storage Wall (HSW) Cleat Adapters (`1U`):** Standard (`40.88 mm` pitch) and rotated (`23.6 mm` / `47.2 mm` pitch) adapters using official HSW insert plugs and shortest-path side-entry captive nut slots.
+  * **Standard 1/4" Pegboard & IKEA Skådis Adapters (`1U`–`4U`):** Parametric adapters with compliant snap-fit and arc-hook pegs, 45° print orientation, and sacrificial breakaway support fins/pillars.
+  * **Shelf-Edge Dovetail Cleat Adapters (`2U` & `7U`):** Monolithic adapters with tapered male dovetail wedges (`152.5 mm` dual-dovetail spacing on `7U`), shelf-rim lip geometry, angled nut push-out holes, and calibration test coupons.
+* **New Heavy-Duty Tool Holders:**
+  * **Claw Hammer Holder (`2U`):** Shortened rear striking-face cradle (5 mm from backplate) with an 8 mm elevated front claw platform, 30 mm cylindrical cradle dimples, and a 5 mm filleted gusset brace.
+  * **Mallet Holder (`3U`):** Lowered 8 mm thick shelf (60 mm drop) with 60 mm cylindrical head cradles and tapered handle slot.
+  * **Hose & Extension Cord Holder (`7U`):** 60° swept saddle cradle (`150 mm` depth) with a flared front retaining lip and dual side gussets.
+  * **Sheet Metal Tool Holder (`1U`):** Top slide-in 45° V-groove retaining pocket for 26-gauge ferromagnetic steel strips with corner retention tabs.
+  * **Redesigned Clamp Holder (`4U`):** Added 10 mm tall, 24 mm wide flat head-support bumps with a 45° self-supporting ramp on the slot opening side.
+  * **3U Deep Slot Holder (`1x3U`):** Added a 3U deep variant for try squares alongside the 1x2U slot holder.
+
+### Changed
+* **Shallow Groove & Self-Centering Ridge Standard (v2.0):** Standardized all tool holder backplates to a 3.0 mm deep 45° trapezoidal groove (`7.0 mm` surface opening, `1.0 mm` flat floor) paired with a 2.35 mm tall locking ridge (`0.15 mm` side clearance, `0.65 mm` crest clearance) across all cleats and adapters for a zero-slop, self-centering fit.
+* **Mount-Agnostic Tool Holders & Clean Filenames:** Removed legacy `--mount multiconnect` options from all tool holders and cleats, and dropped `_groove` from all exported filenames since the v2.0 groove is the universal standard.
+* **Full BRep Codebase Architecture:** Refactored `core_library.py` (`create_baseplate`, `create_nut_slot`, `support_fin`, `drill_backplate_screws`, `SCREW_SPECS`) and all tool holder, cleat, shelf, and adapter generators to idiomatic Boundary Representation (BRep) feature-chaining and compound boolean operations.
+* **Backplate Edge Finishing & Structural Fillets:** Standardized 2.0 mm 45° back perimeter chamfers (eliminating elephant's foot and wall corner interference), 2.5 mm vertical corner fillets, and 5.0 mm shelf-to-backplate structural fillets.
+* **CAD-Space STEP Exports vs. Print-Oriented STL Exports:** Updated `export_model()` so `.step` files are always exported in clean, unrotated CAD coordinates (without sacrificial print supports), while `.stl` files are automatically rotated into their optimal support-free print bed orientation.
+* **45° Print Orientation & Breakaway Support Fins:** Standardized 45° print orientations with `0.01 mm` micro-gap breakaway support fins (`support_fin()`) for Gridfinity shelves, slot holders, and Shooo cam holders.
+* **Nut Pusher Handle:** Restored the 40 mm flat stepped rectangular handle (`0.28 mm` layer steps) for M3, M4, and M5 nut pushers with exact stop-depth shafts (`slot_depth - nut_point_to_point`).
 
 ---
 

@@ -16,121 +16,155 @@
 # along with french_cleats.  If not, see <https://www.gnu.org/licenses/>.
 import cadquery as cq
 import argparse
-import sys
-
+import math
 import sys, os
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_stl
+from core_library import (
+    UNIT_WIDTH, BACKPLATE_THICKNESS, TOP_GROOVE_Y, GROOVE_SURFACE_HALF_WIDTH,
+    create_baseplate, drill_backplate_screws, export_model, support_fin
+)
+
+def add_support_fins(holder, width_units, depth_units, bottom_groove_y, top_y):
+    holder = holder.rotate((0, 0, 0), (1, 0, 0), 180).rotate((0, 0, 0), (0, 1, 0), 45)
+    baseplate_width = width_units * UNIT_WIDTH
+    cos45 = math.cos(math.radians(45))
+    X_right = (baseplate_width / 2.0) * cos45
+    X_left = (-baseplate_width / 2.0) * cos45
+    length = X_right - X_left
+    bb = holder.val().BoundingBox()
+    holder = holder.translate((-X_right, 0, -bb.zmin))
+    # Because we lowered the holder by the chamfer depth (2.0 * cos45), the holder physically
+    # penetrates into the support fins by that amount. We must add this drop to the z_gap
+    # to maintain the 0.10mm clearance required for a clean breakaway!
+    drop_offset = 2.0 * cos45
+    adjusted_z_gap = 0.10 + drop_offset
+
+    fin_width = 1.6
+    fin_proto = support_fin(z_gap=adjusted_z_gap, is_right=False, length=length, height=length, fin_width=fin_width).rotate((0, 0, 0), (0, 0, 1), -90)
+    orig_top_edge = TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH
+    orig_bot_edge = bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH
+    fin1 = fin_proto.translate((0, -orig_top_edge, 0)).val()
+    fin2 = fin_proto.translate((0, -orig_bot_edge, 0)).val()
+
+    shelf_length = depth_units * UNIT_WIDTH
+    kickstand_length = (shelf_length * cos45) * 0.8
+    kickstand_fin = (
+        support_fin(z_gap=adjusted_z_gap, is_right=True, length=kickstand_length, height=kickstand_length, fin_width=fin_width)
+        .rotate((0, 0, 0), (0, 0, 1), -90)
+        .translate((0, -(top_y - 45.0), 0))
+        .val()
+    )
+    return holder.union(cq.Compound.makeCompound([fin1, fin2, kickstand_fin]))
 
 def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clearance=10.0, rail_height=73.0):
-    unit_width = 28.0
     brace_thickness = 2.5
-    
-    width = width_units * unit_width
-    shelf_depth = depth_units * unit_width
-    
-    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, slots_to_cut = create_baseplate(width_units, rail_height, mount_type="groove", num_rows=2)
-    
+
+    width = width_units * UNIT_WIDTH
+    shelf_depth = depth_units * UNIT_WIDTH
+
+    tool_holder, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(
+        width_units, rail_height
+    )
+
     shelf_top = top_y - 40.0
     shelf_bot = top_y - 45.0
-    
+
     shelf_pts = [
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth),
-        (shelf_top, -11 - shelf_depth),
-        (shelf_top, -11)
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS - shelf_depth),
+        (shelf_top, -BACKPLATE_THICKNESS),
     ]
-    shelf = (
-        cq.Workplane("YZ")
-        .polyline(shelf_pts).close()
-        .extrude(width)
-        .translate((-width/2, 0, 0))
-    )
-    tool_holder = tool_holder.union(shelf)
-    
-    # Braces
     brace_pts = [
-        (bottom_y, -11),
-        (shelf_bot, -11),
-        (shelf_bot, -11 - shelf_depth)
+        (bottom_y, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS),
+        (shelf_bot, -BACKPLATE_THICKNESS - shelf_depth),
     ]
-    brace_x_positions = [-width/2 + brace_thickness/2]
+
+    tool_holder = (
+        tool_holder
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
+        .faces(">X")
+        .workplane(centerOption="ProjectedOrigin")
+        .polyline(shelf_pts)
+        .close()
+        .extrude(-width)
+    )
+
+    brace_offsets = [(-width, brace_thickness)]
     if width_units > 1:
-        brace_x_positions.append(width/2 - brace_thickness/2)
-                    
-    for x_pos in brace_x_positions:
-        brace = (
-            cq.Workplane("YZ")
-            .polyline(brace_pts).close()
-            .extrude(brace_thickness)
-            .translate((x_pos - brace_thickness/2.0, 0, 0))
+        brace_offsets.append((0.0, -brace_thickness))
+
+    cutout_sketch = None
+    if depth_units > 2:
+        try:
+            cutout_sketch = (
+                cq.Sketch()
+                .polygon(brace_pts)
+                .wires()
+                .offset(-15.0, mode="r")
+                .reset()
+                .vertices()
+                .fillet(8.0)
+            )
+        except Exception:
+            cutout_sketch = None
+
+    for wp_offset, extrude_dist in brace_offsets:
+        tool_holder = (
+            tool_holder
+            .faces(">X")
+            .workplane(offset=wp_offset, centerOption="ProjectedOrigin")
+            .polyline(brace_pts)
+            .close()
+            .extrude(extrude_dist)
         )
-        tool_holder = tool_holder.union(brace)
-        if depth_units > 2:
-            try:
-                cutout = (
-                    cq.Workplane("YZ")
-                    .polyline(brace_pts).close()
-                    .offset2D(-15.0)
-                    .extrude(brace_thickness + 2.0)
-                    .translate((x_pos - brace_thickness/2.0 - 1.0, 0, 0))
-                )
-                cutout = cutout.edges('|X').fillet(8.0)
-                tool_holder = tool_holder.cut(cutout)
-            except Exception as e:
-                pass
-        
-    class FilletSelector(cq.Selector):
-        def filter(self, objectList):
-            res = []
-            for o in objectList:
-                if not isinstance(o, cq.Edge): continue
-                b = o.BoundingBox()
-                if abs(b.ymin - shelf_top) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-                elif abs(b.ymin - shelf_bot) < 1 and abs(b.zmin - (-11)) < 1 and b.xmax - b.xmin > 10:
-                    res.append(o)
-            return res
+        if cutout_sketch is not None:
+            tool_holder = (
+                tool_holder
+                .faces(">X")
+                .workplane(offset=wp_offset, centerOption="ProjectedOrigin")
+                .placeSketch(cutout_sketch)
+                .cutBlind(extrude_dist)
+            )
 
     try:
-        tool_holder = tool_holder.edges(FilletSelector()).fillet(5.0)
-    except:
+        tool_holder = (
+            tool_holder
+            .faces("-Z")
+            .faces("not <Z")
+            .edges("|X")
+            .edges("not >Y")
+            .edges("not <Y")
+            .fillet(5.0)
+        )
+    except Exception:
         pass
-        
+
     # Cut the slots (1 per unit width)
-    slot_length = shelf_depth - back_clearance + 5.0 # extra length to break through front edge safely
-    z_center = -11.0 - back_clearance - slot_length / 2.0
-    
-    slot_pts = []
-    for i in range(width_units):
-        x = -width/2 + unit_width/2 + i * unit_width
-        slot_pts.append((z_center, x))
-        
-    slots = (
-        cq.Workplane("ZX", origin=(0, shelf_bot - 10.0, 0))
+    slot_length = shelf_depth - back_clearance + 5.0
+    z_center = -BACKPLATE_THICKNESS - back_clearance - slot_length / 2.0
+    slot_pts = [
+        (z_center, -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH)
+        for i in range(width_units)
+    ]
+
+    tool_holder = (
+        tool_holder
+        .copyWorkplane(cq.Workplane("ZX", origin=(0, shelf_top + 10.0, 0)))
         .pushPoints(slot_pts)
         .rect(slot_length, slot_width)
-        .extrude(40.0)
+        .cutBlind(-30.0)
     )
-    tool_holder = tool_holder.cut(slots)
-    
-    screws = (
-        cq.Workplane("XY").workplane(offset=0)
-        .pushPoints(screw_pts)
-        .circle(3.6/2.0)
-        .extrude(-20) 
-    )
-    tool_holder = tool_holder.cut(screws)
-    
-    recesses = (
-        cq.Workplane("XY").workplane(offset=-8)
-        .pushPoints(screw_pts)
-        .circle(8.0/2.0) 
-        .extrude(-200) 
-    )
-    tool_holder = tool_holder.cut(recesses)
-    
-    return tool_holder, width_units, depth_units
+
+    if screw_pts:
+        tool_holder = drill_backplate_screws(tool_holder, screw_pts, cbore_depth=200.0)
+
+    return tool_holder, width_units, depth_units, bottom_groove_y, top_y
 
 def main():
     parser = argparse.ArgumentParser(description="Generate French Cleat slot holder")
@@ -139,20 +173,25 @@ def main():
     parser.add_argument("--slot-width", type=float, default=6.25, help="Width of the slot in mm")
     parser.add_argument("--back-clearance", type=float, default=10.0, help="Distance from backplate to start of slot")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
-    parser.add_argument("--print-orientation", type=str, default="right_down", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down"], help="Print orientation for STL export")
+    parser.add_argument("--print-orientation", type=str, default="right_down_45", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down", "right_down_45"], help="Print orientation for STL export (default: right_down_45)")
+    parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format (default: both)")
     args = parser.parse_args()
-    
-    holder, fw, fd = create_slot_holder(
-        width_units=args.width_units, 
+
+    cad_holder, fw, fd, bottom_groove_y, top_y = create_slot_holder(
+        width_units=args.width_units,
         depth_units=args.depth_units,
         slot_width=args.slot_width,
         back_clearance=args.back_clearance,
-        rail_height=args.rail_height
+        rail_height=args.rail_height,
     )
-    
-    filename = f"slot_holder_{fw}x{fd}u_groove_H{args.rail_height}_W{args.slot_width}.stl"
-    export_stl(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
-    print(f"Exported {filename}")
+
+    if args.print_orientation == "right_down_45":
+        print_holder = add_support_fins(cad_holder, fw, fd, bottom_groove_y, top_y)
+        filename = f"slot_holder_{fw}x{fd}u_H{args.rail_height}_W{args.slot_width}_45deg.stl"
+        export_model(print_holder, filename, category="tool_holders", print_orientation="face_down", export=args.export, step_shape=cad_holder)
+    else:
+        filename = f"slot_holder_{fw}x{fd}u_H{args.rail_height}_W{args.slot_width}.stl"
+        export_model(cad_holder, filename, category="tool_holders", print_orientation=args.print_orientation, export=args.export)
 
 if __name__ == "__main__":
     main()
