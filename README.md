@@ -1,7 +1,7 @@
 # The UNIT System
 **Universal Network of Interchangeable Tool-holders**  
 *(Formerly Modular French Cleat / MFC System)*  
-**Version 2.0.0-dev**
+**Version 2.0.0**
 
 A fully parametric, modular 3D-printed tool holding ecosystem with universal cross-system wall compatibility.
 

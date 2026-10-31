@@ -17,10 +17,12 @@
 import cadquery as cq
 import argparse
 import sys, os
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core_library import (
     UNIT_WIDTH, export_model, create_nut_slot, MULTICONNECT_ASSETS_DIR,
-    get_ridge_points, get_screw_points, NUT_SLOT_TOLERANCE
+    get_ridge_points, get_screw_points, get_bottom_ridge_y, get_bottom_edge_y,
+    BACKPLATE_TOP_Y, TOP_RIDGE_Y, NUT_SLOT_TOLERANCE, SCREW_SPECS
 )
 
 def load_mc_block(filename, opengrid_path=None):
@@ -31,143 +33,118 @@ def load_mc_block(filename, opengrid_path=None):
         raise FileNotFoundError(f"Multiconnect asset not found at: {path}")
     model = cq.importers.importStep(path).val()
     bb = model.BoundingBox()
-    dx = - (bb.xmin + bb.xmax) / 2
-    dy = - (bb.ymin + bb.ymax) / 2
+    dx = -(bb.xmin + bb.xmax) / 2.0
+    dy = -(bb.ymin + bb.ymax) / 2.0
     # We want the solid back (zmin of original) to be at Z=0
     # And the slot opening to be at Z=6.4 (facing the wall)
-    dz = - bb.zmin
+    dz = -bb.zmin
     return model.translate((dx, dy, dz))
 
 def create_adapter(units=2, rail_height=73.0, screw_m="M3", opengrid_path=None):
     if opengrid_path is None:
         opengrid_path = MULTICONNECT_ASSETS_DIR
-        
-    width = units * UNIT_WIDTH
-    
-    if screw_m == "M3":
-        screw_d, nut_waf, nut_thick = 3.4, 5.5, 2.4
-    elif screw_m == "M4":
-        screw_d, nut_waf, nut_thick = 4.5, 7.0, 3.2
-    elif screw_m == "M5":
-        screw_d, nut_waf, nut_thick = 5.5, 8.0, 4.0
 
-    top_screw_y = 10.0
-    bottom_screw_y = -rail_height - 1.0 - 10.0 # play = 1.0
-    
-    top_y = 20.0
-    bottom_y = bottom_screw_y - 10.0
-    
-    num_rows = int(rail_height / 28)
-    if num_rows < 1:
-        num_rows = 1
-        
+    if screw_m not in SCREW_SPECS:
+        raise ValueError(f"Unsupported screw size: {screw_m}")
+    spec = SCREW_SPECS[screw_m]
+    screw_d, nut_thick = spec["clear"], spec["nut_thick"]
+
+    width = units * UNIT_WIDTH
+    top_screw_y = TOP_RIDGE_Y
+    bottom_screw_y = get_bottom_ridge_y(rail_height)
+    top_y = BACKPLATE_TOP_Y
+    bottom_y = get_bottom_edge_y(rail_height)
+
+    num_rows = max(1, int(rail_height / 28))
     stack_height = num_rows * 28.0 + 14.0
     stack_center_y = (top_screw_y + bottom_screw_y) / 2.0
-    
+    stack_top_y = stack_center_y + stack_height / 2.0
+    stack_bot_y = stack_center_y - stack_height / 2.0
+
     try:
-        top_block = load_mc_block('top-back.step', opengrid_path)
-        mid_block = load_mc_block('raw-slot-back.step', opengrid_path)
-        bot_block = load_mc_block('embed-back-end.step', opengrid_path)
-        cutter = load_mc_block('slot-opening.step', opengrid_path).translate((0, 0, 6.4 - 4.15))
+        top_block = load_mc_block("top-back.step", opengrid_path)
+        mid_block = load_mc_block("raw-slot-back.step", opengrid_path)
+        bot_block = load_mc_block("embed-back-end.step", opengrid_path)
+        cutter = load_mc_block("slot-opening.step", opengrid_path).translate((0, 0, 6.4 - 4.15))
     except Exception as e:
         print(f"Error loading Multiconnect STEP files from {opengrid_path}: {e}")
         print("Please ensure the path is correct or pass it via --opengrid-path.")
         return cq.Workplane("XY")
-    
-    adapter = cq.Workplane("XY")
-    
+
     mc_solids = []
+    cut_solids = []
     for c in range(units):
-        x_center = -width/2 + 14.0 + c*28.0
-        
-        # Calculate Y positions relative to the stack center
-        # The stack goes from y = stack_center_y + stack_height/2 to y = stack_center_y - stack_height/2
-        stack_top_y = stack_center_y + stack_height / 2.0
-        
+        x_center = -width / 2.0 + 14.0 + c * 28.0
+
         y_top_block = stack_top_y - 14.0
-        inst = top_block.translate((x_center, y_top_block, 0))
-        mc_solids.append(inst)
-        
+        mc_solids.append(top_block.moved(cq.Location(cq.Vector(x_center, y_top_block, 0))))
+
         for r in range(1, num_rows):
-            y_mid_block = stack_top_y - 14.0 - r*28.0
-            inst = mid_block.translate((x_center, y_mid_block, 0))
-            mc_solids.append(inst)
-            
-        y_bot_block = stack_top_y - num_rows*28.0 - 7.0
-        inst = bot_block.translate((x_center, y_bot_block, 0))
-        mc_solids.append(inst)
-        
-    for solid in mc_solids:
-        adapter = adapter.union(cq.Workplane(solid))
-        
-    # Cut the full circular openings for the middle sections using slot-opening.step
-    for c in range(units):
-        x_center = -width/2 + 14.0 + c*28.0
-        stack_top_y = stack_center_y + stack_height / 2.0
+            y_mid_block = stack_top_y - 14.0 - r * 28.0
+            mc_solids.append(mid_block.moved(cq.Location(cq.Vector(x_center, y_mid_block, 0))))
+
+        y_bot_block = stack_top_y - num_rows * 28.0 - 7.0
+        mc_solids.append(bot_block.moved(cq.Location(cq.Vector(x_center, y_bot_block, 0))))
+
         for r in range(1, num_rows + 1):
             opening_y = stack_top_y - r * 28.0
-            cut_inst = cutter.translate((x_center, opening_y, 0))
-            adapter = adapter.cut(cq.Workplane(cut_inst))
-            
-    # Fill the gaps above and below the stack with 6.4mm solid boxes
-    stack_top_y = stack_center_y + stack_height / 2.0
-    stack_bot_y = stack_center_y - stack_height / 2.0
-    
+            cut_solids.append(cutter.moved(cq.Location(cq.Vector(x_center, opening_y, 0))))
+
+    # Fuse the multiconnect column blocks and cut the slot openings
+    adapter = cq.Workplane("XY")
+    for solid in mc_solids:
+        adapter = adapter.union(cq.Workplane(solid))
+    if cut_solids:
+        adapter = adapter.cut(cq.Compound.makeCompound(cut_solids))
+
+    # Fill the gaps above and below the stack and add v2.0 locking ridges on YZ
+    extra_solids = []
     if top_y > stack_top_y:
         gap_height = top_y - stack_top_y
         gap_center_y = stack_top_y + gap_height / 2.0
-        top_filler = cq.Workplane("XY", origin=(0, gap_center_y, 3.2)).box(width, gap_height, 6.4)
-        adapter = adapter.union(top_filler)
-        
+        extra_solids.append(cq.Workplane("XY", origin=(0, gap_center_y, 3.2)).box(width, gap_height, 6.4).val())
+
     if bottom_y < stack_bot_y:
         gap_height = stack_bot_y - bottom_y
         gap_center_y = stack_bot_y - gap_height / 2.0
-        bot_filler = cq.Workplane("XY", origin=(0, gap_center_y, 3.2)).box(width, gap_height, 6.4)
-        adapter = adapter.union(bot_filler)
-        
-    # Ridges on the Z=0 face pointing into -Z
-    top_ridge = cq.Workplane("YZ").polyline(get_ridge_points(top_screw_y)).close().extrude(width / 2.0, both=True)
-    bot_ridge = cq.Workplane("YZ").polyline(get_ridge_points(bottom_screw_y)).close().extrude(width / 2.0, both=True)
-    adapter = adapter.union(top_ridge).union(bot_ridge)
-    
+        extra_solids.append(cq.Workplane("XY", origin=(0, gap_center_y, 3.2)).box(width, gap_height, 6.4).val())
+
+    top_ridge = cq.Workplane("YZ").polyline(get_ridge_points(top_screw_y)).close().extrude(width / 2.0, both=True).val()
+    bot_ridge = cq.Workplane("YZ").polyline(get_ridge_points(bottom_screw_y)).close().extrude(width / 2.0, both=True).val()
+    extra_solids.extend([top_ridge, bot_ridge])
+
+    adapter = adapter.union(cq.Compound.makeCompound(extra_solids))
+
     # Drill clearance screw holes through the adapter
     screw_pts = get_screw_points(units, rail_height)
     adapter = adapter.faces(">Z").workplane(centerOption="ProjectedOrigin").pushPoints(screw_pts).hole(screw_d)
-    
+
     # Nut slots
     slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 2.0 + slot_t / 2.0
-    
-    for i in range(units):
-        x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
-        
-        if units == 1:
-            # Shortest path: slide in from right (+X) side, push hole exits through left (-X) side
-            side_depth = width / 2.0  # 14mm
-            # Top nut slot (side entry)
-            slot_top_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
-            slot_top_solid = cq.Workplane(slot_top_solid).rotate((0, 0, 0), (0, 0, 1), -90).val()
-            slot_top_solid = slot_top_solid.translate(cq.Vector(x, top_screw_y, slot_z_center))
-            adapter = adapter.cut(cq.Workplane(slot_top_solid))
-            
-            # Bottom nut slot (side entry)
-            slot_bot_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
-            slot_bot_solid = cq.Workplane(slot_bot_solid).rotate((0, 0, 0), (0, 0, 1), -90).val()
-            slot_bot_solid = slot_bot_solid.translate(cq.Vector(x, bottom_screw_y, slot_z_center))
-            adapter = adapter.cut(cq.Workplane(slot_bot_solid))
-        else:
-            # Top nut slot (vertical from top)
-            depth_top = top_y - top_screw_y
-            slot_top_solid = create_nut_slot(screw_m, depth=depth_top, push_hole=True, push_hole_angle=-30.0)
-            slot_top_solid = slot_top_solid.translate(cq.Vector(x, top_screw_y, slot_z_center))
-            adapter = adapter.cut(cq.Workplane(slot_top_solid))
-            
-            # Bottom nut slot (vertical from bottom)
-            depth_bot = bottom_screw_y - bottom_y
-            slot_bot_solid = create_nut_slot(screw_m, depth=depth_bot, push_hole=True, push_hole_angle=-30.0)
-            slot_bot_solid = cq.Workplane(slot_bot_solid).rotate((0, 0, 0), (0, 0, 1), 180).val()
-            slot_bot_solid = slot_bot_solid.translate(cq.Vector(x, bottom_screw_y, slot_z_center))
-            adapter = adapter.cut(cq.Workplane(slot_bot_solid))
+
+    nut_cutters = []
+    if units == 1:
+        side_depth = width / 2.0
+        slot_side_proto = create_nut_slot(screw_m, depth=side_depth, push_hole=True).moved(
+            cq.Location(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), -90)
+        )
+        nut_cutters.append(slot_side_proto.moved(cq.Location(cq.Vector(0, top_screw_y, slot_z_center))))
+        nut_cutters.append(slot_side_proto.moved(cq.Location(cq.Vector(0, bottom_screw_y, slot_z_center))))
+    else:
+        depth_top = top_y - top_screw_y
+        depth_bot = bottom_screw_y - bottom_y
+        slot_top_proto = create_nut_slot(screw_m, depth=depth_top, push_hole=True, push_hole_angle=-30.0)
+        slot_bot_proto = create_nut_slot(screw_m, depth=depth_bot, push_hole=True, push_hole_angle=-30.0).moved(
+            cq.Location(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), 180)
+        )
+        for i in range(units):
+            x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
+            nut_cutters.append(slot_top_proto.moved(cq.Location(cq.Vector(x, top_screw_y, slot_z_center))))
+            nut_cutters.append(slot_bot_proto.moved(cq.Location(cq.Vector(x, bottom_screw_y, slot_z_center))))
+
+    if nut_cutters:
+        adapter = adapter.cut(cq.Compound.makeCompound(nut_cutters))
 
     return adapter
 
@@ -178,14 +155,13 @@ def main():
     parser.add_argument("--screw", type=str, default="M3", help="Screw size")
     parser.add_argument("--opengrid-path", type=str, default=None, help="Path to Multiconnect Modeling Files (optional)")
     parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format (default: both)")
-    
+
     args = parser.parse_args()
-    
+
     adapter = create_adapter(args.units, args.rail_height, args.screw, args.opengrid_path)
     filename = f"opengrid_adapter_{args.units}u_H{args.rail_height}_{args.screw}.stl"
-    
-    # Save to exports/stl directory relative to the project root
-    export_model(adapter, filename, print_orientation='top_down', category='multiconnect', export=args.export)
+
+    export_model(adapter, filename, print_orientation="bottom_down", category="multiconnect", export=args.export)
 
 if __name__ == "__main__":
     main()

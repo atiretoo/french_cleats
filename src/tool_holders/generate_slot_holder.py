@@ -17,19 +17,19 @@
 import cadquery as cq
 import argparse
 import math
-import sys
-
 import sys, os
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model, support_fin
+from core_library import (
+    UNIT_WIDTH, BACKPLATE_THICKNESS, TOP_GROOVE_Y, GROOVE_SURFACE_HALF_WIDTH,
+    create_baseplate, drill_backplate_screws, export_model, support_fin
+)
 
 def add_support_fins(holder, width_units, depth_units, bottom_groove_y, top_y):
-    holder = holder.rotate((0,0,0), (1,0,0), 180)
-    holder = holder.rotate((0,0,0), (0,1,0), 45)
-    baseplate_width = width_units * 28.0
+    holder = holder.rotate((0, 0, 0), (1, 0, 0), 180).rotate((0, 0, 0), (0, 1, 0), 45)
+    baseplate_width = width_units * UNIT_WIDTH
     cos45 = math.cos(math.radians(45))
     X_right = (baseplate_width / 2.0) * cos45
-    Z_right = -(baseplate_width / 2.0) * cos45
     X_left = (-baseplate_width / 2.0) * cos45
     length = X_right - X_left
     bb = holder.val().BoundingBox()
@@ -39,28 +39,24 @@ def add_support_fins(holder, width_units, depth_units, bottom_groove_y, top_y):
     # to maintain the 0.10mm clearance required for a clean breakaway!
     drop_offset = 2.0 * cos45
     adjusted_z_gap = 0.10 + drop_offset
-    
+
     fin_width = 1.6
-    fin1 = support_fin(z_gap=adjusted_z_gap, is_right=False, length=length, height=length, fin_width=fin_width)
-    fin2 = support_fin(z_gap=adjusted_z_gap, is_right=False, length=length, height=length, fin_width=fin_width)
-    fin1 = fin1.rotate((0,0,0), (0,0,1), -90)
-    fin2 = fin2.rotate((0,0,0), (0,0,1), -90)
-    orig_top_edge = 10.0 - 3.5
-    orig_bot_edge = bottom_groove_y + 3.5
-    y_target_1 = -orig_top_edge
-    y_target_2 = -orig_bot_edge
-    fin1 = fin1.translate((0, y_target_1, 0))
-    fin2 = fin2.translate((0, y_target_2, 0))
-    holder = holder.union(fin1.val())
-    holder = holder.union(fin2.val())
-    shelf_length = depth_units * 28.0
+    fin_proto = support_fin(z_gap=adjusted_z_gap, is_right=False, length=length, height=length, fin_width=fin_width).rotate((0, 0, 0), (0, 0, 1), -90)
+    orig_top_edge = TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH
+    orig_bot_edge = bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH
+    fin1 = fin_proto.translate((0, -orig_top_edge, 0)).val()
+    fin2 = fin_proto.translate((0, -orig_bot_edge, 0)).val()
+
+    shelf_length = depth_units * UNIT_WIDTH
     kickstand_length = (shelf_length * cos45) * 0.8
-    kickstand_fin = support_fin(z_gap=adjusted_z_gap, is_right=True, length=kickstand_length, height=kickstand_length, fin_width=fin_width)
-    kickstand_fin = kickstand_fin.rotate((0,0,0), (0,0,1), -90)
-    shelf_y = -(top_y - 45.0)  # Align with the bottom edge of the shelf for a clean breakaway
-    kickstand_fin = kickstand_fin.translate((0, shelf_y, 0))
-    holder = holder.union(kickstand_fin.val())
-    return holder
+    kickstand_fin = (
+        support_fin(z_gap=adjusted_z_gap, is_right=True, length=kickstand_length, height=kickstand_length, fin_width=fin_width)
+        .rotate((0, 0, 0), (0, 0, 1), -90)
+        .translate((0, -(top_y - 45.0), 0))
+        .val()
+    )
+    return holder.union(cq.Compound.makeCompound([fin1, fin2, kickstand_fin]))
+
 def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clearance=10.0, rail_height=73.0):
     brace_thickness = 2.5
 
@@ -163,14 +159,10 @@ def create_slot_holder(width_units=1, depth_units=2, slot_width=6.25, back_clear
         .pushPoints(slot_pts)
         .rect(slot_length, slot_width)
         .cutBlind(-30.0)
-        .workplaneFromTagged("back_wp")
-        .pushPoints(screw_pts)
-        .hole(3.6, 20.0)
-        .workplaneFromTagged("back_wp")
-        .workplane(offset=-8.0)
-        .pushPoints(screw_pts)
-        .hole(8.0, 200.0)
     )
+
+    if screw_pts:
+        tool_holder = drill_backplate_screws(tool_holder, screw_pts, cbore_depth=200.0)
 
     return tool_holder, width_units, depth_units, bottom_groove_y, top_y
 
@@ -182,24 +174,24 @@ def main():
     parser.add_argument("--back-clearance", type=float, default=10.0, help="Distance from backplate to start of slot")
     parser.add_argument("--rail-height", type=float, default=73.0, help="Height of rail")
     parser.add_argument("--print-orientation", type=str, default="right_down_45", choices=["left_down", "right_down", "top_down", "bottom_down", "back_down", "face_down", "right_down_45"], help="Print orientation for STL export (default: right_down_45)")
+    parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format (default: both)")
     args = parser.parse_args()
-    
-    holder, fw, fd, bottom_groove_y, top_y = create_slot_holder(
-        width_units=args.width_units, 
+
+    cad_holder, fw, fd, bottom_groove_y, top_y = create_slot_holder(
+        width_units=args.width_units,
         depth_units=args.depth_units,
         slot_width=args.slot_width,
         back_clearance=args.back_clearance,
-        rail_height=args.rail_height
+        rail_height=args.rail_height,
     )
-    
+
     if args.print_orientation == "right_down_45":
-        holder = add_support_fins(holder, fw, fd, bottom_groove_y, top_y)
+        print_holder = add_support_fins(cad_holder, fw, fd, bottom_groove_y, top_y)
         filename = f"slot_holder_{fw}x{fd}u_H{args.rail_height}_W{args.slot_width}_45deg.stl"
-        export_model(holder, filename, category='tool_holders', print_orientation="face_down")
+        export_model(print_holder, filename, category="tool_holders", print_orientation="face_down", export=args.export, step_shape=cad_holder)
     else:
         filename = f"slot_holder_{fw}x{fd}u_H{args.rail_height}_W{args.slot_width}.stl"
-        export_model(holder, filename, category='tool_holders', print_orientation=args.print_orientation)
-    print(f"Exported {filename}")
+        export_model(cad_holder, filename, category="tool_holders", print_orientation=args.print_orientation, export=args.export)
 
 if __name__ == "__main__":
     main()

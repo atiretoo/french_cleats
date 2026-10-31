@@ -17,23 +17,25 @@
 import cadquery as cq
 import argparse
 import sys, os
-import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
+from core_library import (
+    UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate,
+    drill_backplate_screws, export_model
+)
 
 def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length=120.0, web_thickness=5.5):
     width = units * UNIT_WIDTH
-    backplate_thickness = 11.0
-    
+    backplate_thickness = BACKPLATE_THICKNESS
+
     # Baseplate
     body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units)
-    
+
     # Shelf thickness
     shelf_t = 5.0  # Reduced for clearance of screw holes
     front_z = -backplate_thickness - length
     back_z = -backplate_thickness
-    
+
     # YZ Workplane maps Local X = Global Y, Local Y = Global Z.
     shelf_pts = [
         (top_y - shelf_t, back_z),
@@ -46,7 +48,7 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
         (top_y - shelf_t, front_z),        # Front tip
         (bottom_y, back_z),                # Bottom back
     ]
-    
+
     body = (
         body
         .faces(">Z")
@@ -71,7 +73,7 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
         .close()
         .extrude(-web_thickness)
     )
-    
+
     # Cut the U-slot through the shelf vertically
     # Workplane("ZX") maps Local X = Global Z, Local Y = Global X
     slot_back_z = front_z + slot_length
@@ -85,7 +87,7 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
         .close()
         .cutBlind(-50.0)
     )
-    
+
     # Add triangular cutouts to the braces via 2D Sketch with filleted vertices
     try:
         cutout_sketch = (
@@ -105,7 +107,7 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
         )
     except Exception:
         pass
-        
+
     # Add fillets to the inside edges of the braces and shelf where they meet the backplate
     body = (
         body
@@ -114,23 +116,11 @@ def create_power_tool_holder(units=2, length=140.0, slot_width=45.0, slot_length
         .edges("not <Y")
         .fillet(4.0)
     )
-        
+
     # Cut screws
     if screw_pts:
-        body = (
-            body
-            .workplaneFromTagged("back_wp")
-            .pushPoints(screw_pts)
-            .hole(3.6, 20.0)
-            .workplaneFromTagged("back_wp")
-            .workplane(offset=-8.0)
-            .pushPoints(screw_pts)
-            .hole(8.0, 20.0)
-        )
-        
-    # Rotate 180 degrees around X so it prints upside down
-    body = body.rotate((0, 0, 0), (1, 0, 0), 180)
-    
+        body = drill_backplate_screws(body, screw_pts, cbore_depth=20.0)
+
     return body
 
 if __name__ == "__main__":
@@ -139,15 +129,16 @@ if __name__ == "__main__":
     parser.add_argument("--length", type=float, default=140.0)
     parser.add_argument("--slot-width", type=float, default=45.0)
     parser.add_argument("--slot-length", type=float, default=120.0)
-    
+    parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format (default: both)")
+
     args = parser.parse_args()
-    
+
     holder = create_power_tool_holder(
         units=args.units,
         length=args.length,
         slot_width=args.slot_width,
-        slot_length=args.slot_length
+        slot_length=args.slot_length,
     )
-    
+
     filename = f"power_tool_holder_{args.units}u_L{args.length}.stl"
-    export_model(holder, filename, print_orientation="top_down", category="tool_holders")
+    export_model(holder, filename, print_orientation="top_down", category="tool_holders", export=args.export)

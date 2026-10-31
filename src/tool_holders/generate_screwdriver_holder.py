@@ -21,14 +21,13 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, drill_backplate_screws, export_model
 
 def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole_spacing=25.0, num_holes=None, rail_height=73.0, hole_sizes=None, recess_size=0.0, recess_depth=1.0):
     brace_thickness = 2.5
     x_margin = 3.0
     front_margin = 3.0
     fillet_size = 5.0
-    backplate_thickness = 11.0
     
     width = width_units * UNIT_WIDTH
     shelf_depth = depth_units * UNIT_WIDTH
@@ -210,16 +209,7 @@ def create_screwdriver_holder(width_units=1, depth_units=3, hole_size=10.0, hole
             else:
                 tool_holder = wp.hole(sz, 20.0)
 
-    tool_holder = (
-        tool_holder
-        .workplaneFromTagged("back_wp")
-        .pushPoints(screw_pts)
-        .hole(3.6, 20.0)
-        .workplaneFromTagged("back_wp")
-        .workplane(offset=-8.0)
-        .pushPoints(screw_pts)
-        .hole(8.0, 200.0)
-    )
+    tool_holder = drill_backplate_screws(tool_holder, screw_pts)
 
     return tool_holder, width_units, depth_units
 

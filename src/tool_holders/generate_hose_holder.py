@@ -16,7 +16,6 @@
 # along with french_cleats.  If not, see <https://www.gnu.org/licenses/>.
 import cadquery as cq
 import argparse
-import math
 import sys
 import os
 
@@ -27,10 +26,10 @@ from core_library import (
     DEFAULT_RAIL_HEIGHT,
     TOP_GROOVE_Y,
     get_bottom_groove_y,
-    GROOVE_DEPTH,
-    GROOVE_SURFACE_HALF_WIDTH,
-    GROOVE_BOTTOM_HALF_WIDTH,
-    get_main_repo_root,
+    get_groove_points,
+    get_screw_points,
+    drill_backplate_screws,
+    export_model,
 )
 
 
@@ -79,25 +78,9 @@ def create_hose_holder(
     r_lip_top = r_saddle + lip_height        # 185.0 mm (rises UPWARDS to retain hose!)
 
     bottom_groove_y = get_bottom_groove_y(rail_height)
-
-    top_groove_pts = [
-        (TOP_GROOVE_Y + GROOVE_SURFACE_HALF_WIDTH, 1.0),
-        (TOP_GROOVE_Y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-        (TOP_GROOVE_Y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-        (TOP_GROOVE_Y - GROOVE_SURFACE_HALF_WIDTH, 1.0),
-    ]
-    bot_groove_pts = [
-        (bottom_groove_y + GROOVE_SURFACE_HALF_WIDTH, 1.0),
-        (bottom_groove_y + GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-        (bottom_groove_y - GROOVE_BOTTOM_HALF_WIDTH, -GROOVE_DEPTH),
-        (bottom_groove_y - GROOVE_SURFACE_HALF_WIDTH, 1.0),
-    ]
-
-    screw_pts = [
-        (-width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH, y)
-        for i in range(units)
-        for y in (TOP_GROOVE_Y, bottom_groove_y)
-    ]
+    top_groove_pts = get_groove_points(TOP_GROOVE_Y)
+    bot_groove_pts = get_groove_points(bottom_groove_y)
+    screw_pts = get_screw_points(units, rail_height)
 
     lip_mid_r = (r_saddle + r_lip_top) / 2.0
     effective_slot_w = min(handle_slot_width, width - 40.0)
@@ -148,6 +131,10 @@ def create_hose_holder(
         .close()
         .revolve(sweep_angle_deg, (Y0, 0), (Y0, 1))
         .rotate((0, Y0, 0), (0, Y0, 1), -30.0)
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .tag("back_wp")
+        .end(2)
         # Cut standard UNIT shallow 45-degree grooves into the flat back at Z = 0
         .copyWorkplane(cq.Workplane("YZ", origin=(width / 2.0 + 10.0, 0, 0)))
         .polyline(top_groove_pts)
@@ -155,18 +142,14 @@ def create_hose_holder(
         .polyline(bot_groove_pts)
         .close()
         .cutBlind(-(width + 20.0))
-        # Drill standard UNIT screw holes and counterbores
-        .copyWorkplane(cq.Workplane("XY", origin=(0, 0, 1.0)))
-        .pushPoints(screw_pts)
-        .hole(3.6, backplate_thickness + 2.0)
-        .copyWorkplane(cq.Workplane("XY", origin=(0, 0, -backplate_thickness + 4.0)))
-        .pushPoints(screw_pts)
-        .hole(8.0, 10.0)
         # Central handle slot in the front lip
         .copyWorkplane(cq.Workplane("XY", origin=(0, Y0 + lip_mid_r, z_lip_front - 5.0)))
         .slot2D(effective_slot_w, handle_slot_height)
         .cutBlind(wall_thickness + 10.0)
     )
+
+    if screw_pts:
+        body = drill_backplate_screws(body, screw_pts, cbore_depth=10.0)
 
     return body
 
@@ -182,14 +165,8 @@ def orient_for_printing(model, orientation="side_down"):
       Places the flat backplate on the print bed.
     """
     if orientation == "side_down":
-        # Rotate so the +X 60-degree flat end face lies on the XY bed at Z=0
-        # Normal is (cos(-30), sin(-30), 0) = (0.866, -0.500, 0).
-        # Rotate around Z by +30 deg to align normal with +X:
-        rot = model.rotate((0, 0, 0), (0, 0, 1), 30.0)
-        # Rotate around Y by +90 deg to align normal with -Z (pointing down onto bed):
-        rot = rot.rotate((0, 0, 0), (0, 1, 0), 90.0)
+        rot = model.rotate((0, 0, 0), (0, 0, 1), 30.0).rotate((0, 0, 0), (0, 1, 0), 90.0)
         bb = rot.val().BoundingBox()
-        # Drop flat face exactly to Z=0 and center on the build plate:
         dx = -(bb.xmin + bb.xmax) / 2.0
         dy = -(bb.ymin + bb.ymax) / 2.0
         dz = -bb.zmin
@@ -221,35 +198,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    holder = create_hose_holder(
+    cad_model = create_hose_holder(
         units=args.units,
         depth=args.depth,
         rail_height=args.rail_height,
         lip_height=args.lip_height,
     )
+    print_model = orient_for_printing(cad_model, args.print_orientation)
 
-    # CAD model in User Space (as mounted)
-    cad_model = holder
-
-    # Export
-    current_dir = os.path.dirname(__file__)
-    main_repo_root = get_main_repo_root(current_dir)
-    export_dir_stl = os.path.join(main_repo_root, "exports", "stl", "tool_holders")
-    export_dir_step = os.path.join(main_repo_root, "exports", "step", "tool_holders")
-    os.makedirs(export_dir_stl, exist_ok=True)
-    os.makedirs(export_dir_step, exist_ok=True)
-
-    filename_base = f"hose_holder_{args.units}u_D{int(args.depth)}"
-    out_stl = os.path.join(export_dir_stl, f"{filename_base}.stl")
-    out_step = os.path.join(export_dir_step, f"{filename_base}.step")
-
-    # STEP export always in User Space (as mounted)
-    if args.export in ["both", "step"]:
-        cq.exporters.export(cad_model, out_step)
-        print(f"Exported {out_step}")
-
-    # STL export rotated for printing
-    if args.export in ["both", "stl"]:
-        print_model = orient_for_printing(cad_model, args.print_orientation)
-        cq.exporters.export(print_model, out_stl)
-        print(f"Exported {out_stl} (orientation: {args.print_orientation})")
+    filename = f"hose_holder_{args.units}u_D{int(args.depth)}.stl"
+    export_model(
+        print_model,
+        filename,
+        category="tool_holders",
+        print_orientation="none",
+        export=args.export,
+        step_shape=cad_model,
+    )

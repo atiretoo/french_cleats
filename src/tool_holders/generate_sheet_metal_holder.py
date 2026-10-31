@@ -19,7 +19,7 @@ import argparse
 import sys, os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, drill_backplate_screws, export_model
 
 def create_sheet_metal_holder(
     units=1,
@@ -232,17 +232,7 @@ def create_sheet_metal_holder(
         )
 
     # 8. Screw holes and recesses
-    if screw_pts:
-        body = (
-            body
-            .workplaneFromTagged("back_wp")
-            .pushPoints(screw_pts)
-            .hole(3.6, 20.0)
-            .workplaneFromTagged("back_wp")
-            .workplane(offset=-8.0)
-            .pushPoints(screw_pts)
-            .hole(8.0, 20.0)
-        )
+    body = drill_backplate_screws(body, screw_pts, cbore_depth=20.0)
 
     return body
 

@@ -20,7 +20,7 @@ import math
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, drill_backplate_screws, export_model
 
 def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_width=10.0, 
                                slot_spacing=30.0, start_clearance=15.0, groove_depth=15.0, 
@@ -102,17 +102,7 @@ def create_corner_clamp_holder(width_units=1, depth_units=5, num_slots=4, slot_w
         )
     
     # Cut mounting holes
-    if screw_pts:
-        tool_holder = (
-            tool_holder
-            .workplaneFromTagged("back_wp")
-            .pushPoints(screw_pts)
-            .hole(3.6, 20.0)
-            .workplaneFromTagged("back_wp")
-            .workplane(offset=-8.0)
-            .pushPoints(screw_pts)
-            .hole(8.0, 200.0)
-        )
+    tool_holder = drill_backplate_screws(tool_holder, screw_pts)
     
     return tool_holder, width_units, depth_units
 

@@ -28,6 +28,8 @@ from core_library import (
     HSW_ASSETS_DIR,
     BACKPLATE_TOP_Y,
     TOP_RIDGE_Y,
+    RIDGE_SURFACE_HALF_WIDTH,
+    SCREW_SPECS,
     get_ridge_points,
     DEFAULT_RAIL_HEIGHT,
     RAIL_PLAY,
@@ -102,20 +104,12 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
     else:
         raise ValueError(f"Unknown orientation: {orientation}")
         
-    if screw_m == "M3":
-        screw_d = 3.4
-        nut_waf = 5.5
-        nut_thick = 2.4
-    elif screw_m == "M4":
-        screw_d = 4.5
-        nut_waf = 7.0
-        nut_thick = 3.2
-    elif screw_m == "M5":
-        screw_d = 5.5
-        nut_waf = 8.0
-        nut_thick = 4.0
-    else:
+    if screw_m not in SCREW_SPECS:
         raise ValueError(f"Unsupported screw size: {screw_m}")
+    spec = SCREW_SPECS[screw_m]
+    screw_d = spec["clear"]
+    nut_waf = spec["nut_waf"]
+    nut_thick = spec["nut_thick"]
         
     slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 4.0 + slot_t / 2.0
@@ -148,27 +142,31 @@ def create_hsw_cleat_adapter(orientation="standard", rotated_pitch=23.6, screw_m
     
     body = (
         cq.Workplane("YZ")
-        .polyline(pts).close()
+        .polyline(pts)
+        .close()
         .extrude(width / 2.0, both=True)
+        .faces(">Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .pushPoints([(0.0, top_screw_y), (0.0, bottom_screw_y)])
+        .hole(screw_d)
     )
-    
-    # Clearance screw holes along Z at X=0
-    body = body.faces(">Z").workplane().pushPoints([(0.0, top_screw_y), (0.0, bottom_screw_y)]).hole(screw_d)
     
     # Shortest-path side-entry captive nut slots:
     # Nut slides in from right (+X) side across width/2 (14mm).
     # Pusher hole exits through left (-X) side.
     side_depth = width / 2.0  # 14.0 mm
-    slot_solid = create_nut_slot(screw_m, depth=side_depth, push_hole=True)
-    slot_rot = cq.Workplane(slot_solid).rotate((0, 0, 0), (0, 0, 1), -90).val()
-    for sy in [top_screw_y, bottom_screw_y]:
-        body = body.cut(cq.Workplane(slot_rot).translate((0, sy, slot_z_center)))
+    slot_rot = create_nut_slot(screw_m, depth=side_depth, push_hole=True).rotate((0, 0, 0), (0, 0, 1), -90)
+    slot_cutters = [
+        slot_rot.moved(cq.Location(cq.Vector(0, sy, slot_z_center)))
+        for sy in [top_screw_y, bottom_screw_y]
+    ]
+    body = body.cut(cq.Compound.makeCompound(slot_cutters))
     
     # HSW Plugs position:
     # Plugs start 5.0 mm below topmost ridge.
-    # Top ridge lower edge is at top_screw_y - 3.5 = 6.5 mm.
+    # Top ridge lower edge is at top_screw_y - RIDGE_SURFACE_HALF_WIDTH = 6.5 mm.
     # Plug top boundary starts at 6.5 - 5.0 = 1.5 mm.
-    plug_top_bound_y = (top_screw_y - 3.5) - 5.0  # 1.5 mm
+    plug_top_bound_y = (top_screw_y - RIDGE_SURFACE_HALF_WIDTH) - 5.0  # 1.5 mm
     top_plug_y = plug_top_bound_y - plug_radius_y
     bot_plug_y = top_plug_y - pitch
     

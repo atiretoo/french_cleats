@@ -1,3 +1,19 @@
+# Copyright (C) 2026 Andrew Tyre
+#
+# This file is part of french_cleats.
+#
+# french_cleats is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# french_cleats is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with french_cleats.  If not, see <https://www.gnu.org/licenses/>.
 import argparse
 import os
 import sys
@@ -5,7 +21,11 @@ import math
 import cadquery as cq
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import export_stl, create_nut_slot, NUT_SLOT_TOLERANCE
+from core_library import (
+    UNIT_WIDTH, BACKPLATE_TOP_Y, TOP_RIDGE_Y, RIDGE_HEIGHT, NUT_SLOT_TOLERANCE,
+    SCREW_SPECS, get_ridge_points, get_bottom_ridge_y, get_bottom_edge_y,
+    get_screw_points, export_model, create_nut_slot
+)
 
 # Print orientation constants:
 # Modeled flat: back face at Z = plate_thickness, hooks pointing into +Z.
@@ -101,73 +121,77 @@ def _make_hook_support(hook_x, hook_y, hook_dia, plate_thickness, stem_length, b
     return pillar
 
 
-def create_skadis_adapter(units=2, rail_height=73.0, screw_m="M3", hook_dia=4.8, stem_length=5.0, drop_length=5.0):
-    unit_width = 28.0
-    width = units * unit_width
-
-    if screw_m == "M3":
-        screw_d, nut_waf, nut_thick = 3.4, 5.5, 2.4
-    elif screw_m == "M4":
-        screw_d, nut_waf, nut_thick = 4.5, 7.0, 3.2
-    elif screw_m == "M5":
-        screw_d, nut_waf, nut_thick = 5.5, 8.0, 4.0
-    else:
+def create_skadis_adapter(units=2, rail_height=73.0, screw_m="M3", hook_dia=4.8, stem_length=5.0, drop_length=5.0, for_printing=True):
+    if screw_m not in SCREW_SPECS:
         raise ValueError(f"Unsupported screw size: {screw_m}")
+    spec = SCREW_SPECS[screw_m]
+    screw_d, nut_thick = spec["clear"], spec["nut_thick"]
 
-    top_screw_y = 10.0
-    bottom_screw_y = -rail_height - 1.0 - 10.0  # play = 1.0
-
-    top_y = 20.0
-    bottom_y = bottom_screw_y - 10.0
-
+    width = units * UNIT_WIDTH
+    top_screw_y = TOP_RIDGE_Y
+    bottom_screw_y = get_bottom_ridge_y(rail_height)
+    top_y = BACKPLATE_TOP_Y
+    bottom_y = get_bottom_edge_y(rail_height)
     plate_thickness = 6.0
 
-    # Base Plate
-    adapter = (
-        cq.Workplane("XY")
-        .box(width, top_y - bottom_y, plate_thickness)
-        .translate((0, (top_y + bottom_y) / 2.0, plate_thickness / 2.0))
+    # 1. Baseplate + v2.0 shallow ridges extruded in one BRep operation on YZ
+    pts = (
+        [(top_y, 0.0)]
+        + get_ridge_points(top_screw_y)
+        + get_ridge_points(bottom_screw_y)
+        + [
+            (bottom_y, 0.0),
+            (bottom_y, plate_thickness),
+            (top_y, plate_thickness),
+        ]
     )
 
-    # Ridges on the Z=0 face pointing into -Z
-    ridge_depth = 4.0
+    # 45-degree side chamfer profiles on >Y face (Local X = ±Global X, Local Y = Global Z)
+    right_cut_pts = [
+        (width / 2.0, plate_thickness),
+        (width / 2.0 - 20.0, plate_thickness - 20.0),
+        (width / 2.0 + 20.0, plate_thickness - 20.0),
+        (width / 2.0 + 20.0, plate_thickness),
+    ]
+    left_cut_pts = [
+        (-width / 2.0, plate_thickness),
+        (-width / 2.0 + 20.0, plate_thickness - 20.0),
+        (-width / 2.0 - 20.0, plate_thickness - 20.0),
+        (-width / 2.0 - 20.0, plate_thickness),
+    ]
 
-    def add_ridge(adapter_obj, y_center):
-        pts = [
-            (y_center + 4, 0),
-            (y_center + 2, -ridge_depth),
-            (y_center - 2, -ridge_depth),
-            (y_center - 4, 0)
-        ]
-        ridge = (
-            cq.Workplane("YZ")
-            .polyline(pts).close()
-            .extrude(width)
-            .translate((-width / 2, 0, 0))
-        )
-        return adapter_obj.union(ridge)
+    screw_pts = get_screw_points(units, rail_height)
+    screw_hole_depth = RIDGE_HEIGHT + plate_thickness - 0.8
 
-    adapter = add_ridge(adapter, top_screw_y)
-    adapter = add_ridge(adapter, bottom_screw_y)
+    adapter = (
+        cq.Workplane("YZ")
+        .polyline(pts)
+        .close()
+        .extrude(width / 2.0, both=True)
+        # Cut 45-degree printability chamfers on left and right edges
+        .faces(">Y")
+        .workplane(centerOption="ProjectedOrigin")
+        .polyline(right_cut_pts)
+        .close()
+        .polyline(left_cut_pts)
+        .close()
+        .cutThruAll()
+        # Drill blind screw holes from the ridge crest plane (-RIDGE_HEIGHT) into +Z
+        .faces("<Z")
+        .workplane(centerOption="ProjectedOrigin")
+        .pushPoints([(-x, y) for x, y in screw_pts])
+        .hole(screw_d, screw_hole_depth)
+    )
 
-    # Skadis Vertical Coordinates:
-    # Top hook at 5.5. Skadis vertical pitch between slots is 40.0mm.
-    # 2 slots down = 80mm spacing.
+    # 2. Skadis Hooks & Alignment Pegs
     top_hook_y = 5.5
     bottom_peg_y = top_hook_y - 80.0
 
-    # Skadis Horizontal Placement:
-    # 1u (28mm): 1 hook at x=0
-    # 2u (56mm): 2 hooks at x = [-20.0, 20.0] (40mm pitch)
-    # 3u (84mm): 3 hooks at x = [-40.0, 0.0, 40.0] (40mm pitch)
-    # 4u (112mm): 3 hooks centered at x = [-40.0, 0.0, 40.0]
     if units == 1:
         hook_x_positions = [0.0]
     elif units == 2:
         hook_x_positions = [-20.0, 20.0]
-    elif units == 3:
-        hook_x_positions = [-40.0, 0.0, 40.0]
-    elif units == 4:
+    elif units in [3, 4]:
         hook_x_positions = [-40.0, 0.0, 40.0]
     else:
         num_hooks = max(1, int(width / 40.0))
@@ -178,7 +202,6 @@ def create_skadis_adapter(units=2, rail_height=73.0, screw_m="M3", hook_dia=4.8,
     bend_r = 2.5
 
     for x in hook_x_positions:
-        # Top 90-degree hook (pointing down into -Y)
         stem = cq.Solid.makeCylinder(hook_dia / 2.0, stem_length, cq.Vector(x, top_hook_y, plate_thickness), cq.Vector(0, 0, 1))
         circle_90 = cq.Workplane("XY").center(x, top_hook_y).workplane(offset=plate_thickness + stem_length).circle(hook_dia / 2.0)
         bend = circle_90.revolve(90, (0, -bend_r, 0), (1, -bend_r, 0))
@@ -191,7 +214,6 @@ def create_skadis_adapter(units=2, rail_height=73.0, screw_m="M3", hook_dia=4.8,
         top_hook = (cq.Workplane(stem).union(bend).union(cq.Workplane(drop))
                     .union(cq.Workplane(end_sph)).union(cq.Workplane(top_embed)))
 
-        # Bottom alignment peg (straight standoff cylinder)
         bot_peg_L = (plate_thickness - embed_z) + 5.0
         bot_peg = cq.Solid.makeCylinder(hook_dia / 2.0, bot_peg_L, cq.Vector(x, bottom_peg_y, embed_z), cq.Vector(0, 0, 1))
         bot_sph = cq.Solid.makeSphere(hook_dia / 2.0, cq.Vector(x, bottom_peg_y, plate_thickness + 5.0), cq.Vector(0, 0, 1), -90, 90, 360)
@@ -199,56 +221,32 @@ def create_skadis_adapter(units=2, rail_height=73.0, screw_m="M3", hook_dia=4.8,
 
         adapter = adapter.union(top_hook).union(bot_peg_full)
 
-    # Nut slots and screw holes
+    # 3. Nut slots
     slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 2.0 + slot_t / 2.0
+    depth_top = top_y - top_screw_y
+    depth_bot = bottom_screw_y - bottom_y
 
+    slot_top_proto = create_nut_slot(screw_m, depth=depth_top, push_hole=True, push_hole_angle=30.0)
+    slot_bot_proto = create_nut_slot(screw_m, depth=depth_bot, push_hole=True, push_hole_angle=30.0).moved(
+        cq.Location(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), 180)
+    )
+
+    nut_cutters = []
     for i in range(units):
-        x = -width / 2 + unit_width / 2 + i * unit_width
-        screw_hole_len = 10.0 + plate_thickness - 0.8
+        x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
+        nut_cutters.append(slot_top_proto.moved(cq.Location(cq.Vector(x, top_screw_y, slot_z_center))))
+        nut_cutters.append(slot_bot_proto.moved(cq.Location(cq.Vector(x, bottom_screw_y, slot_z_center))))
 
-        # Top screw hole
-        hole_top = cq.Workplane("XY").workplane(offset=-10).center(x, top_screw_y).circle(screw_d / 2).extrude(screw_hole_len)
-        adapter = adapter.cut(hole_top)
+    if nut_cutters:
+        adapter = adapter.cut(cq.Compound.makeCompound(nut_cutters))
 
-        # Top nut slot
-        depth_top = top_y - top_screw_y
-        slot_top_solid = create_nut_slot(screw_m, depth=depth_top, push_hole=True, push_hole_angle=30.0)
-        slot_top_solid = slot_top_solid.translate(cq.Vector(x, top_screw_y, slot_z_center))
-        adapter = adapter.cut(cq.Workplane(slot_top_solid))
+    if not for_printing:
+        return adapter
 
-        # Bottom screw hole
-        hole_bot = cq.Workplane("XY").workplane(offset=-10).center(x, bottom_screw_y).circle(screw_d / 2).extrude(screw_hole_len)
-        adapter = adapter.cut(hole_bot)
-
-        # Bottom nut slot
-        depth_bot = bottom_screw_y - bottom_y
-        slot_bot_solid = create_nut_slot(screw_m, depth=depth_bot, push_hole=True, push_hole_angle=30.0)
-        slot_bot_solid = cq.Workplane(slot_bot_solid).rotate(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), 180).val()
-        slot_bot_solid = slot_bot_solid.translate(cq.Vector(x, bottom_screw_y, slot_z_center))
-        adapter = adapter.cut(cq.Workplane(slot_bot_solid))
-
-    # Add 45 degree chamfer to left and right sides for printability
-    right_cut_pts = [
-        (width / 2, plate_thickness),
-        (width / 2 - 50, plate_thickness - 50),
-        (width / 2 + 50, plate_thickness - 50),
-        (width / 2 + 50, plate_thickness)
-    ]
-    right_cutter = cq.Workplane("XZ").polyline(right_cut_pts).close().extrude(1000, both=True)
-
-    left_cut_pts = [
-        (-width / 2, plate_thickness),
-        (-width / 2 + 50, plate_thickness - 50),
-        (-width / 2 - 50, plate_thickness - 50),
-        (-width / 2 - 50, plate_thickness)
-    ]
-    left_cutter = cq.Workplane("XZ").polyline(left_cut_pts).close().extrude(1000, both=True)
-
-    adapter = adapter.cut(right_cutter).cut(left_cutter).val()
-
-    # Transform into final print orientation resting flat on Z=0
-    rotated = _to_print(adapter, 0.0)
+    # 4. Transform into final print orientation resting flat on Z=0
+    adapter_val = adapter.val()
+    rotated = _to_print(adapter_val, 0.0)
     dz = -rotated.BoundingBox().zmin
     adapter_p = rotated.translate(cq.Vector(0, 0, dz))
 
@@ -258,7 +256,6 @@ def create_skadis_adapter(units=2, rail_height=73.0, screw_m="M3", hook_dia=4.8,
         sup = _make_hook_support(x, top_hook_y, hook_dia, plate_thickness, stem_length, bend_r, drop_length, dz, gap=0.2)
         supports.append(sup)
 
-    # Return as compound so slicer handles supports as separate bodies
     all_solids = [adapter_p] + supports
     return cq.Workplane(cq.Compound.makeCompound(all_solids))
 
@@ -269,20 +266,21 @@ def main():
     parser.add_argument("--rail-height", type=float, default=73.0, help="French cleat height in mm")
     parser.add_argument("--screw", type=str, default="M3", help="Screw size")
     parser.add_argument("--generate-all", action="store_true", help="Generate 1U through 4U mounts")
+    parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format (default: both)")
 
     args = parser.parse_args()
 
     if args.generate_all:
         for u in [1, 2, 3, 4]:
-            adapter = create_skadis_adapter(units=u, rail_height=args.rail_height, screw_m=args.screw)
+            cad_adapter = create_skadis_adapter(units=u, rail_height=args.rail_height, screw_m=args.screw, for_printing=False)
+            print_adapter = create_skadis_adapter(units=u, rail_height=args.rail_height, screw_m=args.screw, for_printing=True)
             filename = f"skadis_adapter_{u}u_H{args.rail_height}_{args.screw}.stl"
-            export_stl(adapter, filename, print_orientation='face_down', category='pegboard')
-            print(f"Exported {filename}")
+            export_model(print_adapter, filename, print_orientation="face_down", category="pegboard", export=args.export, step_shape=cad_adapter)
     else:
-        adapter = create_skadis_adapter(units=args.units, rail_height=args.rail_height, screw_m=args.screw)
+        cad_adapter = create_skadis_adapter(units=args.units, rail_height=args.rail_height, screw_m=args.screw, for_printing=False)
+        print_adapter = create_skadis_adapter(units=args.units, rail_height=args.rail_height, screw_m=args.screw, for_printing=True)
         filename = f"skadis_adapter_{args.units}u_H{args.rail_height}_{args.screw}.stl"
-        export_stl(adapter, filename, print_orientation='face_down', category='pegboard')
-        print(f"Exported {filename}")
+        export_model(print_adapter, filename, print_orientation="face_down", category="pegboard", export=args.export, step_shape=cad_adapter)
 
 
 if __name__ == "__main__":

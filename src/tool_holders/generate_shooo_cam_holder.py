@@ -20,7 +20,10 @@ import sys, os
 import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import create_baseplate, export_model, create_nut_slot, BACKPLATE_THICKNESS
+from core_library import (
+    UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate,
+    drill_backplate_screws, export_model, create_nut_slot, support_fin
+)
 
 def create_shooo_cam_holder(num_tools=1):
     # === Shooo's Mechanism Dimensions ===
@@ -29,45 +32,44 @@ def create_shooo_cam_holder(num_tools=1):
     block_x = 12.6         # Width
     block_r = 3.81         # Vertical edge fillet radius
     gap = 26.241           # Distance between the two blocks
-    
+
     mech_width = (num_tools + 1) * block_x + num_tools * gap
-    units = max(1, math.ceil(mech_width / 28.0))
-    
+    units = max(1, math.ceil(mech_width / UNIT_WIDTH))
+
     # Baseplate
     body, top_y, bottom_y, bottom_groove_y, screw_pts, _ = create_baseplate(units=units)
-    
+
     # Holes on top face
     reg_hole_dia = 4.508
     reg_hole_depth = 6.0
     m3_hole_dia = 3.4
-    
+
     # Distances from bottom edge of the block (the side closest to the groove)
-    # The user's original measurements were correctly anchored to the bottom edge!
     reg_hole_1_y_offset = 11.43
     m3_hole_y_offset = 16.087
     reg_hole_2_y_offset = 29.953
-    
+
     # Cam Post
     post_h = 10.160
     post_r = 4.5 / 2.0
     boss_r = 5.5 / 2.0
     boss_h = 1.5
-    
+
     # User measured 19.83mm from the "top" (groove-side) edge to the edge of the pin.
     post_y_offset = 19.83 + post_r
-    
+
     # Post position within the gap (from left block inner face)
     post_x_from_left = 6.24
-    
+
     # Center the mechanism on the baseplate (Between Y=0 and Y=-74 is 74mm. Center is -37)
     block_y_bot = -37.0 - (block_y / 2.0)
-    
+
     # Calculate absolute Y positions anchored from the bottom edge
     reg_hole_1_y = block_y_bot + reg_hole_1_y_offset
     m3_hole_y = block_y_bot + m3_hole_y_offset
     reg_hole_2_y = block_y_bot + reg_hole_2_y_offset
     post_y = block_y_bot + post_y_offset
-    
+
     start_x = -(mech_width / 2.0)
     top_z = -BACKPLATE_THICKNESS - block_h
 
@@ -120,85 +122,57 @@ def create_shooo_cam_holder(num_tools=1):
 
     # M3 Captive Nut Slots (5mm from the front face)
     slot_z = top_z + 5.0
+    slot_proto = create_nut_slot("M3", depth=(block_x / 2.0) + 0.5, push_hole=True)
+    nut_cutters = []
     for i, x_pos in enumerate(block_xs):
         slide_dir = -1.0 if i == num_tools else 1.0
-        slot_solid = create_nut_slot("M3", depth=(block_x / 2.0) + 0.5, push_hole=True)
         plane = cq.Plane(origin=(x_pos, m3_hole_y, slot_z), xDir=(0, -slide_dir, 0), normal=(0, 0, 1))
-        body = body.cut(slot_solid.moved(cq.Location(plane)))
+        nut_cutters.append(slot_proto.moved(cq.Location(plane)))
+    if nut_cutters:
+        body = body.cut(cq.Compound.makeCompound(nut_cutters))
 
     # Cut cleat mounting screws
     if screw_pts:
-        body = (
-            body
-            .workplaneFromTagged("back_wp")
-            .pushPoints(screw_pts)
-            .hole(3.6, 20.0)
-            .workplaneFromTagged("back_wp")
-            .workplane(offset=-8.0)
-            .pushPoints(screw_pts)
-            .hole(8.0, 20.0)
-        )
-        
+        body = drill_backplate_screws(body, screw_pts, cbore_depth=20.0)
+
     return body
 
 def add_support_fin(holder, units):
-    from core_library import support_fin
-    import math
-    
-    # 1. Rotate to back_down
-    holder = holder.rotate((0,0,0), (1,0,0), 180)
-    
-    # 2. Tilt 45 degrees around Y-axis (stands on left edge -X)
-    holder = holder.rotate((0,0,0), (0,1,0), -45)
-    
+    # 1. Rotate to back_down then tilt -45 degrees around Y-axis (stands on left edge -X)
+    holder = holder.rotate((0, 0, 0), (1, 0, 0), 180).rotate((0, 0, 0), (0, 1, 0), -45)
     bb = holder.val().BoundingBox()
-    
-    # Calculate exact X boundaries of the baseplate after -45 deg Y rotation
-    baseplate_width = units * 28.0
+
+    baseplate_width = units * UNIT_WIDTH
     cos45 = math.cos(math.radians(-45))
     X_min = (-baseplate_width / 2.0) * cos45
     X_max = (baseplate_width / 2.0) * cos45
-    
     length = X_max - X_min
-    
-    # 3. Shift holder so X_min is at X=0, and Z_min is at Z=0.
-    # Since backplate is at Z=X, to keep it at Z=X after translation, we must shift Z by the same amount as X.
+
+    # Shift holder so X_min is at X=0 and Z_min is at Z=0
     holder = holder.translate((-X_min, 0, -X_min))
-    
-    # 4. Generate the fin from core_library
-    # support_fin generates a fin for Z=Y, starting at Y=0, Z=0.
-    fin = support_fin(z_gap=0.2, is_right=True, length=length, height=length)
-    
-    # 5. Rotate fin to support Z=X instead of Z=Y.
-    # support_fin is on YZ plane, extruded along X.
-    # If we rotate it -90 around Z, Y goes to X, X goes to -Y.
-    fin = fin.rotate((0,0,0), (0,0,1), -90)
-    
-    # 6. Translate fin to the Y-center of the holder
+
+    fin = support_fin(z_gap=0.2, is_right=True, length=length, height=length).rotate((0, 0, 0), (0, 0, 1), -90)
     y_center = (bb.ymin + bb.ymax) / 2.0
     fin = fin.translate((0, y_center, 0))
-    
-    # 7. Group into an assembly/compound so they remain separate objects in the STEP file
-    holder = cq.Compound.makeCompound([holder.val(), fin.val()])
-    
-    return holder
+
+    return cq.Compound.makeCompound([holder.val(), fin.val()])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate Shooo cam mechanism holder.")
     parser.add_argument("--tools", type=int, default=1, help="Number of tools to hold")
     parser.add_argument("--tilt-fin", action="store_true", help="Rotate 45 degrees and model a support fin (avoids horizontal bridge sagging in nut slots)")
+    parser.add_argument("--export", choices=["both", "stl", "step"], default="both", help="Export format (default: both)")
     args = parser.parse_args()
 
-    holder = create_shooo_cam_holder(num_tools=args.tools)
-    
-    # mech_width calculation is the same as inside create_shooo_cam_holder
+    cad_holder = create_shooo_cam_holder(num_tools=args.tools)
+
     mech_width = (args.tools + 1) * 12.6 + args.tools * 26.241
-    units = math.ceil(mech_width / 28.0)
-    
+    units = math.ceil(mech_width / UNIT_WIDTH)
+
     if args.tilt_fin:
-        holder = add_support_fin(holder, units)
+        print_holder = add_support_fin(cad_holder, units)
         filename = f"shooo_cam_holder_{args.tools}tools_{units}u_45deg.stl"
-        export_model(holder, filename, print_orientation="face_down", category="tool_holders")
+        export_model(print_holder, filename, print_orientation="face_down", category="tool_holders", export=args.export, step_shape=cad_holder)
     else:
         filename = f"shooo_cam_holder_{args.tools}tools_{units}u.stl"
-        export_model(holder, filename, print_orientation="back_down", category="tool_holders")
+        export_model(cad_holder, filename, print_orientation="back_down", category="tool_holders", export=args.export)

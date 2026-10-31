@@ -28,6 +28,7 @@ from core_library import (
     RIDGE_HEIGHT,
     DEFAULT_RAIL_HEIGHT,
     RAIL_PLAY,
+    SCREW_SPECS,
     get_bottom_groove_y,
     get_bottom_edge_y,
     get_ridge_points,
@@ -554,15 +555,13 @@ def create_shelf_edge_adapter(
     else:
         dovetail_x_positions = [0.0]
 
-    if screw_m == "M3":
-        screw_d, nut_waf, nut_thick = 3.4, 5.5, 2.4
-    elif screw_m == "M4":
-        screw_d, nut_waf, nut_thick = 4.5, 7.0, 3.2
-    elif screw_m == "M5":
-        screw_d, nut_waf, nut_thick = 5.5, 8.0, 4.0
+    if screw_m in SCREW_SPECS:
+        spec = SCREW_SPECS[screw_m]
+        screw_d, nut_waf, nut_thick = spec["clear"], spec["nut_waf"], spec["nut_thick"]
     else:
         with_screws = False
-        screw_d, nut_waf, nut_thick = 3.4, 5.5, 2.4
+        spec = SCREW_SPECS["M3"]
+        screw_d, nut_waf, nut_thick = spec["clear"], spec["nut_waf"], spec["nut_thick"]
 
     slot_t = nut_thick + NUT_SLOT_TOLERANCE
     slot_z_center = 4.0 + slot_t / 2.0
@@ -626,13 +625,6 @@ def create_shelf_edge_adapter(
             (z_max, width / 2.0 + 5.0),
             (z_max, x_max_r),
         ]
-        cutter_r = (
-            cq.Workplane("ZX", origin=(0.0, y_bot - 10.0, 0.0))
-            .polyline(pts_r)
-            .close()
-            .extrude(h_cut)
-        )
-
         # Exact 45-degree slope on the left (-X) side
         pts_l = [
             (z_min, -x_min_r),
@@ -640,13 +632,16 @@ def create_shelf_edge_adapter(
             (z_max, -width / 2.0 - 5.0),
             (z_max, -x_max_r),
         ]
-        cutter_l = (
-            cq.Workplane("ZX", origin=(0.0, y_bot - 10.0, 0.0))
+        plate = (
+            plate
+            .faces(">Y")
+            .workplane(centerOption="ProjectedOrigin")
+            .polyline(pts_r)
+            .close()
             .polyline(pts_l)
             .close()
-            .extrude(h_cut)
+            .cutBlind(-h_cut)
         )
-        plate = plate.cut(cutter_r).cut(cutter_l)
 
     # 3. Male tapered dovetail wedge(s) on the rear face (protruding into +Z)
     y_bot_dt = y_top - dovetail_height
@@ -680,10 +675,10 @@ def create_shelf_edge_adapter(
     if with_screws and screw_m.lower() != "none":
         screw_pts = get_screw_points(units, rail_height)
 
-        plane = cq.Plane(origin=(0, 0, -RIDGE_HEIGHT - 5.0), normal=(0, 0, -1))
         adapter = (
-            cq.Workplane(plane)
-            .add(adapter.val())
+            adapter
+            .faces("<Z")
+            .workplane(centerOption="ProjectedOrigin")
             .pushPoints(screw_pts)
             .hole(screw_d, depth=t_top + 10.0)
         )
@@ -704,28 +699,20 @@ def create_shelf_edge_adapter(
             push_hole=True,
             push_hole_angle=push_hole_angle,
             push_hole_dia=push_hole_dia,
-        )
-        slot_bot_proto = (
-            cq.Workplane(slot_bot_proto)
-            .rotate((0, 0, 0), (0, 0, 1), 180)
-            .val()
-        )
+        ).rotate((0, 0, 0), (0, 0, 1), 180)
 
         slot_solids = []
         for i in range(units):
             x = -width / 2.0 + UNIT_WIDTH / 2.0 + i * UNIT_WIDTH
             slot_solids.append(
-                cq.Workplane(slot_top_proto)
-                .translate(cq.Vector(x, top_screw_y, slot_z_center))
-                .val()
+                slot_top_proto.moved(cq.Location(cq.Vector(x, top_screw_y, slot_z_center)))
             )
             slot_solids.append(
-                cq.Workplane(slot_bot_proto)
-                .translate(cq.Vector(x, bottom_screw_y, slot_z_center))
-                .val()
+                slot_bot_proto.moved(cq.Location(cq.Vector(x, bottom_screw_y, slot_z_center)))
             )
 
-        adapter = adapter.cut(cq.Workplane().add(slot_solids))
+        if slot_solids:
+            adapter = adapter.cut(cq.Compound.makeCompound(slot_solids))
 
     return adapter
 
@@ -957,6 +944,7 @@ def main():
                 category="shelf",
                 export=args.export,
                 print_orientation="none",
+                step_shape=model_spacing,
             )
             # Also export convenient alias shelf_edge_dovetail_spacing_test.stl
             export_model(
@@ -965,6 +953,7 @@ def main():
                 category="shelf",
                 export=args.export,
                 print_orientation="none",
+                step_shape=model_spacing,
             )
             print(
                 f"Exported dual-dovetail spacing test coupon ({args.slot_spacing:.1f} mm C-C): "
@@ -1000,6 +989,7 @@ def main():
                 category="shelf",
                 export=args.export,
                 print_orientation="none",
+                step_shape=model_wedge,
             )
             print(f"Exported test wedge (with mount wings): {filename_wedge}")
 
@@ -1032,6 +1022,7 @@ def main():
                 category="shelf",
                 export=args.export,
                 print_orientation="none",
+                step_shape=model_lip,
             )
             print(f"Exported extended lip test coupon (with 2mm chamfered step): {filename_lip}")
 
@@ -1064,6 +1055,7 @@ def main():
                 category="shelf",
                 export=args.export,
                 print_orientation="none",
+                step_shape=model_lip_05,
             )
             print(f"Exported extended lip test coupon (0.5 deg draft comparison): {filename_lip_05}")
 
@@ -1101,6 +1093,7 @@ def main():
                     category="shelf",
                     export=args.export,
                     print_orientation="none",
+                    step_shape=model_cal,
                 )
                 print(f"Exported calibration test coupon ({lbl} mm top delta): {filename_cal}")
 
@@ -1192,6 +1185,7 @@ def main():
                     category="shelf",
                     export=args.export,
                     print_orientation="none",
+                    step_shape=m_taper,
                 )
                 print(f"Exported {desc} with label '{lbl}': {filename_t}")
 
@@ -1222,6 +1216,7 @@ def main():
                     category="shelf",
                     export=args.export,
                     print_orientation="none",
+                    step_shape=m_alias,
                 )
                 print("Exported default taper test alias with label '1A': shelf_edge_dovetail_taper_test.stl")
     else:
@@ -1264,6 +1259,7 @@ def main():
             category="shelf",
             export=args.export,
             print_orientation="none",
+            step_shape=model,
         )
         print(f"Exported adapter: {filename}")
 

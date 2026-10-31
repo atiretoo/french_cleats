@@ -52,6 +52,13 @@ RIDGE_PEAK_HALF_WIDTH = RIDGE_SURFACE_HALF_WIDTH - RIDGE_HEIGHT       # 1.10mm (
 # Metric Captive Nut Slot Tolerances
 NUT_SLOT_TOLERANCE = 0.3                # +0.3mm tolerance along both axes (5.80mm x 2.70mm for M3)
 
+# Standard Metric Screw & Captive Nut Specifications
+SCREW_SPECS = {
+    "M3": {"clear": 3.4, "head_d": 6.5, "head_h": 3.0, "nut_waf": 5.5, "nut_thick": 2.4},
+    "M4": {"clear": 4.5, "head_d": 8.0, "head_h": 4.0, "nut_waf": 7.0, "nut_thick": 3.2},
+    "M5": {"clear": 5.5, "head_d": 9.5, "head_h": 5.0, "nut_waf": 8.0, "nut_thick": 4.0},
+}
+
 # Backward compatibility aliases
 RIDGE_DEPTH = RIDGE_HEIGHT
 RIDGE_CLEARANCE = RIDGE_DEPTH_CLEARANCE
@@ -104,6 +111,22 @@ def get_bottom_edge_y(rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
 def get_backplate_height(rail_height=DEFAULT_RAIL_HEIGHT, play=RAIL_PLAY):
     return BACKPLATE_TOP_Y - get_bottom_edge_y(rail_height, play)
 
+def drill_backplate_screws(body, screw_pts, tag="back_wp", cbore_depth=200.0):
+    """
+    Drills the standard 3.6mm screw clearance holes and 8.0mm counterbore recesses
+    from the tagged backplate face (+Z at Z=0).
+    """
+    return (
+        body
+        .workplaneFromTagged(tag)
+        .pushPoints(screw_pts)
+        .hole(3.6, 20.0)
+        .workplaneFromTagged(tag)
+        .workplane(offset=-8.0)
+        .pushPoints(screw_pts)
+        .hole(8.0, cbore_depth)
+    )
+
 def load_mc_block(filename, base_dir=None):
     if base_dir is None:
         base_dir = MULTICONNECT_ASSETS_DIR
@@ -119,82 +142,40 @@ def load_mc_block(filename, base_dir=None):
     dz = - bb.zmax
     return model.translate((dx, dy, dz))
 
-def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickness=11.0, mount_type="groove", num_rows=2):
-    unit_width = UNIT_WIDTH
-    width = units * unit_width
+def create_baseplate(units=2, rail_height=DEFAULT_RAIL_HEIGHT, backplate_thickness=11.0):
+    width = units * UNIT_WIDTH
+    play = RAIL_PLAY
     
-    if mount_type == "groove":
-        play = RAIL_PLAY
+    bottom_groove_y = get_bottom_groove_y(rail_height, play)
+    bottom_y = get_bottom_edge_y(rail_height, play)
+    
+    pts = (
+        [(BACKPLATE_TOP_Y, 0.0)]
+        + get_groove_points(TOP_GROOVE_Y)
+        + get_groove_points(bottom_groove_y)
+        + [
+            (bottom_y, 0.0),
+            (bottom_y, -backplate_thickness),
+            (BACKPLATE_TOP_Y, -backplate_thickness),
+            (BACKPLATE_TOP_Y, 0.0),
+        ]
+    )
+    
+    baseplate = (
+        cq.Workplane("YZ")
+        .polyline(pts).close()
+        .extrude(width / 2.0, both=True)
+    )
+    
+    # Chamfer the 4 outer back edges (on the >Z face at Z=0)
+    try:
+        baseplate = baseplate.faces(">Z").edges(">X or <X or >Y or <Y").chamfer(2.0)
+    except Exception:
+        pass
+    
+    screw_pts = get_screw_points(units, rail_height, play)
         
-        bottom_groove_y = get_bottom_groove_y(rail_height, play)
-        bottom_y = get_bottom_edge_y(rail_height, play)
-        
-        pts = (
-            [(BACKPLATE_TOP_Y, 0.0)]
-            + get_groove_points(TOP_GROOVE_Y)
-            + get_groove_points(bottom_groove_y)
-            + [
-                (bottom_y, 0.0),
-                (bottom_y, -backplate_thickness),
-                (BACKPLATE_TOP_Y, -backplate_thickness),
-                (BACKPLATE_TOP_Y, 0.0),
-            ]
-        )
-        
-        baseplate = (
-            cq.Workplane("YZ")
-            .polyline(pts).close()
-            .extrude(width / 2.0, both=True)
-        )
-        
-        # Chamfer the 4 outer back edges (on the >Z face at Z=0)
-        try:
-            baseplate = baseplate.faces(">Z").edges(">X or <X or >Y or <Y").chamfer(2.0)
-        except Exception:
-            pass
-        
-        screw_pts = get_screw_points(units, rail_height, play)
-            
-        return baseplate, BACKPLATE_TOP_Y, bottom_y, bottom_groove_y, screw_pts, []
-        
-    elif mount_type == "multiconnect":
-        top_y = 28.0
-        height = num_rows * 28.0 + 14.0
-        bottom_y = top_y - height
-        
-        # OpenGrid multiconnect blocks are 6.4mm thick. 
-        solid_thickness = max(0.01, backplate_thickness - 6.4)
-        
-        # solid box goes from Z=-6.4 down to Z=-backplate_thickness
-        baseplate = (
-            cq.Workplane("XY", origin=(0, top_y - height / 2.0, -6.4 - solid_thickness / 2.0))
-            .box(width, height, solid_thickness)
-        )
-        
-        top_block = load_mc_block('top-back.step')
-        mid_block = load_mc_block('opening-raw-slot-back.step')
-        bot_block = load_mc_block('embed-back-end.step')
-        
-        mc_solids = []
-        for c in range(units):
-            x_center = -width / 2.0 + 14.0 + c * 28.0
-            
-            y_top = 28.0 - 14.0
-            inst = top_block.translate((x_center, y_top, 0))
-            mc_solids.append(inst)
-            
-            for r in range(1, num_rows):
-                y_mid = 28.0 - 14.0 - r * 28.0
-                inst = mid_block.translate((x_center, y_mid, 0))
-                mc_solids.append(inst)
-                
-            y_bot = 28.0 - num_rows * 28.0 - 7.0
-            inst = bot_block.translate((x_center, y_bot, 0))
-            mc_solids.append(inst)
-                
-        screw_pts = [] 
-        bottom_groove_y = bottom_y + 10.0
-        return baseplate, top_y, bottom_y, bottom_groove_y, screw_pts, mc_solids
+    return baseplate, BACKPLATE_TOP_Y, bottom_y, bottom_groove_y, screw_pts, []
 
 def get_main_repo_root(current_dir):
     import subprocess
@@ -236,7 +217,7 @@ class OuterFaceEdgesSelector(cq.Selector):
 def apply_bed_chamfer(shape, print_orientation, dist=2.0):
     return shape
 
-def export_model(shape, filename, category="", export="both", print_orientation="left_down", rotate_for_printing=None, bed_chamfer=2.0):
+def export_model(shape, filename, category="", export="both", print_orientation="left_down", rotate_for_printing=None, bed_chamfer=2.0, step_shape=None):
     import os
     import cadquery as cq
     
@@ -253,8 +234,10 @@ def export_model(shape, filename, category="", export="both", print_orientation=
     out_path_stl = os.path.abspath(os.path.join(export_dir, filename))
     out_path_step = os.path.abspath(os.path.join(step_dir, filename.replace('.stl', '.step')))
     
-    os.makedirs(os.path.dirname(out_path_stl), exist_ok=True)
-    os.makedirs(os.path.dirname(out_path_step), exist_ok=True)
+    if export in ["both", "stl"]:
+        os.makedirs(os.path.dirname(out_path_stl), exist_ok=True)
+    if export in ["both", "step"]:
+        os.makedirs(os.path.dirname(out_path_step), exist_ok=True)
     
     # Backward compatibility for old boolean flag
     if rotate_for_printing is not None:
@@ -262,6 +245,14 @@ def export_model(shape, filename, category="", export="both", print_orientation=
             print_orientation = "left_down"
         else:
             print_orientation = "none"
+            
+    # Export STEP in CAD coordinates before applying print_orientation rotation
+    cad_export_shape = step_shape if step_shape is not None else shape
+    if export in ["both", "step"]:
+        if isinstance(cad_export_shape, cq.Assembly):
+            cad_export_shape.save(out_path_step, exportType='STEP')
+        else:
+            cq.exporters.export(cad_export_shape, out_path_step)
             
     export_shape = shape
     
@@ -279,10 +270,10 @@ def export_model(shape, filename, category="", export="both", print_orientation=
         export_shape = export_shape.rotate((0, 0, 0), (0, 1, 0), -90)
     elif print_orientation == "top_down":
         # Rotate +Y to point down (-Z)
-        export_shape = export_shape.rotate((0, 0, 0), (1, 0, 0), 90)
+        export_shape = export_shape.rotate((0, 0, 0), (1, 0, 0), -90)
     elif print_orientation == "bottom_down":
         # Rotate -Y to point down (-Z)
-        export_shape = export_shape.rotate((0, 0, 0), (1, 0, 0), -90)
+        export_shape = export_shape.rotate((0, 0, 0), (1, 0, 0), 90)
     elif print_orientation == "back_down":
         # Rotate +Z to point down (-Z)
         export_shape = export_shape.rotate((0, 0, 0), (1, 0, 0), 180)
@@ -290,16 +281,16 @@ def export_model(shape, filename, category="", export="both", print_orientation=
         # -Z is already down (or raw orientation requested). No rotation needed.
         pass
         
-    if isinstance(export_shape, cq.Assembly):
-        export_shape.save(out_path_stl, exportType='STL')
-        if export in ["both", "step"]:
-            export_shape.save(out_path_step, exportType='STEP')
-    else:
-        cq.exporters.export(export_shape, out_path_stl)
-        if export in ["both", "step"]:
-            cq.exporters.export(export_shape, out_path_step)
+    if export in ["both", "stl"]:
+        if isinstance(export_shape, cq.Assembly):
+            export_shape.save(out_path_stl, exportType='STL')
+        else:
+            cq.exporters.export(export_shape, out_path_stl)
+            
     if export == "both":
         print(f"Exported {out_path_stl} and {out_path_step}")
+    elif export == "step":
+        print(f"Exported {out_path_step}")
     else:
         print(f"Exported {out_path_stl}")
 
@@ -316,14 +307,10 @@ def create_nut_slot(screw_m="M3", depth=10.0, push_hole=True, push_hole_angle=0.
     - The nut slides in from the +Y direction.
     - The slot width spans the X-axis.
     """
-    if screw_m == "M3":
-        nut_waf, nut_thick = 5.5, 2.4
-    elif screw_m == "M4":
-        nut_waf, nut_thick = 7.0, 3.2
-    elif screw_m == "M5":
-        nut_waf, nut_thick = 8.0, 4.0
-    else:
+    if screw_m not in SCREW_SPECS:
         raise ValueError(f"Unsupported screw size: {screw_m}")
+    spec = SCREW_SPECS[screw_m]
+    nut_waf, nut_thick = spec["nut_waf"], spec["nut_thick"]
         
     slot_w = nut_waf + NUT_SLOT_TOLERANCE
     slot_t = nut_thick + NUT_SLOT_TOLERANCE
@@ -429,4 +416,3 @@ def create_snap_fit_peg_parameterized(bot_p0, num_petals=3, band_dia=8.1):
     snap_peg = snap_peg.translate(bot_p0)
     
     return snap_peg
-

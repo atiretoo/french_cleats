@@ -21,7 +21,7 @@ import sys
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, drill_backplate_screws, export_model
 
 def create_v_holder(width_units=2, depth_units=4, rail_height=73.0):
     shelf_thickness = 5.0
@@ -56,14 +56,8 @@ def create_v_holder(width_units=2, depth_units=4, rail_height=73.0):
         .polyline(v_pts)
         .close()
         .extrude(-shelf_depth)
-        .workplaneFromTagged("back_wp")
-        .pushPoints(screw_pts)
-        .hole(3.6, 20.0)
-        .workplaneFromTagged("back_wp")
-        .workplane(offset=-8.0)
-        .pushPoints(screw_pts)
-        .hole(8.0, 200.0)
     )
+    tool_holder = drill_backplate_screws(tool_holder, screw_pts)
 
     return tool_holder, width_units, depth_units
 

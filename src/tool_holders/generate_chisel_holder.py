@@ -19,7 +19,7 @@ import argparse
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, export_model
+from core_library import UNIT_WIDTH, BACKPLATE_THICKNESS, create_baseplate, drill_backplate_screws, export_model
 
 import math
 
@@ -112,17 +112,7 @@ def create_chisel_holder(num_tools=4, spacing=35.0, hole_size=15.0, hole_sizes=N
         )
     
     # Cut screws
-    if screw_pts:
-        tool_holder = (
-            tool_holder
-            .workplaneFromTagged("back_wp")
-            .pushPoints(screw_pts)
-            .hole(3.6, 20.0)
-            .workplaneFromTagged("back_wp")
-            .workplane(offset=-8.0)
-            .pushPoints(screw_pts)
-            .hole(8.0, 200.0)
-        )
+    tool_holder = drill_backplate_screws(tool_holder, screw_pts)
         
     return tool_holder
 
